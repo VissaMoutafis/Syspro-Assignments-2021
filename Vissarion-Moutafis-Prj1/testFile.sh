@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# change the internal field separator to parse the files appropriately
+OLD_IFS=$IFS
+IFS=$'\n'
 # declare some constants
 ID_MAX=9999 #we get the largest user-defined number and create ids less than or equal to it 
 STR_MIN_LEN=3
@@ -55,25 +58,13 @@ touch inputFile; rm -f inputFile; touch inputFile;
 
 # function to check if an element (id) is contained in the ids list
 contains () {
-    local item=$1
-
-    for v in "${ids[@]}"
-    do 
-        # check if we compare numbers
-        if [ -n "$item " ] && [ "$item" -eq "$item" ] 2>/dev/null 
-        then 
-            if [ "$v" -eq "$item" ]
-            then
-                return 1
-            fi
-        else 
-            
-            if [ "$v" = "$item" ]
-            then
-                return 1
-            fi
-        fi
-    done 
+    # we will check if the first argument is part of the list that start from the second argument
+    # we will use the grep command and the echo command in order to find the element. If the element
+    # is found then the string produced will be non-empty and the following condition will evaluate to true
+    if [ ! -z "`echo ${*:2} | grep -w $1`" ]
+    then 
+        return 1
+    fi
 
     return 0
 }
@@ -82,9 +73,9 @@ create_record () {
     #get a random name and surname (lengths in [3, 12])
     name_len=$(($RANDOM % ($STR_MAX_LEN-$STR_MIN_LEN) + $STR_MIN_LEN))
     surname_len=$(($RANDOM % ($STR_MAX_LEN-$STR_MIN_LEN) + $STR_MIN_LEN))
-    
-    name="`tr -dc A-Za-z < /dev/urandom | head -c $name_len`"
-    surname="`tr -dc A-Za-z < /dev/urandom | head -c $surname_len`"
+    s="`tr -dc A-Za-z < /dev/urandom | head -c $(($name_len+$surname_len))`"
+    name="`echo -n "$s" | head -c $name_len`"
+    surname="`expr substr "$s" $name_len $surname_len`"
 
     # get age
     age=$(($RANDOM % $AGE_MAX + 1)) 
@@ -112,7 +103,14 @@ create_record () {
     fi    
 
     echo "$id $name $surname $country $age $virus $ans $vaccination_date"
-
+    # reset  values besides id
+    name=""
+    surname=""
+    country=""
+    age=""
+    virus=""
+    ans=""
+    vaccination_date=""
 }
 
 # create the records
@@ -141,3 +139,6 @@ do
         create_record
     fi
 done > inputFile
+
+# reset the IFS
+IFS=$OLD_IFS
