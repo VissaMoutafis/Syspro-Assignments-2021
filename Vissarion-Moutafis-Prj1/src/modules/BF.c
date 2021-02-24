@@ -7,47 +7,20 @@
 
 typedef unsigned char uint8_t;
 
-typedef struct bf_hash {
-    Hash_Func func;
-    struct bf_hash *next;
-} * BF_Hash;
-
 struct bloom_filter {
-    BF_Hash func_list;
-    uint8_t *bit_string;
-    size_t size;
-    size_t entry_size;
-    size_t hash_func_count;
+    Hash_Func *func_list;       // The hash functions' array-list
+    uint8_t *bit_string;        // The actual bit string for the bloom filter implementation
+    u_int32_t size;             // size of the bloom filter
+    u_int32_t hash_func_count;  // number of inserted hash functions
 };
 
-void bf_add_hash_func(BF bf, Hash_Func func) {
-    assert(bf != NULL);
-    if (func) {
-        BF_Hash h = bf->func_list;
-        while (h && h->next != NULL) h = h->next;
 
-        // we get to the end of the hash function list
-        // now we have to add the new function there
-
-        BF_Hash a = malloc(sizeof(struct bf_hash));
-        a->next = NULL;
-        a->func = func;
-        bf->hash_func_count++;
-        if (h)
-            h->next = a;
-        else
-            bf->func_list = a;
-    }
-}
-
-static size_t set_size(size_t entry_size);
-
-BF bf_create(Hash_Func *func_list, size_t hash_func_count, size_t entry_size) {
+BF bf_create(Hash_Func *func_list, size_t hash_func_count, size_t size) {
     BF bf = malloc(sizeof(*bf));
 
-    assert(entry_size > 0);
+    assert(hash_func_count <= size);
 
-    bf->func_list = NULL;
+    bf->func_list = calloc(hash_func_count, sizeof(Hash_Func));
     bf->hash_func_count = 0;
     // initialize the hash funtion list
     if (hash_func_count > 0)
@@ -81,14 +54,16 @@ void bf_insert(BF bf, Pointer entry) {
     assert(bf != NULL);
 
     size_t total_bits = bf->size;
-    BF_Hash hash = bf->func_list;
+    BF_Hash hash = bf->func_lisBF bf_create(
+        Hash_Func * func_list, size_t hash_func_count, size_t entry_size) {
+        t;
 
-    while (hash) {
-        size_t index = hash->func(entry) % total_bits;
-        write_bit(bf->bit_string, index);
-        hash = hash->next;
+        while (hash) {
+            size_t index = hash->func(entry) % total_bits;
+            write_bit(bf->bit_string, index);
+            hash = hash->next;
+        }
     }
-}
 static bool read_bit(uint8_t *bit_string, size_t index);
 
 // Function that returns true whether the entry might be in the bloom filter and
