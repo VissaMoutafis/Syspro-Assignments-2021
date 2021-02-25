@@ -25,3 +25,4 @@ static SLNode create_slnode(Pointer entry, u_int32_t levels) {
     return node;
 }
 
+static 

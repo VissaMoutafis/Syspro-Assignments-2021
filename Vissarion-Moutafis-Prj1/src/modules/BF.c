@@ -1,8 +1,7 @@
 #include "BF.h"
 
-#include <assert.h>
 #include <stdio.h>
-#include <stdlib.h>
+
 #define BITS_PER_UINT8_T 8
 
 typedef unsigned char uint8_t;
@@ -13,75 +12,6 @@ struct bloom_filter {
     u_int32_t size;             // size of the bloom filter
     u_int32_t hash_func_count;  // number of inserted hash functions
 };
-
-
-BF bf_create(Hash_Func *func_list, size_t hash_func_count, size_t size) {
-    BF bf = malloc(sizeof(*bf));
-
-    assert(hash_func_count <= size);
-
-    bf->func_list = calloc(hash_func_count, sizeof(Hash_Func));
-    bf->hash_func_count = 0;
-    // initialize the hash funtion list
-    if (hash_func_count > 0)
-        for (int i = 0; i < hash_func_count; ++i)
-            bf_add_hash_func(bf, func_list[i]);
-
-    bf->size = set_size(entry_size);
-    bf->entry_size = 0;
-    bf->bit_string = calloc((bf->size / BITS_PER_UINT8_T) + 1, sizeof(uint8_t));
-
-    return bf;
-}
-
-void bf_destroy(BF bf) {
-    if (bf != NULL) {
-        BF_Hash i, h = bf->func_list;
-        while (h) {
-            i = h->next;
-            free(h);
-            h = i;
-        }
-        free(bf->bit_string);
-        free(bf);
-    }
-}
-
-static void write_bit(uint8_t *bit_string, size_t index);
-
-// Function to add and entry into the bloom filter
-void bf_insert(BF bf, Pointer entry) {
-    assert(bf != NULL);
-
-    size_t total_bits = bf->size;
-    BF_Hash hash = bf->func_lisBF bf_create(
-        Hash_Func * func_list, size_t hash_func_count, size_t entry_size) {
-        t;
-
-        while (hash) {
-            size_t index = hash->func(entry) % total_bits;
-            write_bit(bf->bit_string, index);
-            hash = hash->next;
-        }
-    }
-static bool read_bit(uint8_t *bit_string, size_t index);
-
-// Function that returns true whether the entry might be in the bloom filter and
-// false otherwise
-bool bf_contains(BF bf, Pointer entry) {
-    assert(bf != NULL);
-
-    size_t total_bits = bf->size;
-    BF_Hash hash = bf->func_list;
-
-    while (hash) {
-        size_t index = hash->func(entry) % total_bits;
-        if (!read_bit(bf->bit_string, index)) return false;
-        hash = hash->next;
-    }
-
-    return true;
-}
 
 // Utility functions
 static void write_bit(uint8_t *bit_string, size_t index) {
@@ -107,60 +37,94 @@ static bool read_bit(uint8_t *bit_string, size_t index) {
     return (((*word & (0x1 << bit_index)) >> bit_index) & 0x1);
 }
 
-static bool is_prime(size_t num) {
-    if (num == 1) return false;
-    if (num % 2 == 0 && num > 2) return false;
-    if (num % 3 == 0 && num > 3) return false;
+BF bf_create(size_t hash_func_count, size_t size) {
+    BF bf = malloc(sizeof(*bf));
 
-    for (size_t i = 5; i * i <= num; i += 6)
-        if (num % i == 0 || num % (i + 2) == 0) return false;
+    assert(hash_func_count <= size);
 
+    bf->func_list = calloc(hash_func_count, sizeof(Hash_Func));
+    bf->hash_func_count = hash_func_count;
+    bf->size = size;
+    bf->bit_string = calloc((bf->size / BITS_PER_UINT8_T) + 1, sizeof(uint8_t));
+
+    return bf;
+}
+
+void bf_destroy(BF bf) {
+    free(bf->bit_string);
+    free(bf->func_list);
+    free(bf);
+}
+
+
+// Function to add and entry into the bloom filter
+void bf_insert(BF bf, Pointer entry) {
+    assert(bf != NULL);
+    
+    size_t total_bits = bf->size;
+
+    for (int i = 0; i < bf->hash_func_count; i++) {
+        // for every hash function estimate the hash value and the index that you should change to 1
+        size_t index = hash_i((unsigned char *)entry, i) % total_bits;
+        // write the proper bit
+        write_bit(bf->bit_string, index);
+    }
+}
+
+// Function that returns true whether the entry might be in the bloom filter and
+// false otherwise
+bool bf_contains(BF bf, Pointer entry) {
+    assert(bf != NULL);
+
+    size_t total_bits = bf->size;
+
+    for (int i = 0; i < bf->hash_func_count; i++) {
+        // find the index to check
+        size_t index = hash_i((unsigned char *)entry, i) % total_bits;
+        // if the bit in the specific index is equal to 1 continue, else return false
+        if (!read_bit(bf->bit_string, index)) return false;
+    }
+
+    // if we reached here then all checks have succeeded, the entry is possible to have been inserted in the BF. Return true
     return true;
 }
 
-static size_t set_size(size_t entry_size) {
-    // we must set the bloom filter size at least as large as 3*entry_size and
-    // it must be a prime number
-    size_t bf_size = 3 * entry_size;
 
-    while (!is_prime(bf_size)) bf_size++;
-    return bf_size;
-}
+
+// static bool is_prime(size_t num) {
+//     if (num == 1) return false;
+//     if (num % 2 == 0 && num > 2) return false;
+//     if (num % 3 == 0 && num > 3) return false;
+
+//     for (size_t i = 5; i * i <= num; i += 6)
+//         if (num % i == 0 || num % (i + 2) == 0) return false;
+
+//     return true;
+// }
+
 
 ///////////////////////////////////
 
-// Pointer create_int(int a)
-// {
-//     int *pa = malloc(sizeof(int));
-//     *pa = a;
-//     Pointer p = pa;
-//     return p;
-// }
+// test main
+int main(void) {
+    BF bf = bf_create(15, 100);
 
-// size_t h1(Pointer a)
-// {
-//     return (*(int*)a);
-// }
-// size_t h2(Pointer a)
-// {
-//     return 5*(*(int*)a) + 4;
-// }
+    for (int i = 0; i < 100; i++) {
+        if (!(i%7)){
+            printf("Inserting %d.\n", i);
+            char buf[100];
+            memset(buf, 0, 100);
+            sprintf(buf, "%d", i);
+            bf_insert(bf, buf);
+        }
+    }
 
-// int main(void)
-// {
-//     Hash_Func h[2] = {&h1, &h2};
-//     BF bf = bf_create(h, 2, 3);
-
-//     bf_insert(bf, create_int(19));
-//     bf_insert(bf, create_int(132));
-//     bf_insert(bf, create_int(25));
-
-//     bf_contains(bf, create_int(132)) == true ? printf("132 Yes\n") :
-//     printf("132 No\n"); bf_contains(bf, create_int(19)) == true ? printf("19
-//     Yes\n") : printf("19 No\n"); bf_contains(bf, create_int(133)) == true ?
-//     printf("133 Yes\n") : printf("133 No\n"); bf_contains(bf, create_int(22))
-//     == true ? printf("22 Yes (Wrong positive)\n") : printf("22 No\n");
-//     bf_contains(bf, create_int(25)) == true ? printf("25 Yes\n") : printf("25
-//     No\n");
-
-// }
+    for (int i = 0; i < 100; i++) {
+        char buf[100];
+        memset(buf, 0, 100);
+        sprintf(buf, "%d", i);
+        if (!bf_contains(bf, buf)) printf("%d, %f not in BF.\n", i, ((float)i/7.0));
+    }
+    bf_destroy(bf);
+    return 0;
+}
