@@ -90,24 +90,11 @@ bool bf_contains(BF bf, Pointer entry) {
 }
 
 
-
-// static bool is_prime(size_t num) {
-//     if (num == 1) return false;
-//     if (num % 2 == 0 && num > 2) return false;
-//     if (num % 3 == 0 && num > 3) return false;
-
-//     for (size_t i = 5; i * i <= num; i += 6)
-//         if (num % i == 0 || num % (i + 2) == 0) return false;
-
-//     return true;
-// }
-
-
 ///////////////////////////////////
 
 // test main
 int main(void) {
-    BF bf = bf_create(15, 100);
+    BF bf = bf_create(8, 9);
 
     for (int i = 0; i < 100; i++) {
         if (!(i%7)){

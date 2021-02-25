@@ -30,6 +30,7 @@ then
     exit 1
 fi
 
+# proper error checking for the third argument (#lines)
 if [ -n "$3 " ] && [ "$3" -eq "$3" ] 2>/dev/null 
 then 
     if [ "$3" -gt "$ID_MAX" ] && [ "$4" -eq 0 ]
