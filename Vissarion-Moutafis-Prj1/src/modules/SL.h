@@ -8,7 +8,7 @@ typedef struct skip_list_node *SLNode; // the nodes that a skip list is made of
 // Basic sl functions
 
 // Creator function of the skip list.
-SL sl_create(Compare compare, ItemDestructor itemDestructor, u_int32_t max_level, float leveled_nodes_percent);
+SL sl_create(Compare compare, ItemDestructor itemDestructor, int max_level, float leveled_nodes_percent);
 
 // The insert function of the skip list. Insert entry into sl. If the entry is already in the sl 
 // we decide whether to replace or not by setting the replace flag properly 
