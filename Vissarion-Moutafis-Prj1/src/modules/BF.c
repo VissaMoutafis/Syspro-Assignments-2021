@@ -1,7 +1,5 @@
 #include "BF.h"
 
-#include <stdio.h>
-
 #define BITS_PER_UINT8_T 8
 
 typedef unsigned char uint8_t;
@@ -93,25 +91,25 @@ bool bf_contains(BF bf, Pointer entry) {
 ///////////////////////////////////
 
 // test main
-int main(void) {
-    BF bf = bf_create(8, 9);
+// int main(void) {
+//     BF bf = bf_create(8, 9);
 
-    for (int i = 0; i < 100; i++) {
-        if (!(i%7)){
-            printf("Inserting %d.\n", i);
-            char buf[100];
-            memset(buf, 0, 100);
-            sprintf(buf, "%d", i);
-            bf_insert(bf, buf);
-        }
-    }
+//     for (int i = 0; i < 100; i++) {
+//         if (!(i%7)){
+//             printf("Inserting %d.\n", i);
+//             char buf[100];
+//             memset(buf, 0, 100);
+//             sprintf(buf, "%d", i);
+//             bf_insert(bf, buf);
+//         }
+//     }
 
-    for (int i = 0; i < 100; i++) {
-        char buf[100];
-        memset(buf, 0, 100);
-        sprintf(buf, "%d", i);
-        if (!bf_contains(bf, buf)) printf("%d, %f not in BF.\n", i, ((float)i/7.0));
-    }
-    bf_destroy(bf);
-    return 0;
-}
+//     for (int i = 0; i < 100; i++) {
+//         char buf[100];
+//         memset(buf, 0, 100);
+//         sprintf(buf, "%d", i);
+//         if (!bf_contains(bf, buf)) printf("%d, %f not in BF.\n", i, ((float)i/7.0));
+//     }
+//     bf_destroy(bf);
+//     return 0;
+// }

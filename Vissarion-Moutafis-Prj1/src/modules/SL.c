@@ -1,5 +1,4 @@
 #include "SL.h"
-#include <stdio.h>
 
 struct skip_list {
     SLNode head;
