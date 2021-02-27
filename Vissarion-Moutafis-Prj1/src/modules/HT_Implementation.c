@@ -205,22 +205,22 @@ void ht_destroy(HT hash_table) {
 }
 
 // test main
-int cmp(void *i1, void *i2) { return *(int *)i1 - *(int *)i2; }
+// int cmp(void *i1, void *i2) { return *(int *)i1 - *(int *)i2; }
 
 
-u_int32_t hash(void *i) {
-    // return *(int*)i;
-    char buf[BUFSIZ];
-    memset(buf, 0, BUFSIZ);
-    sprintf(buf, "%u", *(u_int32_t*)i);
-    return hash_i(buf, *(u_int32_t *)i);
-}
+// u_int32_t hash(void *i) {
+//     // return *(int*)i;
+//     char buf[BUFSIZ];
+//     memset(buf, 0, BUFSIZ);
+//     sprintf(buf, "%u", *(u_int32_t*)i);
+//     return hash_i(buf, *(u_int32_t *)i);
+// }
 
-void * create(int i ) {
-    int *p = malloc(sizeof(int));
-    *p = i;
-    return (void*)p;
-}
+// void * create(int i ) {
+//     int *p = malloc(sizeof(int));
+//     *p = i;
+//     return (void*)p;
+// }
 
 // // test main 
 
