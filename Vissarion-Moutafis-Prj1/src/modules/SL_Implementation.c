@@ -261,13 +261,13 @@ void sl_set_destructor(SL sl, ItemDestructor new_destructor, ItemDestructor *pre
 
 // test main
 
-int cmp(void *i1, void *i2) {
-    return *(int*)i1 - *(int*)i2;
-}
+// int cmp(void *i1, void *i2) {
+//     return *(int*)i1 - *(int*)i2;
+// }
 
-void destroy(void *i) {
-    free(i);
-}
+// void destroy(void *i) {
+//     free(i);
+// }
 
 // int main(void) {
 
