@@ -1,5 +1,14 @@
 #!/bin/bash
 
+
+# Implemented by Vissarion Moutafis sdi1800119
+# Usage: ./testFile.sh virusesFile countriesFile numLines duplicatesAllowed
+# virusesFile: the path of the viruses file (one word/line , no blanks)
+# countriesFile: the path of the countries file (one word/line, no blanks)
+# numLines: the number of lines in the produced-testcase
+# duplicatesAllowed:  flag that determines if duplicates are allowed or not (0 unique records, > 0 duplicates )
+
+
 # change the internal field separator to parse the files appropriately
 OLD_IFS=$IFS
 IFS=$'\n'
@@ -72,17 +81,26 @@ contains () {
 
 create_record () {
     #get a random name and surname (lengths in [3, 12])
-    name_len=$(($RANDOM % ($STR_MAX_LEN-$STR_MIN_LEN) + $STR_MIN_LEN))
-    surname_len=$(($RANDOM % ($STR_MAX_LEN-$STR_MIN_LEN) + $STR_MIN_LEN))
-    s="`tr -dc A-Za-z < /dev/urandom | head -c $(($name_len+$surname_len))`"
-    name="`echo -n "$s" | head -c $name_len`"
-    surname="`expr substr "$s" $name_len $surname_len`"
+    name_len=$(($id % ($STR_MAX_LEN-$STR_MIN_LEN) + $STR_MIN_LEN))
+    surname_len=$(($id % ($STR_MAX_LEN-$STR_MIN_LEN) + $STR_MIN_LEN))
+    if [ -z "`cat inputFile | grep -w $id`" ]
+    then
+        # in case the id does not exist, create new name and surname
+        s="`tr -dc A-Za-z < /dev/urandom | head -c $(($name_len+$surname_len))`"
+        name="`echo -n "$s" | head -c $name_len`"
+        surname="`expr substr "$s" $name_len $surname_len`"
+    else 
+        # in case the id is duplicated, retrieve the name and surname
+        line="`cat inputFile | grep -w $id`"
+        name="`echo $line | cut -d \" \" -f 2`"
+        surname="`echo $line | cut -d \" \" -f 3`"
+    fi
 
-    # get age
-    age=$(($RANDOM % $AGE_MAX + 1)) 
+    # get age (defined by id)
+    age=$(($id % $AGE_MAX + 1)) 
 
-    #get country
-    j=$(($RANDOM%${#countries[@]}))
+    #get country (defined by id)
+    j=$(($id%${#countries[@]}))
     country="${countries[$j]}"
 
     #get virus
@@ -134,7 +152,7 @@ do
 
     create_record
 
-    if [ "$duplicatesAllowed" -eq 1 ] && [ "$(($RANDOM%($i+1)))" -eq 0 ]
+    if [ "$duplicatesAllowed" -ne 0 ] && [ "$(($RANDOM%($i+1)))" -eq 0 ]
     then 
         let 'i=i+1'
         create_record

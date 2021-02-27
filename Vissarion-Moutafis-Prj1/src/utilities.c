@@ -2,7 +2,7 @@
 ** Usefull utilities like string parsers and file lines to string converters
 **  Written by Vissarion Moutafis sdi1800119
 */
-#include "ParsingUtils.h"
+#include "Utilities.h"
 
 char **parse_line(char *data_str, int *columns, char* sep) {
     // Initialize the columns counter

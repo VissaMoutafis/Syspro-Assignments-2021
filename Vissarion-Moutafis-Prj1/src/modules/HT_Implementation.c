@@ -222,6 +222,8 @@ void * create(int i ) {
     return (void*)p;
 }
 
+// // test main 
+
 // int main(void) {
 //     HT ht = ht_create(cmp, hash, free);
 //     HT ht2 = ht_create(cmp, hash, free);

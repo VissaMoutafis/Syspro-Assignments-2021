@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include "Types.h"
 
-#define INITIAL_HT_SIZE 64*1024 // initial (prime int) size of the hash table
+#define INITIAL_HT_SIZE 1024 // initial (prime int) size of the hash table
 
 typedef struct hashtable* HT;
 

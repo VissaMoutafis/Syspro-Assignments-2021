@@ -43,7 +43,7 @@ BF bf_create(size_t hash_func_count, size_t size) {
     bf->func_list = calloc(hash_func_count, sizeof(Hash_Func));
     bf->hash_func_count = hash_func_count;
     bf->size = size;
-    bf->bit_string = calloc((bf->size / BITS_PER_UINT8_T) + 1, sizeof(uint8_t));
+    bf->bit_string = calloc(bf->size, sizeof(uint8_t));
 
     return bf;
 }
@@ -89,12 +89,12 @@ bool bf_contains(BF bf, Pointer entry) {
 
 
 ///////////////////////////////////
-
-// test main
+// #include <stdio.h>
+// // test main
 // int main(void) {
-//     BF bf = bf_create(8, 9);
+//     BF bf = bf_create(8, 100000);
 
-//     for (int i = 0; i < 100; i++) {
+//     for (int i = 0; i < 10000; i++) {
 //         if (!(i%7)){
 //             printf("Inserting %d.\n", i);
 //             char buf[100];
@@ -104,11 +104,11 @@ bool bf_contains(BF bf, Pointer entry) {
 //         }
 //     }
 
-//     for (int i = 0; i < 100; i++) {
+//     for (int i = 0; i < 10000; i++) {
 //         char buf[100];
 //         memset(buf, 0, 100);
 //         sprintf(buf, "%d", i);
-//         if (!bf_contains(bf, buf)) printf("%d, %f not in BF.\n", i, ((float)i/7.0));
+//         if (i % 7 == 0 && !bf_contains(bf, buf)) printf("%d, %f not in BF.\n", i, ((float)i/7.0));
 //     }
 //     bf_destroy(bf);
 //     return 0;
