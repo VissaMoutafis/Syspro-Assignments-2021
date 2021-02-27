@@ -4,9 +4,6 @@
  
 typedef struct bloom_filter *BF;
 
-// hash function needed
-unsigned long hash_i(unsigned char *str, unsigned int i);
-
 // Bloom Filter Basic Methods
 
 // Create the Bloom Filter.

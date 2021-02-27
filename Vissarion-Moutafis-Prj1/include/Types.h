@@ -15,4 +15,7 @@ typedef void (*ItemDestructor)(Pointer item); //Function to delete the items sin
 
 typedef void (*Visit)(Pointer item); //Function to help the user define the way the items are printed
 
-typedef size_t (*Hash_Func)(Pointer entry); //Function to hash the entry to a specific integer
+typedef u_int32_t (*Hash_Func)(Pointer entry); //Function to hash the entry to a specific integer
+
+// hash function needed
+unsigned long hash_i(unsigned char *str, unsigned int i);
