@@ -373,7 +373,68 @@ List list_get_top_n(List list, Compare compare, int n) {
 //             printf("ERROR after delete %d\n", *(int*)list_node_get_entry(l, list_find(l, item)));
 //         free(item);
 //     }
+//     for (int i = 0; i < MAX; i ++) {
+//         void *item = create(i);
+//         void *old;
+//         list_delete(l, item, true, &old);
+//         free(item);
+//     }
 
+//     for (int i = 0; i < MAX; i ++) {
+//         void *item = create(i);
+//         if (list_find(l, item))
+//             printf("ERROR after delete %d\n",
+//                    *(int *)list_node_get_entry(l, list_find(l, item)));
+//         free(item);
+//     }
+
+//     if (list_len(l)) puts("ERROR len");
+//     if (!list_empty(l)) puts("ERROR empty");
+//     if (list_get_head(l)) puts("ERROR get_head");
+//     for (int i = 0; i < MAX; i++) {
+//         list_insert(l, create(i), true);
+//     }
+
+//     for (int i = 0; i < MAX; i++) {
+//         void *item = create(i);
+//         if (!list_find(l, item)) puts("ERROR after insert");
+//         free(item);
+//     }
+
+//     for (int i = MAX; i < 2 * MAX; i++) {
+//         void *item = create(i);
+//         if (list_find(l, item)) puts("ERROR find");
+//         free(item);
+//     }
+
+//     for (int i = 0; i < MAX; i += 2) {
+//         void *item = create(i);
+//         void *old;
+//         list_delete(l, item, true, &old);
+//         free(item);
+//     }
+
+//     for (int i = 0; i < MAX; i += 2) {
+//         void *item = create(i);
+//         if (list_find(l, item))
+//             printf("ERROR after delete %d\n",
+//                    *(int *)list_node_get_entry(l, list_find(l, item)));
+//         free(item);
+//     }
+//     for (int i = 0; i < MAX; i++) {
+//         void *item = create(i);
+//         void *old;
+//         list_delete(l, item, true, &old);
+//         free(item);
+//     }
+
+//     for (int i = 0; i < MAX; i++) {
+//         void *item = create(i);
+//         if (list_find(l, item))
+//             printf("ERROR after delete %d\n",
+//                    *(int *)list_node_get_entry(l, list_find(l, item)));
+//         free(item);
+//     }
 //     list_destroy(&l);
 //     return 0;
 // }

@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include "Types.h"
 #include "Utilities.h"
+#include "TTY.h"
+#include "VaccineMonitor.h"
 
 int error_i = 0;
 char *error_string[] = {
@@ -65,6 +67,40 @@ int main(int argc, char * argv[]) {
 
     if (!check_arguments(argc, argv, values, allowed_args)) {
         fprintf(stderr, "Error in arguments (%s) . \nUsage: \n    ~$ ./vaccineMonitor -c citizenRecordsFile -b bloomSize\n", error_string[error_i]);
+        exit(1);
     }
 
+    is_end = false;
+
+    // basic loop of the program
+    while (!is_end) {
+        // first get the input expression from the tty
+        char *expr = get_input();
+        // now parse it to the expression part and the value part
+        char ** parsed_expr = parse_expression(expr); // format: /command value(s)
+
+        // clarify the input with proper assignments
+        char *command = parsed_expr[0];
+        char *value = parsed_expr[1];
+        int expr_index;
+
+        // CREATE THE VACCINE MONITOR 
+
+        // now we have to check if the expression was ok based on the array of allowed formats
+        if (check_format(command, &expr_index) && check_value_list(value, expr_index)) {
+            puts("The command was ok, you can proceed to pass them to vaccineMonitor with:");
+            printf("Command (index): '%s' (%d)\n", command, expr_index);
+            printf("Value(s): '%s'\n", value);
+        } else 
+            help();
+
+        if (expr) free(expr);
+        if (parsed_expr[0]) free(parsed_expr[0]);
+        if (parsed_expr[1]) free(parsed_expr[1]);
+        if (parsed_expr) free(parsed_expr);
+    }
+
+    // de-allocate the memory for every struct you have.
+    // DE-ALLOCATE THE MEMORY OF THE VACCINE MONITOR
+    return 0;
 }

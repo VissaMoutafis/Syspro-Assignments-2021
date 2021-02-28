@@ -19,3 +19,13 @@ typedef u_int32_t (*Hash_Func)(Pointer entry); //Function to hash the entry to a
 
 // hash function needed
 unsigned long hash_i(unsigned char *str, unsigned int i);
+
+typedef struct {
+    char *citizenID;
+    char *firstName;
+    char *lastName;
+    char *country;
+    int age;
+    char *virusName;
+    char *date;
+} Person;
