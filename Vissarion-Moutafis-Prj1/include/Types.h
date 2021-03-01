@@ -27,5 +27,6 @@ typedef struct {
     char *country;
     int age;
     char *virusName;
+    bool vaccinated;
     char *date;
 } *Person;

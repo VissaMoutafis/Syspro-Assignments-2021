@@ -128,10 +128,19 @@ int get_len_of_int(int num) {
     return cnt;
 }
 
-void *create_person(char * citizenID, char *firstName, char *lastName, char *country, int age, char *virusName, char *date, bool deep_copy) {
+void *create_person(char * citizenID, char *firstName, char *lastName, char *country, int age, char *virusName, char *vaccinated, char *date, bool deep_copy) {
+    assert(citizenID);
+    assert(firstName);
+    assert(lastName);
+    assert(country);
+    assert(age >= 0);
+    assert(virusName);
+    assert(vaccinated);
+
     Person p = calloc(1, sizeof(*p));
 
     p->age = age;
+    p->vaccinated = (strcmp(vaccinated, "YES") == 0);
     if (deep_copy) {
         p->citizenID = calloc(strlen(citizenID)+1, sizeof(char));
         strcpy(p->citizenID, citizenID);
@@ -148,8 +157,12 @@ void *create_person(char * citizenID, char *firstName, char *lastName, char *cou
         p->virusName = calloc(strlen(virusName) + 1, sizeof(char));
         strcpy(p->virusName, virusName);
 
-        p->date = calloc(strlen(date) + 1, sizeof(char));
-        strcpy(p->date, date);
+        if (date) {
+            p->date = calloc(strlen(date) + 1, sizeof(char));
+            strcpy(p->date, date);
+        } else 
+            p->date = NULL;
+
     } else {
         p->citizenID = citizenID;
         p->firstName = firstName;

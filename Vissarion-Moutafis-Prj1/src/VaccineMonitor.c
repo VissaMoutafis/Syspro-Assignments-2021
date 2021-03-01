@@ -121,6 +121,45 @@ void country_index_destroy(void *c) {
     free(c);
 }
 
+// Vaccine Monitor Utilities
+
+// create a person from a data line in the file
+static Person str_to_person(char *record) {
+    // First we have to parse the record
+    char **parsed_rec = NULL;
+    int cols = -1;
+    parsed_rec = parse_line(record, &cols, FIELD_SEPARATOR);
+    if (cols < 7)
+        return NULL;
+
+    // create the person instance
+    Person p = create_person(parsed_rec[0], parsed_rec[1], parsed_rec[2],
+                            parsed_rec[3], atoi(parsed_rec[4]), parsed_rec[5],
+                            parsed_rec[6], parsed_rec[7], true);
+    
+    // free the memory of the parse array
+    for (int i = 0; i < cols; i++) free(parsed_rec[i]);
+    free(parsed_rec);
+
+    return p;
+}
+
+void insert_record(VaccineMonitor monitor, char *record) {
+    Person p = str_to_person(record);
+
+    if (!p && (p->vaccinated || !p->date)) {
+        // Pointer old, key;
+        // // now we have to insert the record in the HTs
+        // if (!ht_contains(monitor->citizens, p, &key)) {
+        //     ht_insert(monitor->citizens, p, false, &old);
+        //     countries_insert_rec(monitor, p); //TODO
+        //     virus_info_insert_rec(monitor, p);//TODO
+        // }
+    } else {
+
+        error_msg = "ERROR: RECORD OMMITED";
+    }
+}
 
 // Basic Vaccine Monitor Methods
 
@@ -144,11 +183,12 @@ VaccineMonitor vaccine_monitor_create(char *input_filename, int bloom_size, int 
 
     if (input_filename) {
         // insert all the valid records of citizens from this file
-        insert from file
+        // insert from file
         
-        implement the function to insert a citizen
+        // implement the function to insert a citizen
 
-        implement the function to vaccinate a citizen
+        // implement the function to vaccinate a citizen
+        puts(input_filename);
     }
 
     return m;
@@ -158,6 +198,7 @@ void vaccine_monitor_destroy(VaccineMonitor m) {
     ht_destroy(m->citizen_lists_per_country);
     ht_destroy(m->citizens);
     ht_destroy(m->virus_info);
+    free(m);
 }
 
 bool vaccine_monitor_act(VaccineMonitor monitor, int expr_index, char *value) {
@@ -192,11 +233,14 @@ bool vaccine_monitor_act(VaccineMonitor monitor, int expr_index, char *value) {
         break;
 
     case 7:
-
+        // command: exit, value: NULL
+        vaccine_monitor_destroy(monitor);
+        vaccine_monitor_finalize();
         break;
 
     default:
-        return 1;
+        return false;
         break;
     }
+    return true;
 }

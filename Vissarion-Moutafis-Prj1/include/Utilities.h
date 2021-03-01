@@ -23,7 +23,7 @@ bool is_numeric(char* str);
 // New utilities for the vaccine monitor
 
 // create a person instance
-void *create_person(char * citizenID, char *firstName, char *lastName, char *country, int age, char *virusName, char *date, bool deep_copy);
+void *create_person(char * citizenID, char *firstName, char *lastName, char *country, int age, char *virusName, char *vaccinated, char *date, bool deep_copy);
 
 // destroy a person instance
 void person_destroy(void *_p);

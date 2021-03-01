@@ -30,10 +30,13 @@ $(BIN)/%.o : $(SRC)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf $(BUILD)/$(PROGRAM) $(OBJS)
+	rm -rf $(BUILD)/$(PROGRAM) $(OBJS) ./$(PROGRAM)
 
 clean-database: 
 	rm -rf $(DATABASE-FILES)/*
 
 run-noargs : $(BUILD)/$(PROGRAM)
 	$(BUILD)/$(PROGRAM)
+
+testcases: testFile.sh
+	./testFile.sh viruses.csv countries.csv 100 0
