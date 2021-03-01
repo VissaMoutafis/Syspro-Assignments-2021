@@ -28,4 +28,4 @@ typedef struct {
     int age;
     char *virusName;
     char *date;
-} Person;
+} *Person;

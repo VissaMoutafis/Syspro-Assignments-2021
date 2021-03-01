@@ -4,55 +4,6 @@
 */
 #include "TTY.h"
 
-
-// all the possible commands for the tty API of the app
-int pos_cmds_len = 8;
-
-// for format checking
-char *allowed_formats[] = {
-    "vaccineStatusBloom",
-    "vaccineStatus",
-    "populationStatus",
-    "popStatusByAge",
-    "insertCitizenRecord",
-    "vaccinateNow",
-    "list-nonVaccinated-People",
-    "exit"};
-
-// for help printing
-char *possible_commands[] = {
-    "/vaccineStatusBloom citizenID virusName",
-    "/vaccineStatus citizenID [virusName]",
-    "/populationStatus [country] virusName date1 date2",
-    "/popStatusByAge [country] virusName date1 date2",
-    "/insertCitizenRecord citizenID firstName lastName jcountry age virusName YES/NO [date]",
-    "/vaccinateNow citizenID firstName lastName contry age virusName",
-    "/list-nonVaccinated-People virusName",
-    "/exit"
-};
-
-// for value list argument checking (swallow checks)
-int max_values [] = {
-    2,
-    2,
-    4,
-    4,
-    8,
-    6,
-    1,
-    0
-};
-int min_values [] = {
-    2,
-    1,
-    3,
-    3,
-    8,
-    6,
-    1,
-    0
-};
-
 void print_tty(void) {
     // NOTE: Maybe later add some color
     printf("\n<vaccineMonitor> /");

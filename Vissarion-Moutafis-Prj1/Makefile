@@ -24,6 +24,7 @@ include $(SRC)/src.inc
 
 $(BUILD)/$(PROGRAM) : $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $(BUILD)/$(PROGRAM) $(LIBRARIES)
+	cp $(BUILD)/$(PROGRAM) ./$(PROGRAM)
 
 $(BIN)/%.o : $(SRC)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@

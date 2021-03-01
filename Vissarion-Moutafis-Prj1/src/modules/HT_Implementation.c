@@ -23,7 +23,7 @@ static u_int32_t probing_hash(u_int32_t key_hash, u_int32_t table_size) {
     // between 1 and table_size that is an odd number. We also hope for a diversity in the probing returned
 
     if (key_hash < table_size / 2)
-        return ((table_size / 2) % 2 == 0) ?  : table_size / 2;
+        return ((table_size / 2) % 2 == 0) ? table_size / 2 + 1 : table_size / 2;
     else
         // we know for sure that (table_size - 1)  and (table_size) are coprimes
         return table_size - 1;
@@ -205,102 +205,102 @@ void ht_destroy(HT hash_table) {
 }
 
 // test main
-int cmp(void *i1, void *i2) { return *(int *)i1 - *(int *)i2; }
+// int cmp(void *i1, void *i2) { return *(int *)i1 - *(int *)i2; }
 
 
-u_int32_t hash(void *i) {
-    // return *(int*)i;
-    char buf[BUFSIZ];
-    memset(buf, 0, BUFSIZ);
-    sprintf(buf, "%u", *(u_int32_t*)i);
-    return hash_i(buf, *(u_int32_t *)i);
-}
+// u_int32_t hash(void *i) {
+//     // return *(int*)i;
+//     char buf[BUFSIZ];
+//     memset(buf, 0, BUFSIZ);
+//     sprintf(buf, "%u", *(u_int32_t*)i);
+//     return hash_i(buf, *(u_int32_t *)i);
+// }
 
-void * create(int i ) {
-    int *p = malloc(sizeof(int));
-    *p = i;
-    return (void*)p;
-}
+// void * create(int i ) {
+//     int *p = malloc(sizeof(int));
+//     *p = i;
+//     return (void*)p;
+// }
 
-// test main 
+// int main(void) {
+//     HT ht = ht_create(cmp, hash, free);
+//     HT ht2 = ht_create(cmp, hash, free);
 
-int main(void) {
-    HT ht = ht_create(cmp, hash, free);
-    HT ht2 = ht_create(cmp, hash, free);
+//     int MAX = 999999;
 
-    int MAX = 9999;
+//     puts("TESTING SIMPLE INSERT");
+//     for (int i = 0; i <= MAX; i++) {
+//         Pointer old;
+//         Pointer key = create(i);
+//         ht_insert(ht, key, false, &old);
+//         if (!ht_contains(ht, key, &old)) printf("Problem in insertion of %d.\n", i);
+//     }
 
-    puts("TESTING SIMPLE INSERT");
-    for (int i = 0; i < MAX; i++) {
-        Pointer old;
-        Pointer key = create(i);
-        ht_insert(ht, key, false, &old);
-        if (!ht_contains(ht, key, &old)) printf("Problem in insertion of %d.\n", i);
-    }
+//     puts("TESTING DELETE");
+//     for (int i = 0; i <= MAX; i+=2) {
+//         Pointer old;
+//         Pointer key = create(i);
+//         if (!ht_contains(ht, key, &old))
+//             printf("Problem in deleting of %d.\n", i);
+//         ht_delete(ht, key, true, &old);
+//         if (ht_contains(ht, key, &old))
+//             printf("Problem in deleting of %d.\n", i);
+//         free(key);
+//     }
 
-    puts("TESTING DELETE");
-    for (int i = 0; i <= MAX; i+=2) {
-        Pointer old;
-        Pointer key = create(i);
-        
-        ht_delete(ht, key, true, &old);
-        if (ht_contains(ht, key, &old))
-            printf("Problem in deleting of %d.\n", i);
-        free(key);
-    }
+//     puts("TESTING SIMPLE INSERT");
+//     for (int i = 0; i <= MAX; i++) {
+//         Pointer old;
+//         Pointer key = create(i);
+//         ht_insert(ht2, key, false, &old);
+//         if (!ht_contains(ht2, key, &old))
+//             printf("Problem in insertion of %d.\n", i);
+//     }
 
-    puts("TESTING SIMPLE INSERT");
-    for (int i = 0; i < MAX; i++) {
-        Pointer old;
-        Pointer key = create(i);
-        ht_insert(ht2, key, false, &old);
-        if (!ht_contains(ht2, key, &old))
-            printf("Problem in insertion of %d.\n", i);
-    }
+//     puts("TESTING DELETE");
+//     for (int i = 0; i <= MAX; i += 2) {
+//         Pointer old;
+//         Pointer key = create(i);
+//         if (!ht_contains(ht2, key, &old))
+//             printf("Problem in deleting of %d.\n", i);
+//         ht_delete(ht2, key, true, &old);
+//         if (ht_contains(ht2, key, &old))
+//             printf("Problem in deleting of %d.\n", i);
+//         free(key);
+//     }
 
-    puts("TESTING DELETE");
-    for (int i = 0; i <= MAX; i += 2) {
-        Pointer old;
-        Pointer key = create(i);
+//     puts("TESTING REPLACE");
+//     for (int i = 0; i <= MAX; i++) {
+//         Pointer old;
+//         Pointer key = create(i);
 
-        ht_delete(ht2, key, true, &old);
-        if (ht_contains(ht2, key, &old))
-            printf("Problem in deleting of %d.\n", i);
-        free(key);
-    }
+//         if (i % 2 == 0 && ht_contains(ht, key, &old)) {
+//             puts("SKATA");
+//             printf("%d %u\n", i, hash(&i) % 65536);
+//             exit(1);
+//         }
+//         ht_insert(ht, key, true, &old);
+//         free(old);
+//         if (!ht_contains(ht, key, &old))
+//             printf("Problem in insertion of %d.\n", i);
+//     }
 
-    puts("TESTING REPLACE");
-    for (int i = 0; i < MAX; i++) {
-        Pointer old;
-        Pointer key = create(i);
+//     puts("TESTING REPLACE");
+//     for (int i = 0; i <= MAX; i++) {
+//         Pointer old;
+//         Pointer key = create(i); 
 
-        if (i % 2 == 0 && ht_contains(ht, key, &old)) {
-            puts("SKATA");
-            printf("%d %u\n", i, hash(&i) % 65536);
-            exit(1);
-        }
-        ht_insert(ht, key, true, &old);
-        free(old);
-        if (!ht_contains(ht, key, &old))
-            printf("Problem in insertion of %d.\n", i);
-    }
+//         if (i % 2 == 0 && ht_contains(ht2, key, &old)){ puts("SKATA");
+//             printf("%d %u\n", i, hash(&i) % 65536);
+//             exit(1);
+//         }
+//         ht_insert(ht2, key, true, &old);
+//         free(old);
+//         if (!ht_contains(ht2, key, &old))
+//             printf("Problem in insertion of %d.\n", i);
+//     }
 
-    puts("TESTING REPLACE");
-    for (int i = 0; i < MAX; i++) {
-        Pointer old;
-        Pointer key = create(i); 
-
-        if (i % 2 == 0 && ht_contains(ht2, key, &old)){ puts("SKATA");
-            printf("%d %u\n", i, hash(&i) % 65536);
-            exit(1);
-        }
-        ht_insert(ht2, key, true, &old);
-        free(old);
-        if (!ht_contains(ht2, key, &old))
-            printf("Problem in insertion of %d.\n", i);
-    }
-
-    ht_destroy(ht);
-    ht_destroy(ht2);
-    return 0;
-}
+//     ht_destroy(ht);
+//     ht_destroy(ht2);
+//     return 0;
+// }

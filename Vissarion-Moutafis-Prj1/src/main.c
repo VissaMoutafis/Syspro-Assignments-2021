@@ -70,7 +70,10 @@ int main(int argc, char * argv[]) {
         exit(1);
     }
 
-    is_end = false;
+
+
+    vaccine_monitor_initialize();
+    VaccineMonitor monitor = vaccine_monitor_create(values[0], atoi(argv[1]), 10, 0.5);
 
     // basic loop of the program
     while (!is_end) {
@@ -88,9 +91,15 @@ int main(int argc, char * argv[]) {
 
         // now we have to check if the expression was ok based on the array of allowed formats
         if (check_format(command, &expr_index) && check_value_list(value, expr_index)) {
-            puts("The command was ok, you can proceed to pass them to vaccineMonitor with:");
-            printf("Command (index): '%s' (%d)\n", command, expr_index);
-            printf("Value(s): '%s'\n", value);
+            // puts("The command was ok, you can proceed to pass them to vaccineMonitor with:");
+            // printf("Command (index): '%s' (%d)\n", command, expr_index);
+            // printf("Value(s): '%s'\n", value);
+            
+            // we will try to execute the command. If vaccine monitor fails then we will print the 
+            // error message to stderr
+            if (!vaccine_monitor_act(monitor, expr_index, value)) {
+                fprintf(stderr, "%s\n", error_msg);
+            }
         } else 
             help();
 
