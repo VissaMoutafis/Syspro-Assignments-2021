@@ -73,7 +73,7 @@ int main(int argc, char * argv[]) {
 
 
     vaccine_monitor_initialize();
-    VaccineMonitor monitor = vaccine_monitor_create(values[0], atoi(argv[1]), 10, 0.5);
+    VaccineMonitor monitor = vaccine_monitor_create(values[0], atoi(values[1]), 10, 0.5);
 
     // basic loop of the program
     while (!is_end) {
@@ -111,5 +111,7 @@ int main(int argc, char * argv[]) {
 
     // de-allocate the memory for every struct you have.
     // DE-ALLOCATE THE MEMORY OF THE VACCINE MONITOR
+    vaccine_monitor_destroy(monitor);
+    
     return 0;
 }

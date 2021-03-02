@@ -16,6 +16,7 @@
 bool is_end;
 
 char *error_msg;
+bool error_flag;
 
 // struct typedefs for the app
 typedef struct vaccine_monitor *VaccineMonitor;

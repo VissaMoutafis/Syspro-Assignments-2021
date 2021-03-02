@@ -129,13 +129,9 @@ int get_len_of_int(int num) {
 }
 
 void *create_person(char * citizenID, char *firstName, char *lastName, char *country, int age, char *virusName, char *vaccinated, char *date, bool deep_copy) {
-    assert(citizenID);
-    assert(firstName);
-    assert(lastName);
-    assert(country);
-    assert(age >= 0);
-    assert(virusName);
-    assert(vaccinated);
+    // the vaccinated answer is either yes or no
+    if (!( !strcmp(vaccinated, "YES") || !strcmp(vaccinated, "NO") ))
+        return NULL;
 
     Person p = calloc(1, sizeof(*p));
 

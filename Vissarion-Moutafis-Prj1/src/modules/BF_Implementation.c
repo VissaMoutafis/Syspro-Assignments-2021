@@ -88,15 +88,14 @@ bool bf_contains(BF bf, Pointer entry) {
 }
 
 
-///////////////////////////////////
+/////////////////////////////////
 // #include <stdio.h>
 // // test main
 // int main(void) {
-//     BF bf = bf_create(8, 100000);
+//     BF bf = bf_create(16, 100000);
 
-//     for (int i = 0; i < 10000; i++) {
+//     for (int i = 0; i < 100000; i++) {
 //         if (!(i%7)){
-//             printf("Inserting %d.\n", i);
 //             char buf[100];
 //             memset(buf, 0, 100);
 //             sprintf(buf, "%d", i);
@@ -104,7 +103,7 @@ bool bf_contains(BF bf, Pointer entry) {
 //         }
 //     }
 
-//     for (int i = 0; i < 10000; i++) {
+//     for (int i = 0; i < 100000; i++) {
 //         char buf[100];
 //         memset(buf, 0, 100);
 //         sprintf(buf, "%d", i);

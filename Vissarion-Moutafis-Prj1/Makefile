@@ -14,13 +14,17 @@ OBJS =
 
 LIBRARIES = -lm
 
-CFLAGS = -g3 -Wall -Werror -I $(INCLUDE)
+CFLAGS =  -Werror -Wall  -I $(INCLUDE)
 
 TESTCASE = 
 
 ARGS =
 
 include $(SRC)/src.inc
+
+ifeq ($(DEBUG), 1) 
+	CFLAGS += -D DEBUG -g3
+endif
 
 $(BUILD)/$(PROGRAM) : $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $(BUILD)/$(PROGRAM) $(LIBRARIES)
@@ -35,8 +39,8 @@ clean:
 clean-database: 
 	rm -rf $(DATABASE-FILES)/*
 
-run-noargs : $(BUILD)/$(PROGRAM)
-	$(BUILD)/$(PROGRAM)
+run : $(BUILD)/$(PROGRAM)
+	./$(BUILD)/$(PROGRAM) -c inputFile -b 100000
 
 testcases: testFile.sh
 	./testFile.sh viruses.csv countries.csv 100 0
