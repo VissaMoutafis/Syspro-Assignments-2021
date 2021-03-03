@@ -18,7 +18,6 @@ STR_MIN_LEN=3
 STR_MAX_LEN=12
 AGE_MAX=120
 CUR_YEAR=2021
-MIN_YEAR=$(($CUR_YEAR-$AGE_MAX))
 
 # error checking for the number of arguments
 if [ "$#" -ne 4 ] 
@@ -44,8 +43,7 @@ if [ -n "$3 " ] && [ "$3" -eq "$3" ] 2>/dev/null
 then 
     if [ "$3" -gt "$ID_MAX" ] && [ "$4" -eq 0 ]
     then 
-        echo "The number of lines ($3) is greater than the number of possible ids ($ID_MAX), while duplicates are not allowed. Either allow duplicates or decrease the #lines."
-        exit 1
+        echo -e "The number of lines ($3) is greater than the number of possible ids ($ID_MAX), while duplicates are not allowed.\nWarning: Some duplicates WILL be produced."
     fi 
 else 
     echo "The 3rd arg is #lines, hence it must be an integer."
@@ -60,104 +58,150 @@ countries=( $(cat "$2") )
 numLines=$3
 # set the flag that determines if duplicates are allowed or not
 duplicatesAllowed=$4
+# the length of false and duplicates recs is 2/10 of the numLines 
+falseRecs=$((2 * $numLines / 10))
+if [ "$duplicatesAllowed" -eq 1 ]
+then 
+	numLines=$(($numLines - $falseRecs))
+else
+	falseRecs=-1
+fi
+
+# random string 
+s="`tr -dc A-Za-z < /dev/urandom | head -c 100`"
+
 # create an empty array of the 
-ids=(  )
+recs=( )
 
 # create a new inputFile (delete it if already created)
 touch inputFile; rm -f inputFile; touch inputFile;
 
-# function to check if an element (id) is contained in the ids list
-contains () {
-    # we will check if the first argument is part of the list that start from the second argument
-    # we will use the grep command and the echo command in order to find the element. If the element
-    # is found then the string produced will be non-empty and the following condition will evaluate to true
-    if [ ! -z "`echo ${*:2} | grep -w $1`" ]
-    then 
-        return 1
-    fi
+i=0
 
-    return 0
-}
+while [ "$i" -le  "$numLines" ] 
+do
+	# get a random id in the given range
+	id=$(($RANDOM % $ID_MAX + 1))
+	while [ "$i" -lt "$ID_MAX" ] && [ "$duplicatesAllowed" -eq 0 ] && [ ! -z "`echo ${recs[@]} | grep -w $id`" ]
+	do
+		id=$(($RANDOM % $ID_MAX + 1))
+	done
+	# set a random surname and name length within the given length-range
+	name_len=$(($RANDOM % ($STR_MAX_LEN-$STR_MIN_LEN + 1) + $STR_MIN_LEN))
+    surname_len=$(($RANDOM % ($STR_MAX_LEN-$STR_MIN_LEN + 1) + $STR_MIN_LEN))
+    
+    # get the random name/surname
+    name="`echo $s | fold -w1 | shuf | tr -d '\n' | head -c $name_len`"
+	surname="`expr substr "$(echo $s | fold -w1 | shuf | tr -d '\n')" $name_len $surname_len`"
+	
+	# get a random age within the given range
+	age=$(($RANDOM % $AGE_MAX + 1))
 
-create_record () {
-    #get a random name and surname (lengths in [3, 12])
-    name_len=$(($id % ($STR_MAX_LEN-$STR_MIN_LEN) + $STR_MIN_LEN))
-    surname_len=$(($id % ($STR_MAX_LEN-$STR_MIN_LEN) + $STR_MIN_LEN))
-    if [ -z "`cat inputFile | grep -w $id`" ]
-    then
-        # in case the id does not exist, create new name and surname
-        s="`tr -dc A-Za-z < /dev/urandom | head -c $(($name_len+$surname_len))`"
-        name="`echo -n "$s" | head -c $name_len`"
-        surname="`expr substr "$s" $name_len $surname_len`"
-    else 
-        # in case the id is duplicated, retrieve the name and surname
-        line="`cat inputFile | grep -w $id`"
-        name="`echo $line | cut -d \" \" -f 2`"
-        surname="`echo $line | cut -d \" \" -f 3`"
-    fi
-
-    # get age (defined by id)
-    age=$(($id % $AGE_MAX + 1)) 
-
-    #get country (defined by id)
-    j=$(($id%${#countries[@]}))
+	# get a random country
+	j=$(($RANDOM % ${#countries[@]}))
     country="${countries[$j]}"
 
-    #get virus
+    # get a random virus
     j=$(($RANDOM%${#viruses[@]}))
     virus="${viruses[$j]}"
 
-   
+    ans="NO"
 
-    if [ "$(($RANDOM % 2))" -eq 0 ]
-    then 
-        ans="NO"
-    else
-        ans="YES"
-        #get vaccination date
-        day=$(($RANDOM % 30 + 1))
-        month=$(($RANDOM % 12 + 1))
-        year=$(($RANDOM % $age + ($CUR_YEAR-$age))) # the vaccination date must be in the lifespan of the patien
-        vaccination_date="$day-$month-$year"
-    fi    
+    if [ "$(($id % 2))" -eq 0 ]
+    then
+    	ans="YES $(( $RANDOM % 30 + 1 ))-$(( $RANDOM % 12 + 1 ))-$(( $CUR_YEAR - $RANDOM % ($age+1) ))"
+    fi
 
-    echo "$id $name $surname $country $age $virus $ans $vaccination_date"
-    # reset  values besides id
-    name=""
-    surname=""
-    country=""
-    age=""
-    virus=""
-    ans=""
-    vaccination_date=""
+    recs+=( "$id $name $surname $country $age $virus $ans" )
+
+    let "i = i+1"
+done
+
+function dup_same_virus_corr {
+	# choose one to duplicate for the same virus and enter a different answer
+	id=$(($RANDOM % $numLines))					# get one id of the existent at random
+	line="`echo ${recs[$id]}`"					# get the line
+	ans="`echo $line | cut -f7 -d ' '`"		# get the answer (YES or NO)
+	person="`echo $line | cut -f1-6 -d ' '`"	# get the personal details
+	age="`echo $line | cut -f5 -d ' '`"
+	if [ ans == "YES" ]
+	then
+		ans="NO"
+	else 
+		ans="YES $(( $RANDOM % 30 + 1 ))-$(( $RANDOM % 12 + 1 ))-$(( $CUR_YEAR - $RANDOM % ($age+1) ))"
+	fi
+
+	# add the record
+	recs+=( "$person $ans" )
 }
 
-# create the records
-for ((i=0; i<${numLines}; i++))
-do
-    # first we create a random ID in [0, ID_MAX] and check if the id list contains the id
-    id=$(($RANDOM % $ID_MAX))
-    contains "$id" "${ids[@]}" # check for duplicates
-    ret=$?
-    # make sure it's unique (if necessary)
-    while [ "$duplicatesAllowed" -eq 0 ] && [ "$ret" -eq 1 ]
-    do
-        id=$(($RANDOM % $ID_MAX))
-        contains "$id" "${ids[@]}" # check for duplicates
-        ret=$?
-    done
-    
-    # add the id to the id list
-    ids+=( "$id" )
+function dup_diff_virus_corr {
+	id=$(($RANDOM % $numLines))					# get one id of the existent at random
+	line="`echo ${recs[$id]}`"					# get the line
+	ans="NO"									
+	virus="`echo $line | cut -f6 -d ' '`"
+	person="`echo $line | cut -f1-5 -d ' '`"	# get the personal details
+	age="`echo $line | cut -f5 -d ' '`"
+	
+	new_virus=$virus
+	while [ $virus == $new_virus ]
+	do
+		new_virus="${viruses[$(($RANDOM % ${#viruses}))]}"
+	done
 
-    create_record
-
-    if [ "$duplicatesAllowed" -ne 0 ] && [ "$(($RANDOM%($i+1)))" -eq 0 ]
-    then 
-        let 'i=i+1'
-        create_record
+	if [ "$(($RANDOM % 2))" -eq 0 ]
+    then
+    	ans="YES $(( $RANDOM % 30 + 1 ))-$(( $RANDOM % 12 + 1 ))-$(( $CUR_YEAR - $RANDOM % ($age+1) ))"
     fi
-done > inputFile
 
+	# add the record
+	recs+=( "$person $new_virus $ans" )
+}
+
+function false_virus_ans {
+	id=$(($RANDOM % $numLines))					# get one id of the existent at random
+	line="`echo ${recs[$id]}`"					# get the line
+	pre="`echo $line | cut -f1-6 -d ' '`"
+	ans="`echo $line | cut -f7 -d ' '`"
+	if [ $ans == "YES" ]
+	then
+		ans="NO $(( $RANDOM % 30 + 1 ))-$(( $RANDOM % 12 + 1 ))-$(( $RANDOM % ($AGE_MAX+1) + $CUR_YEAR-$AGE_MAX))"
+	else
+		ans="YES"
+	fi
+	recs+=( "$pre $ans" )
+}
+
+function lost_personal_attr {
+	id=$(($RANDOM % $numLines))					# get one id of the existent at random
+	line="`echo ${recs[$id]}`"					# get the line
+	index=$(($RANDOM % 4 + 2))
+	pre="`echo $line | cut -d ' ' -f1-$(($index-1))`"
+	rest="`echo $line | cut -d ' ' -f$(($index+1))-8`"
+	recs+=( "$pre $rest" )
+}
+
+
+# add different cases of duplicates, not all acceptable
+for i in `seq 0 $falseRecs`
+do 
+	case $(($i % 5)) in
+		0)
+			dup_same_virus_corr		# the virus is the same but the answer is different
+			;;
+		1)
+			dup_diff_virus_corr		# different virus
+			;;
+		2)
+			false_virus_ans			# insert a duplicate with the vaccination an date info wrong
+			;;
+		3)
+			lost_personal_attr		# insert a record with one attribute lost
+			;;
+	esac
+	
+done
+
+printf "%s\n" ${recs[@]} > inputFile
 # reset the IFS
 IFS=$OLD_IFS

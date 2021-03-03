@@ -312,7 +312,8 @@ static void vaccine_status(VaccineMonitor monitor, char *value) {
                     sprintf(ans_buffer, "%s YES %s", v->virusName, ((VaccRec)key)->date);
                 else
                     sprintf(ans_buffer, "%s NO", v->virusName);
-            }
+            } else 
+                sprintf(ans_buffer, "%s IS NOT A REGISTERED VIRUS\n", parsed_values[1]);
 
             virus_info_destroy(dummy_v);
         } else if (cols == 1) {
