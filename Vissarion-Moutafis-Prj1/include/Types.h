@@ -20,11 +20,16 @@ typedef u_int32_t (*Hash_Func)(Pointer entry); //Function to hash the entry to a
 // hash function needed
 unsigned long hash_i(unsigned char *str, unsigned int i);
 
+//  entry for the hash tables that contain the bloom filters
+typedef struct virus_info_tuple * VirusInfo;
+
+typedef struct list_per_country * CountryIndex;
+
 typedef struct {
     char *citizenID;
     char *firstName;
     char *lastName;
-    char *country;
+    CountryIndex country_t;
     int age;
     char *virusName;
     bool vaccinated;

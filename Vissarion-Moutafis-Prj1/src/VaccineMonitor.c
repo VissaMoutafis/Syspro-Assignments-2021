@@ -206,7 +206,7 @@ void country_index_destroy(void *c) {
 
 // Function to insert an entry to  the country index of a vaccine monitor
 static void country_index_insert(VaccineMonitor monitor, Person p) {
-    CountryIndex dummy = country_index_create(p->country);
+    CountryIndex dummy = p->country_t;
     Pointer key;
     // check if we already have a list
     if (ht_contains(monitor->citizen_lists_per_country, dummy, &key)) {
@@ -214,11 +214,17 @@ static void country_index_insert(VaccineMonitor monitor, Person p) {
         // we just add the record into it, if it does not already exists
         CountryIndex c = (CountryIndex)key;
         Pointer old;
-        if (!ht_contains(c->citizen_ht, p, &old)) 
-            ht_insert(c->citizen_ht, p, false, &old);
+        if (!ht_contains(c->citizen_ht, p, &old)) {
+            p->country_t = c; // set the country pointer to the one that exists in the hashtable
+            ht_insert(c->citizen_ht, p, false, &old); // insert the person in the country index
+            #ifdef DEBUG
+            assert(ht_contains(p->country_t->citizen_ht, p, &old));
+            #endif
+        }
+
         // destroy the dummy node
         country_index_destroy(dummy);
-
+        
         // for debuging purposes
         #ifdef DEBUG
         assert(ht_contains(c->citizen_ht, p, &old));
@@ -232,7 +238,7 @@ static void country_index_insert(VaccineMonitor monitor, Person p) {
         ht_insert(dummy->citizen_ht, p, false, &old);
         #ifdef DEBUG
         assert(ht_contains(monitor->citizen_lists_per_country, dummy, &key));
-        assert(ht_contains(dummy->citizen_ht, p, &old));
+        assert(ht_contains(p->country_t->citizen_ht, p, &old));
         #endif
     }
 }
@@ -259,7 +265,7 @@ static bool person_equal(Person p1, Person p2) {
     return !strcmp(p1->citizenID, p2->citizenID)
         && !strcmp(p1->firstName, p2->firstName)
         && !strcmp(p1->lastName, p2->lastName)
-        && !strcmp(p1->country, p2->country)
+        && !strcmp(p1->country_t->country, p2->country_t->country)
         && p1->age == p2->age;
 }
 
@@ -276,10 +282,17 @@ static Person str_to_person(char *record) {
         free(parsed_rec);
         return NULL;
     }
+
     // create the person instance
-    Person p = create_person(parsed_rec[0], parsed_rec[1], parsed_rec[2],
-                            parsed_rec[3], atoi(parsed_rec[4]), parsed_rec[5],
-                            parsed_rec[6], cols == 8? parsed_rec[7] : NULL, true);
+    Person p = create_person(parsed_rec[0], 
+                            parsed_rec[1], 
+                            parsed_rec[2],
+                            country_index_create(parsed_rec[3]), // insert a country index pointer
+                            atoi(parsed_rec[4]), // insert age as an integer
+                            parsed_rec[5],
+                            parsed_rec[6], 
+                            cols == 8? parsed_rec[7] : NULL, //insert the date only in case there is a 8-th element 
+                            true); // make a deep copy
     
     // free the memory of the parse array
     for (int i = 0; i < cols; i++) free(parsed_rec[i]);
@@ -313,6 +326,8 @@ void insert_record(VaccineMonitor monitor, char *record, bool update) {
         // if the record is incosistent with the current instance in the general table then 
         // ommit the operation and fail returning the proper message
         if (exists && !person_equal(p, (Person)key)) {
+            puts(p->country_t->country);
+            puts(((Person)key)->country_t->country);
             error_msg = error_table[0];
             error_flag = true;
         } else {
@@ -322,9 +337,10 @@ void insert_record(VaccineMonitor monitor, char *record, bool update) {
         }
 
         // if the person exists there is no reason to keep the instance we created
-        if (exists)
+        if (exists) {
+            country_index_destroy(p->country_t);
             person_destroy(p);
-         
+        }
     } else {
         error_msg = error_table[0];
         error_flag = true;

@@ -91,10 +91,6 @@ int main(int argc, char * argv[]) {
 
         // now we have to check if the expression was ok based on the array of allowed formats
         if (check_format(command, &expr_index) && check_value_list(value, expr_index)) {
-            // puts("The command was ok, you can proceed to pass them to vaccineMonitor with:");
-            // printf("Command (index): '%s' (%d)\n", command, expr_index);
-            // printf("Value(s): '%s'\n", value);
-            
             // we will try to execute the command. If vaccine monitor fails then we will print the 
             // error message to stderr
             if (!vaccine_monitor_act(monitor, expr_index, value)) {

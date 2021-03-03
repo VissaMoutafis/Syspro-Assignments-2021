@@ -128,7 +128,7 @@ int get_len_of_int(int num) {
     return cnt;
 }
 
-void *create_person(char * citizenID, char *firstName, char *lastName, char *country, int age, char *virusName, char *vaccinated, char *date, bool deep_copy) {
+void *create_person(char * citizenID, char *firstName, char *lastName, struct list_per_country *country_t, int age, char *virusName, char *vaccinated, char *date, bool deep_copy) {
     // the vaccinated answer is either yes or no
     if (!( !strcmp(vaccinated, "YES") || !strcmp(vaccinated, "NO") ))
         return NULL;
@@ -137,6 +137,8 @@ void *create_person(char * citizenID, char *firstName, char *lastName, char *cou
 
     p->age = age;
     p->vaccinated = (strcmp(vaccinated, "YES") == 0);
+    p->country_t = country_t;
+
     if (deep_copy) {
         p->citizenID = calloc(strlen(citizenID)+1, sizeof(char));
         strcpy(p->citizenID, citizenID);
@@ -146,9 +148,6 @@ void *create_person(char * citizenID, char *firstName, char *lastName, char *cou
 
         p->lastName = calloc(strlen(lastName) + 1, sizeof(char));
         strcpy(p->lastName, lastName);
-
-        p->country = calloc(strlen(country) + 1, sizeof(char));
-        strcpy(p->country, country);
 
         p->virusName = calloc(strlen(virusName) + 1, sizeof(char));
         strcpy(p->virusName, virusName);
@@ -163,7 +162,6 @@ void *create_person(char * citizenID, char *firstName, char *lastName, char *cou
         p->citizenID = citizenID;
         p->firstName = firstName;
         p->lastName = lastName;
-        p->country = country;
         p->virusName = virusName;
         p->date = date;
     }
@@ -177,7 +175,6 @@ void person_destroy(void *_p) {
     free(p->citizenID);
     free(p->firstName);
     free(p->lastName);
-    free(p->country);
     free(p->virusName);
     free(p->date);
     free(p);
