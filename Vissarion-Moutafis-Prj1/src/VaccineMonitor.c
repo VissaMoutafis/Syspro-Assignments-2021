@@ -1,20 +1,14 @@
-#include <stdio.h>
-#include "HT.h"
-#include "SL.h"
-#include "BF.h"
-#include "List.h"
-#include "Utilities.h"
 #include "VaccineMonitor.h"
-
-char *error_table[] = {"ERROR: RECORD OMMITED"};
+#include "StructManipulation.h"
 
 bool error_flag = false;
-char *error_msg = NULL;
+char error_msg[BUFSIZ];
+char ans_buffer[BUFSIZ];
 
 static void print_error(bool exit_fail) {
     fprintf(stderr, "%s\n", error_msg);
     error_flag = false;
-    error_msg = NULL;
+    memset(error_msg, 0, BUFSIZ);
     if (exit_fail)
         exit(EXIT_FAILURE);
 }
@@ -49,165 +43,87 @@ struct vaccine_monitor {
     HT citizens;
     HT citizen_lists_per_country;
     // hash table {key: virusName, items:[bf, vacc_sl, non_vacc_sl]}
-    HT virus_info;
+    List virus_info;
     int bloom_size;
     int sl_height;
     float sl_factor;
 };
 
-//  entry for the hash tables that contain the bloom filters
-typedef struct virus_info_tuple {
-    char *virusName;                // key of the tuple
-    BF bf;                          // bloom filter to check if a person is not vaccinated
-    SL vaccinated;                  // skip list with vaccinated people
-    SL not_vaccinated;              // skip list with non-vaccinated people
-} *VirusInfo;
-
-typedef struct list_per_country {
-    char *country;
-    HT citizen_ht;
-} *CountryIndex;
-
-static void person_complete_destroy(void *);
-
-// Virus Info manipulation
-// function to create a brand new virus info struct and return it casted in void*
-void *virus_info_create(char *virusName, int bloom_size, int sl_height, float sl_factor) {
-    VirusInfo v = calloc(1, sizeof(*v));
-
-    v->virusName = calloc(strlen(virusName)+1, sizeof(char));
-    strcpy(v->virusName, virusName);
-    v->bf = bf_create(BF_HASH_FUNC_COUNT, bloom_size);
-    v->vaccinated = sl_create(person_cmp, NULL, sl_height, sl_factor);
-    v->not_vaccinated = sl_create(person_cmp, NULL, sl_height, sl_factor);
-
-    return (void*)v; 
-}
-
-// for virus info comparison
-int virus_info_cmp(void *v1, void *v2) {
-    return strcmp(((VirusInfo)v1)->virusName, ((VirusInfo)v2)->virusName);
-}
-
-// for virus info hashing, when inderted in a hash table
-u_int32_t virus_info_hash(void *v) {
-    return hash_i((unsigned char *)((VirusInfo)v)->virusName, (unsigned int)strlen(((VirusInfo)v)->virusName));
-}
-
-// to destroy the virus info 
-void virus_info_destroy(void *_v) {
-    VirusInfo v = (VirusInfo)_v;
-    free(v->virusName);
-    bf_destroy(v->bf);
-    sl_destroy(v->vaccinated);
-    sl_destroy(v->not_vaccinated);
-    free(v);
-}
 
 // Function to insert a record in the structs of the according virusInfo tuple
 // If update flag is true then we will update the record if it exists
 // In the right spirit this is also a vaccination operation for the citizens
-static void virus_info_insert(VaccineMonitor monitor, Person p, bool update) {
+static void virus_info_insert(VaccineMonitor monitor, Person p, bool update, char *virusName, char *date, bool is_vaccinated) {
     // First we will check if the virus info is created
-    VirusInfo dummy = virus_info_create(p->virusName, monitor->bloom_size, monitor->sl_height, monitor->sl_factor);
+    VirusInfo dummy = virus_info_create(virusName, monitor->bloom_size, monitor->sl_height, monitor->sl_factor);
     Pointer key;
 
     // search for the virus info in the respective HT
-    if (ht_contains(monitor->virus_info, dummy, &key)) {
-        Pointer person = NULL, person_dummy = NULL;
+    if ((key = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, dummy)))) {
+        Pointer vacc_rec = NULL, vacc_rec_dummy = NULL;
         VirusInfo v = (VirusInfo)key;
+        VaccRec dummy_vr = vacc_rec_create(p, NULL, false);
 
         // pick the appropriate skip list to search and/or insert
-        SL sl = (p->vaccinated == true) ? v->vaccinated : v->not_vaccinated;
+        SL sl = (is_vaccinated == true) ? v->vaccinated : v->not_vaccinated;
         
         // try to insert to the list 
-        if (!(person = sl_search(sl, p))) {
-            sl_insert(sl, p, false, &person_dummy);
-            bf_insert(v->bf, p);
-            free(p->virusName);
-            p->virusName = v->virusName;
+        if (!(vacc_rec = sl_search(sl, dummy_vr))) {
+            VaccRec vr = vacc_rec_create(p, date, true);
+            sl_insert(sl, vr, false, &vacc_rec_dummy);
+            if (is_vaccinated)
+                bf_insert(v->bf, p);
             #ifdef DEBUG
-            assert(bf_contains(v->bf, p));
-            assert(sl_search(sl, p));
+            if (is_vaccinated)
+                assert(bf_contains(v->bf, p));
+            assert(sl_search(sl, vr));
             #endif
-        } else if (update && sl == v->not_vaccinated && p->vaccinated) {
+        } else if (update && sl == v->not_vaccinated && is_vaccinated) {
             // the update flag is true
             // and the person is in the not-vaccinated group and he got vaccinated, since
             // there is no point to process people already vaccinated and/or update based on
             // records that refer to not-vaccinated people 
 
             // delete him from the non-vaccinated group
-            if (!sl_delete(v->not_vaccinated, person, false, &person_dummy)) {
-                fprintf(stderr, "\nPROBLEM DURING DELETION OF %s.\n", ((Person)person)->citizenID);
+            if (!sl_delete(v->not_vaccinated, vacc_rec, false, &vacc_rec_dummy)) {
+                fprintf(stderr, "\nPROBLEM DURING DELETION OF %s.\n", ((VaccRec)vacc_rec)->p->citizenID);
                 exit(1);
             }
 
             // debug
             #ifdef DEBUG
-            assert(!sl_search(v->not_vaccinated, person));
-            assert(!sl_search(v->not_vaccinated, p));
-            assert(person == person_dummy);
+            assert(!sl_search(v->not_vaccinated, vacc_rec));
+            assert(vacc_rec == vacc_rec_dummy);
             #endif
 
-            // insert the person instance into the vaccinated group
-            sl_insert(v->vaccinated, person, false, &person);
-            
+            // insert the person instance into the vaccinated group and
+            sl_insert(v->vaccinated, vacc_rec, false, &vacc_rec_dummy);
+            bf_insert(v->bf, ((VaccRec)vacc_rec)->p);
             // debug
             #ifdef DEBUG
-            assert(sl_search(v->vaccinated, p));
+            assert(sl_search(v->vaccinated, vacc_rec));
             #endif
-
-            person_complete_destroy(p);
         }
         virus_info_destroy(dummy);
+        vacc_rec_destroy(dummy_vr);
     } else {
         // there is no instance of the virusInfo, so we will insert the dummy rec 
         // and we will also insert the person in the bloom filter and 
         // into the appropriate skip list
-        ht_insert(monitor->virus_info, dummy, false, &key);
-        // insert into BF
-        bf_insert(dummy->bf, p);
+        list_insert(monitor->virus_info, dummy, true);
+        if (is_vaccinated)
+            // insert into BF
+            bf_insert(dummy->bf, p);
+
         //insert into the appropriate skip list
-        SL sl = (p->vaccinated == true) ? dummy->vaccinated : dummy->not_vaccinated;
-        sl_insert(sl, p, false, &key);
-
-        free(p->virusName);
-        p->virusName = dummy->virusName;
-
+        SL sl = (is_vaccinated == true) ? dummy->vaccinated : dummy->not_vaccinated;
+        VaccRec vr = vacc_rec_create(p, date, true);
+        sl_insert(sl, vr, false, &key);
         #ifdef DEBUG
-        assert(ht_contains(monitor->virus_info, dummy, &key));
-        assert(sl_search(sl, p));
+        assert(list_find(monitor->virus_info, dummy));
+        assert(sl_search(sl, vr));
         #endif
     }
-}
-// Country Index manipulation
-
-// function to create a brand new country index struct.
-void *country_index_create(char *country) {
-    CountryIndex c = calloc(1, sizeof(*c));
-
-    c->country = calloc(strlen(country)+1, sizeof(char));
-    strcpy(c->country, country);
-    c->citizen_ht = ht_create(person_cmp, person_hash, NULL);
-
-    return (void *)c;
-}
-
-// for country index comparison 
-int country_index_cmp(void *c1, void *c2) {
-    return strcmp(((CountryIndex)c1)->country, ((CountryIndex)c2)->country);
-}
-
-// function to hash the country index entry struct for appropriate handling in the respective hash table (index)
-u_int32_t country_index_hash(void *c) {
-    return hash_i((unsigned char *)((CountryIndex)c)->country, (unsigned int)strlen(((CountryIndex)c)->country));
-}
-
-// to free the memory beign kept by the country index structs
-void country_index_destroy(void *c) {
-    free(((CountryIndex)c)->country);
-    ht_destroy(((CountryIndex)c)->citizen_ht);
-    free(c);
 }
 
 // Function to insert an entry to  the country index of a vaccine monitor
@@ -219,12 +135,11 @@ static void country_index_insert(VaccineMonitor monitor, Person p) {
         // there is already an index list so,
         // we just add the record into it, if it does not already exists
         CountryIndex c = (CountryIndex)key;
-        Pointer old;
-        if (!ht_contains(c->citizen_ht, p, &old)) {
+        if (!list_find(c->citizen_list, p)) {
             p->country_t = c; // set the country pointer to the one that exists in the hashtable
-            ht_insert(c->citizen_ht, p, false, &old); // insert the person in the country index
+            list_insert(c->citizen_list, p, true); // insert the person in the country index
             #ifdef DEBUG
-            assert(ht_contains(p->country_t->citizen_ht, p, &old));
+            assert(list_find(p->country_t->citizen_list, p));
             #endif
         }
 
@@ -233,50 +148,25 @@ static void country_index_insert(VaccineMonitor monitor, Person p) {
         
         // for debuging purposes
         #ifdef DEBUG
-        assert(ht_contains(c->citizen_ht, p, &old));
+        assert(list_find(c->citizen_list, p));
         #endif
     } else {
         // there is no country index in the hash. So we must insert the dummy
         // one there and then add the record to the index list as a first entry
         // (head)
-        Pointer old;
         ht_insert(monitor->citizen_lists_per_country, dummy, false, &key);
-        ht_insert(dummy->citizen_ht, p, false, &old);
+        list_insert(dummy->citizen_list, p, true);
         #ifdef DEBUG
         assert(ht_contains(monitor->citizen_lists_per_country, dummy, &key));
-        assert(ht_contains(p->country_t->citizen_ht, p, &old));
+        assert(list_find(p->country_t->citizen_list, p));
         #endif
     }
 }
 
 // Vaccine Monitor Utilities
 
-// Function to check the format of the person
-static bool check_person_constistency(char *attrs[], int cols) {
-    return cols <= 8 && cols >= 7                                   &&
-           attrs[0]                                                 &&
-           attrs[1]                                                 &&
-           attrs[2]                                                 &&
-           attrs[3]                                                 &&
-           is_numeric(attrs[4])                                     &&
-           atoi(attrs[4]) > 0                                       &&
-           attrs[5]                                                 &&
-           attrs[6]                                                 &&
-           (!strcmp(attrs[6], "YES") || !strcmp(attrs[6], "NO"))    && // vaccinated =yes/no
-           ( (!strcmp(attrs[6], "YES") && cols == 8) || cols == 7);    // either vaccinated or no date
-}
-
-// Function to check if 2 people are the same.
-static bool person_equal(Person p1, Person p2) {
-    return !strcmp(p1->citizenID, p2->citizenID)
-        && !strcmp(p1->firstName, p2->firstName)
-        && !strcmp(p1->lastName, p2->lastName)
-        && !strcmp(p1->country_t->country, p2->country_t->country)
-        && p1->age == p2->age;
-}
-
 // create a person from a data line in the file
-static Person str_to_person(char *record) {
+Person str_to_person(char *record) {
     // First we have to parse the record
     char **parsed_rec = NULL;
     int cols = -1;
@@ -311,7 +201,7 @@ static Person str_to_person(char *record) {
 // If the update flag is one then, if we find an instance of it, about a specific virus
 // either ommit the incosistent record, or 
 // actually update the proper virus info lists and bloom filter 
-void insert_record(VaccineMonitor monitor, char *record, bool update) {
+static void insert_record(VaccineMonitor monitor, char *record, bool update) {
     Person p = str_to_person(record);
 
     if (p) {
@@ -332,14 +222,12 @@ void insert_record(VaccineMonitor monitor, char *record, bool update) {
         // if the record is incosistent with the current instance in the general table then 
         // ommit the operation and fail returning the proper message
         if (exists && !person_equal(p, (Person)key)) {
-            puts(p->country_t->country);
-            puts(((Person)key)->country_t->country);
-            error_msg = error_table[0];
+            sprintf(error_msg, "ERROR IN RECORD %s", record);
             error_flag = true;
         } else {
             // key = p if it does not exists in the general citizen hash,
             // other wise key = already existing key
-            virus_info_insert(monitor, key, update);
+            virus_info_insert(monitor, key, update, p->virusName, p->date, p->vaccinated);
         }
 
         // if the person exists there is no reason to keep the instance we created
@@ -347,12 +235,12 @@ void insert_record(VaccineMonitor monitor, char *record, bool update) {
             person_complete_destroy(p);
         }
     } else {
-        error_msg = error_table[0];
+        sprintf(error_msg, "ERROR IN RECORD %s", record);
         error_flag = true;
     }
 }
 
-static bool insert_from_file(VaccineMonitor monitor, char *in_filename) {
+bool insert_from_file(VaccineMonitor monitor, char *in_filename) {
     FILE *in = fopen(in_filename, "r");
     if (!in) return false;
     // get the number of lines of the input file
@@ -371,24 +259,107 @@ static bool insert_from_file(VaccineMonitor monitor, char *in_filename) {
     return true;
 }
 
-// function to completely destroy a person
-static void person_complete_destroy(void *_p) {
-    Person p = (Person)_p;
+// Basic commands implementation
+static void vaccine_status_bloom(VaccineMonitor monitor, char *value) {
+    // value = citizenID, virusName
+    bool vaccinated = false;
+    int cols = -1;
+    char **parsed_values = parse_line(value, &cols, FIELD_SEPARATOR);
+    // create a dummy struct for searching
+    Person dummy_p = create_person(parsed_values[0], NULL, NULL, NULL, 0, NULL, "NO", NULL, false);
 
-    country_index_destroy(p->country_t);
-    free(p->virusName);
-    person_destroy(p);
+    // find the actual person in the database
+    Pointer person;
+    if (ht_contains(monitor->citizens, dummy_p, &person)) {
+        Pointer v;
+        // Since the person is actually in the database then
+        VirusInfo dummy_v = virus_info_create(parsed_values[1], BF_HASH_FUNC_COUNT, 1, 0.0);
+        if ((v = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, dummy_v))))
+            vaccinated = bf_contains(((VirusInfo)v)->bf, person);
+
+        virus_info_destroy(dummy_v);
+    }
+
+    // free the allocated memory
+    free(dummy_p);
+    for (int i = 0; i < cols; i++) free(parsed_values[i]);
+    free(parsed_values);
+
+    // change the answer buffer accordingly
+    sprintf(ans_buffer, "%s", vaccinated ? "MAYBE" : "NOT VACCINATED");
+}
+
+static void vaccine_status(VaccineMonitor monitor, char *value) {
+    // value = citizenID, virusName
+    int cols = -1;
+    char **parsed_values = parse_line(value, &cols, FIELD_SEPARATOR);
+
+    // create a dummy struct for searching
+    Person dummy_p = create_person(parsed_values[0], NULL, NULL, NULL, 0, NULL, "NO", NULL, false);
+
+    // find the actual person in the database
+    Pointer person;
+    if (ht_contains(monitor->citizens, dummy_p, &person)) {
+        VaccRec dummy_vr = vacc_rec_create(person, NULL, false);
+        Pointer vp;
+        if (cols == 2) {
+            // Since the person is actually in the database then
+            VirusInfo dummy_v = virus_info_create(parsed_values[1], BF_HASH_FUNC_COUNT, 1, 0.0);
+            if ((vp = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, dummy_v)))) {
+                VirusInfo v =(VirusInfo)vp;
+                Pointer key;
+                if ((key = sl_search(v->vaccinated, dummy_vr)))
+                    sprintf(ans_buffer, "%s YES %s", v->virusName, ((VaccRec)key)->date);
+                else
+                    sprintf(ans_buffer, "%s NO", v->virusName);
+            }
+
+            virus_info_destroy(dummy_v);
+        } else if (cols == 1) {
+            ListNode node = list_get_head(monitor->virus_info);
+         
+            // search every node in the virus info list
+            while (node) {
+                VirusInfo v = list_node_get_entry(monitor->virus_info, node);
+                strcat(ans_buffer, v->virusName);
+                Pointer key;                
+
+                // if the citizen is part of the vaccinated people 
+                if ((key = sl_search(v->vaccinated, dummy_vr))) {
+                    char buf[100];
+                    memset(buf, 0, 100);
+                    sprintf(buf, " YES %s\n", ((VaccRec)key)->date);
+                    strcat(ans_buffer, buf);
+                } else // if he is not
+                    strcat(ans_buffer, " NO\n");
+                // proceed to the next node 
+                node = list_get_next(monitor->virus_info, node);
+            }
+        }
+        free(dummy_vr);
+    } else 
+        strcpy(ans_buffer, "ERROR: CITIZEN ID DOES NOT EXIST");
+    // free the allocated memory
+    free(dummy_p);
+    for (int i = 0; i < cols; i++) free(parsed_values[i]);
+    free(parsed_values);
 }
 
 // Basic Vaccine Monitor Methods
 
 void vaccine_monitor_initialize(void) { 
-    is_end = false; 
-    error_msg = NULL;
+    is_end = false;
+    memset(ans_buffer, 0, BUFSIZ);
+    memset(error_msg, 0, BUFSIZ);
 }
 
 void vaccine_monitor_finalize(void) {
     is_end = true;
+}
+
+void visit(Pointer _p) {
+    Person p = (Person)_p;
+    printf("%s %s %s %s %d\n", p->citizenID, p->firstName, p->lastName, p->country_t->country, p->age);
 }
 
 VaccineMonitor vaccine_monitor_create(char *input_filename, int bloom_size, int sl_height, float sl_factor) {
@@ -399,21 +370,15 @@ VaccineMonitor vaccine_monitor_create(char *input_filename, int bloom_size, int 
     m->sl_factor = sl_factor;
     m->citizens = ht_create(person_cmp, person_hash, person_destroy);
     m->citizen_lists_per_country = ht_create(country_index_cmp, country_index_hash, country_index_destroy);
-    m->virus_info = ht_create(virus_info_cmp, virus_info_hash, virus_info_destroy);
+    m->virus_info = list_create(virus_info_cmp, virus_info_destroy);
 
     if (input_filename) {
         // insert all the valid records of citizens from this file
-        // insert from file
-        
-        // implement the function to insert a citizen
-
-        // implement the function to vaccinate a citizen
         printf("Inserting from file '%s' ...\n", input_filename);
-        if (!insert_from_file(m, input_filename)) {
-            vaccine_monitor_destroy(m);
-            fprintf(stderr, "ERROR: PROBLEM DURING INSERTION FROM FILES.\n");
-            exit(1);
-        }
+        insert_from_file(m, input_filename);
+        #ifdef DEBUG
+        ht_print_keys(m->citizens, visit);
+        #endif
     }
 
     return m;
@@ -422,19 +387,22 @@ VaccineMonitor vaccine_monitor_create(char *input_filename, int bloom_size, int 
 void vaccine_monitor_destroy(VaccineMonitor m) {
     ht_destroy(m->citizen_lists_per_country);
     ht_destroy(m->citizens);
-    ht_destroy(m->virus_info);
+    list_destroy(&(m->virus_info));
     free(m);
 }
 
 bool vaccine_monitor_act(VaccineMonitor monitor, int expr_index, char *value) {
-    switch (expr_index)
-    {
-    case 0:
-        
+    switch (expr_index) {
+    case 0: // command = vaccineStatusBloom , value = "citizenID virusName"
+            vaccine_status_bloom(monitor, value);
+            printf("%s\n", ans_buffer);
+            memset(ans_buffer, 0, BUFSIZ);
         break;
 
-    case 1:
-
+    case 1: // command = vaccineStatus, values = citizenID [virusName]
+            vaccine_status(monitor, value);
+            printf("%s\n", ans_buffer);
+            memset(ans_buffer, 0, BUFSIZ);
         break;
 
     case 2:

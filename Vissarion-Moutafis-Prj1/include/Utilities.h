@@ -20,19 +20,3 @@ char **parse_line(char *data_str, int *columns, char* sep);
 bool is_numeric(char* str);
 
 
-// New utilities for the vaccine monitor
-
-// create a person instance
-void *create_person(char * citizenID, char *firstName, char *lastName, CountryIndex country_t, int age, char *virusName, char *vaccinated, char *date, bool deep_copy);
-
-// destroy a person instance
-void person_destroy(void *_p);
-
-// compare 2 strings that interpret very large numbers
-int compare_numeric_str(char *s1, char *s2);
-
-// function to compare 2 people
-int person_cmp(void *p1, void *p2);
-
-// function to hash a person's citizen ID
-u_int32_t person_hash(void *p);

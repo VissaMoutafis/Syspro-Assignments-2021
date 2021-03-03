@@ -1,5 +1,6 @@
 OBJS += $(SRC)/main.o
 OBJS += $(SRC)/utilities.o
+OBJS += $(SRC)/struct_manipulation.o
 OBJS += $(SRC)/hash_functions.o
 OBJS += $(SRC)/TTY_API.o
 OBJS += $(SRC)/VaccineMonitor.o

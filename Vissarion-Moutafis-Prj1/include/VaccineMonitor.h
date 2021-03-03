@@ -2,9 +2,10 @@
 
 #include <stdio.h>
 #include "Types.h"
-#include "BF.h"
 #include "HT.h"
 #include "SL.h"
+#include "BF.h"
+#include "List.h"
 #include "Utilities.h"
 
 // as given by the instructors
@@ -15,12 +16,29 @@
 // variable to determine whether the user wants to exit the application or not
 bool is_end;
 
-char *error_msg;
+char error_msg[BUFSIZ];
 bool error_flag;
 
 // struct typedefs for the app
 typedef struct vaccine_monitor *VaccineMonitor;
 
+//  entry for the hash tables that contain the bloom filters
+typedef struct virus_info_tuple {
+    char *virusName;                // key of the tuple
+    BF bf;                          // bloom filter to check if a person is not vaccinated
+    SL vaccinated;                  // skip list with vaccinated people
+    SL not_vaccinated;              // skip list with non-vaccinated people
+} *VirusInfo;
+
+typedef struct {
+    Person p;
+    char *date;
+} * VaccRec;
+
+typedef struct list_per_country {
+    char *country;
+    List citizen_list;
+} *CountryIndex;
 
 // Basic Vaccine Monitor methods
 
@@ -39,3 +57,6 @@ void vaccine_monitor_destroy(VaccineMonitor m);
 // Basic functionality of the vaccine monitor. Return true if it succeeds.
 // Returns false if it fail and an error message is saved in error_msg string
 bool vaccine_monitor_act(VaccineMonitor monitor, int expr_index, char *value);
+
+
+// helping functions

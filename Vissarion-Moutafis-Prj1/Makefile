@@ -14,7 +14,7 @@ OBJS =
 
 LIBRARIES = -lm
 
-CFLAGS =    -I $(INCLUDE)
+CFLAGS =  -Wall -Werror -I $(INCLUDE)
 
 TESTCASE = 
 
