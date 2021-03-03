@@ -1,4 +1,4 @@
-PROGRAM = main
+PROGRAM = vaccineMonitor
 
 CC = gcc
 

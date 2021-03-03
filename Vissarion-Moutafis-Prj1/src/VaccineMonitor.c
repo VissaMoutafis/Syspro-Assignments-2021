@@ -339,7 +339,6 @@ static bool insert_from_file(VaccineMonitor monitor, char *in_filename) {
 
     for (unsigned int i = 0; i < lines; i++) {
         char *record_line = make_str(&in);
-
         insert_record(monitor, record_line, false);
         free(record_line);
         if (error_flag) {
