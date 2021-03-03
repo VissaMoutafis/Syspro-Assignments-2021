@@ -68,7 +68,7 @@ typedef struct list_per_country {
     HT citizen_ht;
 } *CountryIndex;
 
-
+static void person_complete_destroy(void *);
 
 // Virus Info manipulation
 // function to create a brand new virus info struct and return it casted in void*
@@ -112,6 +112,7 @@ static void virus_info_insert(VaccineMonitor monitor, Person p, bool update) {
     VirusInfo dummy = virus_info_create(p->virusName, monitor->bloom_size, monitor->sl_height, monitor->sl_factor);
     Pointer key;
 
+    // search for the virus info in the respective HT
     if (ht_contains(monitor->virus_info, dummy, &key)) {
         Pointer person = NULL, person_dummy = NULL;
         VirusInfo v = (VirusInfo)key;
@@ -123,6 +124,8 @@ static void virus_info_insert(VaccineMonitor monitor, Person p, bool update) {
         if (!(person = sl_search(sl, p))) {
             sl_insert(sl, p, false, &person_dummy);
             bf_insert(v->bf, p);
+            free(p->virusName);
+            p->virusName = v->virusName;
             #ifdef DEBUG
             assert(bf_contains(v->bf, p));
             assert(sl_search(sl, p));
@@ -154,7 +157,7 @@ static void virus_info_insert(VaccineMonitor monitor, Person p, bool update) {
             assert(sl_search(v->vaccinated, p));
             #endif
 
-            person_destroy(p);
+            person_complete_destroy(p);
         }
         virus_info_destroy(dummy);
     } else {
@@ -167,6 +170,9 @@ static void virus_info_insert(VaccineMonitor monitor, Person p, bool update) {
         //insert into the appropriate skip list
         SL sl = (p->vaccinated == true) ? dummy->vaccinated : dummy->not_vaccinated;
         sl_insert(sl, p, false, &key);
+
+        free(p->virusName);
+        p->virusName = dummy->virusName;
 
         #ifdef DEBUG
         assert(ht_contains(monitor->virus_info, dummy, &key));
@@ -338,8 +344,7 @@ void insert_record(VaccineMonitor monitor, char *record, bool update) {
 
         // if the person exists there is no reason to keep the instance we created
         if (exists) {
-            country_index_destroy(p->country_t);
-            person_destroy(p);
+            person_complete_destroy(p);
         }
     } else {
         error_msg = error_table[0];
@@ -364,6 +369,15 @@ static bool insert_from_file(VaccineMonitor monitor, char *in_filename) {
 
     fclose(in);
     return true;
+}
+
+// function to completely destroy a person
+static void person_complete_destroy(void *_p) {
+    Person p = (Person)_p;
+
+    country_index_destroy(p->country_t);
+    free(p->virusName);
+    person_destroy(p);
 }
 
 // Basic Vaccine Monitor Methods

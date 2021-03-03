@@ -175,7 +175,6 @@ void person_destroy(void *_p) {
     free(p->citizenID);
     free(p->firstName);
     free(p->lastName);
-    free(p->virusName);
     free(p->date);
     free(p);
 }
