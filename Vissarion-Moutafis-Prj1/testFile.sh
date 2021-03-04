@@ -58,8 +58,13 @@ countries=( $(cat "$2") )
 numLines=$3
 # set the flag that determines if duplicates are allowed or not
 duplicatesAllowed=$4
+if [ "$numLines" -gt "$ID_MAX" ]
+then 
+	duplicatesAllowed=1
+fi
+
 # the length of false and duplicates recs is 2/10 of the numLines 
-falseRecs=$((2 * $numLines / 10))
+falseRecs=$((4 * $numLines / 10))
 if [ "$duplicatesAllowed" -eq 1 ]
 then 
 	numLines=$(($numLines - $falseRecs))
@@ -82,7 +87,8 @@ while [ "$i" -le  "$numLines" ]
 do
 	# get a random id in the given range
 	id=$(($RANDOM % $ID_MAX + 1))
-	while [ "$i" -lt "$ID_MAX" ] && [ "$duplicatesAllowed" -eq 0 ] && [ ! -z "`echo ${recs[@]} | grep -w $id`" ]
+	# if the duplicates are not allowed and the id is already taken, choose another one
+	while [ "$duplicatesAllowed" -eq 0 ] && [ -n "`printf "%s\n" ${recs[@]} | cut -d ' ' -f1 | grep -w $id`" ]
 	do
 		id=$(($RANDOM % $ID_MAX + 1))
 	done
@@ -124,7 +130,7 @@ function dup_same_virus_corr {
 	ans="`echo $line | cut -f7 -d ' '`"		# get the answer (YES or NO)
 	person="`echo $line | cut -f1-6 -d ' '`"	# get the personal details
 	age="`echo $line | cut -f5 -d ' '`"
-	if [ ans == "YES" ]
+	if [ $ans == "YES" ]
 	then
 		ans="NO"
 	else 

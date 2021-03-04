@@ -49,7 +49,33 @@ struct vaccine_monitor {
     float sl_factor;
 };
 
+static void vaccinate_citizen(VirusInfo v, VaccRec vacc_rec, char *date) {
+    Pointer vacc_rec_dummy=NULL;
+    // delete him from the non-vaccinated group
+    if (!sl_delete(v->not_vaccinated, vacc_rec, false, &vacc_rec_dummy)) {
+        fprintf(stderr, "\nPROBLEM DURING DELETION OF %s.\n",
+                vacc_rec->p->citizenID);
+        exit(1);
+    }
 
+    // debug
+    #ifdef DEBUG
+        assert(!sl_search(v->not_vaccinated, vacc_rec));
+        assert(vacc_rec == vacc_rec_dummy);
+    #endif
+
+    // insert the person instance into the vaccinated group and
+    sl_insert(v->vaccinated, vacc_rec, false, &vacc_rec_dummy);
+    bf_insert(v->bf, vacc_rec->p);
+    // we also have to alter the date in vacc_rec
+    vacc_rec->date = calloc(1 + strlen(date), sizeof(char));
+    strcpy(vacc_rec->date, date);
+
+    // debug
+    #ifdef DEBUG
+        assert(sl_search(v->vaccinated, vacc_rec));
+    #endif
+}
 // Function to insert a record in the structs of the according virusInfo tuple
 // If update flag is true then we will update the record if it exists
 // In the right spirit this is also a vaccination operation for the citizens
@@ -67,8 +93,18 @@ static void virus_info_insert(VaccineMonitor monitor, Person p, bool update, cha
         // pick the appropriate skip list to search and/or insert
         SL sl = (is_vaccinated == true) ? v->vaccinated : v->not_vaccinated;
         
-        // try to insert to the list 
-        if (!(vacc_rec = sl_search(sl, dummy_vr))) {
+        // try to insert 
+        if ((vacc_rec = sl_search(v->not_vaccinated, dummy_vr))) {
+            // the person is in the not-vaccinated group and he got
+            // vaccinated, since there is no point to process people already
+            // vaccinated and/or update based on records that refer to
+            // not-vaccinated people
+            if (update && is_vaccinated)
+                vaccinate_citizen(v, vacc_rec, date);
+        } else if (sl == v->not_vaccinated || !(vacc_rec = sl_search(sl, dummy_vr))) {
+            // at this case the record does not 
+
+            // if we cannot find him in sl then we must try to search for the other list 
             VaccRec vr = vacc_rec_create(p, date, true);
             sl_insert(sl, vr, false, &vacc_rec_dummy);
             if (is_vaccinated)
@@ -77,31 +113,6 @@ static void virus_info_insert(VaccineMonitor monitor, Person p, bool update, cha
             if (is_vaccinated)
                 assert(bf_contains(v->bf, p));
             assert(sl_search(sl, vr));
-            #endif
-        } else if (update && sl == v->not_vaccinated && is_vaccinated) {
-            // the update flag is true
-            // and the person is in the not-vaccinated group and he got vaccinated, since
-            // there is no point to process people already vaccinated and/or update based on
-            // records that refer to not-vaccinated people 
-
-            // delete him from the non-vaccinated group
-            if (!sl_delete(v->not_vaccinated, vacc_rec, false, &vacc_rec_dummy)) {
-                fprintf(stderr, "\nPROBLEM DURING DELETION OF %s.\n", ((VaccRec)vacc_rec)->p->citizenID);
-                exit(1);
-            }
-
-            // debug
-            #ifdef DEBUG
-            assert(!sl_search(v->not_vaccinated, vacc_rec));
-            assert(vacc_rec == vacc_rec_dummy);
-            #endif
-
-            // insert the person instance into the vaccinated group and
-            sl_insert(v->vaccinated, vacc_rec, false, &vacc_rec_dummy);
-            bf_insert(v->bf, ((VaccRec)vacc_rec)->p);
-            // debug
-            #ifdef DEBUG
-            assert(sl_search(v->vaccinated, vacc_rec));
             #endif
         }
         virus_info_destroy(dummy);
@@ -178,7 +189,6 @@ Person str_to_person(char *record) {
         free(parsed_rec);
         return NULL;
     }
-
     // create the person instance
     Person p = create_person(parsed_rec[0], 
                             parsed_rec[1], 
@@ -378,7 +388,7 @@ VaccineMonitor vaccine_monitor_create(char *input_filename, int bloom_size, int 
         printf("Inserting from file '%s' ...\n", input_filename);
         insert_from_file(m, input_filename);
         #ifdef DEBUG
-        ht_print_keys(m->citizens, visit);
+        // ht_print_keys(m->citizens, visit);
         #endif
     }
 

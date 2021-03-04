@@ -7,11 +7,12 @@
 char **parse_line(char *data_str, int *columns, char* sep) {
     // Initialize the columns counter
     *columns = 0;
-    
+    char *data_string = calloc(1 +strlen(data_str), sizeof(char));
+    strcpy(data_string, data_str);
     char **data = NULL;
 
     // split the str to all space-separated substring
-    char *tok = strtok(data_str, sep);
+    char *tok = strtok(data_string, sep);
 
     while (tok != NULL) {
         // for all the tokens we just keep on going to parse the data correclty
@@ -36,7 +37,7 @@ char **parse_line(char *data_str, int *columns, char* sep) {
 
         tok = strtok(NULL, sep);
     }
-
+    free(data_string);
     return data;
 }
 
