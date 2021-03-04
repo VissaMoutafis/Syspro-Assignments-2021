@@ -10,7 +10,7 @@ char **parse_line(char *data_str, int *columns, char* sep) {
     char *data_string = calloc(1 +strlen(data_str), sizeof(char));
     strcpy(data_string, data_str);
     char **data = NULL;
-
+    
     // split the str to all space-separated substring
     char *tok = strtok(data_string, sep);
 
@@ -130,13 +130,32 @@ int get_len_of_int(int num) {
 }
 
 
+bool check_date(char *date) {
+    int d,m,y;
+    bool proper_format = (sscanf(date, "%d-%d-%d", &d,&m,&y) == 3);
+
+    return proper_format
+        && d > 0 && d <= 30
+        && m > 0 && m <= 12
+        && y >= 0;
+}
+
+bool check_date_in_range(char *_date, char *_date1, char *_date2) {
+    int d,d1,d2,m,m1,m2,y,y1,y2;
+    sscanf(_date, "%d-%d-%d", &d, &m, &y);
+    sscanf(_date1, "%d-%d-%d", &d1, &m1, &y1);
+    sscanf(_date2, "%d-%d-%d", &d2, &m2, &y2);    
+
+    int date, start, end;
+    date = 10000*y + 100*m + d;
+    start = 10000*y1 +100*m1 + d1;
+    end = 10000*y2 + 100*m2 + d2;
+
+    return date >= start && date <= end;
+}
 
 // test main
 // int main(int argc, char **argv) {
-//     int c = compare_numeric_str(argv[1], argv[2]);
-//     if (c > 0) puts("Larger");
-//     else if (c < 0) puts("Smaller");
-//     else puts("Equal");
-
+//     printf("%s\n", check_date_in_range(argv[1], argv[2], argv[3]) ? "YES" :"NO");
 //     exit(0);
 // }

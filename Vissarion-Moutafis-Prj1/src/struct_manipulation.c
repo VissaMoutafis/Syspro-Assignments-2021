@@ -183,23 +183,11 @@ void person_complete_destroy(void *_p) {
     country_index_destroy(p->country_t);
     person_destroy(p);
 }
-bool check_date(char *date) {
-    int d,m,y;
-    bool proper_format = (sscanf(date, "%d-%d-%d", &d,&m,&y) == 3);
-    
-    time_t now;
-    time(&now);
-    struct tm *local = localtime(&now);
 
-    return proper_format
-        && d > 0 && d <= 30
-        && m > 0 && m <= 12
-        && y <= (local->tm_year+1900);
-}
 // Function to check the format of the person
 bool check_person_constistency(char *attrs[], int cols) {
     return cols <= 8 && cols >= 7                                   &&
-           attrs[0]                                                 &&
+           attrs[0] && strlen(attrs[0]) <= 4                        &&
            attrs[1]                                                 &&
            attrs[2]                                                 &&
            attrs[3]                                                 &&

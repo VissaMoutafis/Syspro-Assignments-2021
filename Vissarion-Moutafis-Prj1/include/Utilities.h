@@ -19,4 +19,8 @@ char **parse_line(char *data_str, int *columns, char* sep);
 // false if does not, only, contain digits.
 bool is_numeric(char* str);
 
+// check if a date is in the proper format and is has valid values
+bool check_date(char *date);
 
+// check if a date is in range [date1, date2]
+bool check_date_in_range(char *date, char *min_date, char *max_date);
