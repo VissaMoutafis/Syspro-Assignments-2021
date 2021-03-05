@@ -52,11 +52,7 @@ struct vaccine_monitor {
 static void vaccinate_citizen(VirusInfo v, VaccRec vacc_rec, char *date) {
     Pointer vacc_rec_dummy=NULL;
     // delete him from the non-vaccinated group
-    if (!sl_delete(v->not_vaccinated, vacc_rec, false, &vacc_rec_dummy)) {
-        fprintf(stderr, "\nPROBLEM DURING DELETION OF %s.\n",
-                vacc_rec->p->citizenID);
-        exit(1);
-    }
+    sl_delete(v->not_vaccinated, vacc_rec, false, &vacc_rec_dummy);
 
     // debug
     #ifdef DEBUG
@@ -101,10 +97,9 @@ static void virus_info_insert(VaccineMonitor monitor, Person p, bool update, cha
             // not-vaccinated people
             if (update && is_vaccinated)
                 vaccinate_citizen(v, vacc_rec, date);
-        } else if (sl == v->not_vaccinated || !(vacc_rec = sl_search(sl, dummy_vr))) {
-            // at this case the record does not 
-
-            // if we cannot find him in sl then we must try to search for the other list 
+        } else if (sl == v->not_vaccinated || !(vacc_rec = sl_search(v->vaccinated, dummy_vr))) {
+            // here the person is neither of vacc of not-vacc lists
+            // so just add him
             VaccRec vr = vacc_rec_create(p, date, true);
             sl_insert(sl, vr, false, &vacc_rec_dummy);
             if (is_vaccinated)
@@ -114,6 +109,13 @@ static void virus_info_insert(VaccineMonitor monitor, Person p, bool update, cha
                 assert(bf_contains(v->bf, p));
             assert(sl_search(sl, vr));
             #endif
+        } else {
+            // the person is in vaccinated list
+            #ifdef DEBUG
+            assert(sl_search(v->vaccinated, dummy_vr));
+            #endif
+            error_flag = true;
+            sprintf(error_msg, "ERROR: CITIZEN %s ALREADY VACCINATED ON %s", ((VaccRec)vacc_rec)->p->citizenID, ((VaccRec)vacc_rec)->date);
         }
         virus_info_destroy(dummy);
         vacc_rec_destroy(dummy_vr);
@@ -360,29 +362,77 @@ static void vaccine_status(VaccineMonitor monitor, char *value) {
 }
 
 // helper function
-static u_int32_t population_status_in_country (CountryIndex c, SL vaccinated, char *date1, char *date2) {
-    u_int32_t vaccd = 0;
+static void population_status_in_country (CountryIndex c, SL vaccinated, char *date1, char *date2,  u_int32_t vaccd_by_age[], u_int32_t age_cnt[]) {
     ListNode node = list_get_head(c->citizen_list);
     while (node) {
         // we have to check if this person is in the vaccinated skip list of the
         Person p = list_node_get_entry(c->citizen_list, node);
         VaccRec vr, dummy_vr = vacc_rec_create(p, NULL, false);
-        
+        #ifdef DEBUG
+        assert(p->age >= 0);
+        #endif
+        int i = -1;
+        if (p->age <= 20)
+            i = 0;
+        else if (p->age <= 40)
+            i = 1;
+        else if (p->age <= 60)
+            i = 2;
+        else
+            i = 3;
+        assert(i > -1);
+        age_cnt[i] += 1;
         // if we find the citizen into the vaccinated list then increase the vaccd count
-        if ((vr=sl_search(vaccinated, dummy_vr)) && check_date_in_range(vr->date, date1, date2))
-            vaccd++;
+        if ((vr = sl_search(vaccinated, dummy_vr)) && check_date_in_range(vr->date, date1, date2)) {
+            vaccd_by_age[i] += 1;
+        }
+        
         vacc_rec_destroy(dummy_vr);
 
         // proceed to the next node
         node = list_get_next(c->citizen_list, node);
     }
-
-    return vaccd;
 }
 
-static void population_status(VaccineMonitor monitor, char *value) {
+// beutify the printing of the status. Provide a flag "by_age" to print them accordingly
+static void print_status(char *country, bool by_age, u_int32_t vaccd_by_age[], u_int32_t age_cnt[]) {
+    char buf[BUFSIZ];
+    memset(buf, 0, BUFSIZ);
+    if (by_age) {
+        sprintf(buf, "%s\n", country);
+        strcat(ans_buffer, buf);
+        for (int i = 0; i < 4; i++) {
+            // fix the denominator
+            if (vaccd_by_age[i] == 0 && age_cnt[i] == 0) age_cnt[i] = 1;
+            if (i < 3)
+                sprintf(buf, "%d-%d %u %.2f%%\n", 20*i, 20*(i+1), vaccd_by_age[i], 100.0*((float)vaccd_by_age[i]) / ((float)age_cnt[i]));
+            else 
+                sprintf(buf, "%d+ %u %.2f%%\n", 20*i, vaccd_by_age[i], 100.0*((float)vaccd_by_age[i]) / ((float)age_cnt[i]));
+                
+            strcat(ans_buffer, buf);
+        }
+        strcat(ans_buffer, "\n");
+        #ifdef DEBUG
+        assert(strlen(ans_buffer) < BUFSIZ);
+        #endif
+    } else {
+        float vaccd = 0.0;
+        float citizens = 0.0;
+        for (int i = 0; i < 4; i++) {
+            vaccd += (float)vaccd_by_age[i];
+            citizens += (float)age_cnt[i];
+        }
+        sprintf(buf, "%s %.0f %.2f%%\n", country, vaccd, 100.0 * vaccd / citizens);
+        strcat(ans_buffer, buf);
+    }
+}
+
+
+// helper function
+static void print_pop_status(VaccineMonitor monitor, char *value, bool by_age) {
     // values = [country] virusName date1 date2
     int cols=-1;
+    
     char ** values = parse_line(value, &cols, FIELD_SEPARATOR);
     bool dates_valid = check_date(values[cols-2]) && check_date(values[cols-1]);
     bool there_is_country = (cols == 4);
@@ -407,29 +457,33 @@ static void population_status(VaccineMonitor monitor, char *value) {
     if (!error_flag) {
         // for shorter naming
         List l = monitor->citizen_lists_per_country;
+        u_int32_t age_cnt[] = {0, 0, 0, 0};
+        u_int32_t vaccd_by_age[] = {0, 0, 0, 0};
         // determine if there is a country
         if (there_is_country) {
             // if there is a country then we must pass all the people in it
             Pointer dummy_c = country_index_create(values[0]);
             CountryIndex c = (CountryIndex)list_node_get_entry(l, list_find(l, dummy_c));
-            u_int32_t vaccd = population_status_in_country(c, v->vaccinated, values[cols-2], values[cols-1]);
+
+            population_status_in_country(c, v->vaccinated, values[cols-2], values[cols-1], vaccd_by_age, age_cnt);
             country_index_destroy(dummy_c);
 
             // put the answer to the ans_buffer
-            sprintf(ans_buffer, "%s %u %.2f %%", c->country, vaccd, ((float)vaccd)/((float)list_len(c->citizen_list)));
+            print_status(c->country, by_age, vaccd_by_age, age_cnt);
         } else {
             // there is no country so we have to pass them all 
             ListNode cid_node = list_get_head(l);
             while (cid_node) {
                 CountryIndex c = (CountryIndex)list_node_get_entry(l, cid_node);
-                u_int32_t vaccd = population_status_in_country(c, v->vaccinated, values[cols-2], values[cols-1]);
+
+                // get the vaccinated count
+                memset(age_cnt, 0, sizeof(u_int32_t)*4);
+                memset(vaccd_by_age, 0, sizeof(u_int32_t) * 4);
+                population_status_in_country(c, v->vaccinated, values[cols-2], values[cols-1], vaccd_by_age, age_cnt);
                 cid_node = list_get_next(l, cid_node);
 
                 // put the answer to the ans_buffer (concat it)
-                char buf[BUFSIZ];
-                memset(buf, 0, BUFSIZ);
-                sprintf(buf, "%s %u %.2f %%\n", c->country, vaccd, ((float)vaccd)/((float)list_len(c->citizen_list)));
-                strcat(ans_buffer, buf);
+                print_status(c->country, by_age, vaccd_by_age, age_cnt);   
             }
         }
     }
@@ -439,10 +493,19 @@ static void population_status(VaccineMonitor monitor, char *value) {
     free(values);
 }
 
+static void population_status(VaccineMonitor monitor, char *value) {
+    print_pop_status(monitor, value, false);
+}
 
+static void pop_status_by_age(VaccineMonitor monitor, char *value) {
+    print_pop_status(monitor, value, true);
+}
+
+static void vaccinate_now(VaccineMonitor monitor, char *person_record) {
+    insert_record(monitor, person_record, true);
+}
 
 static void list_not_vaccinated_persons(VaccineMonitor monitor, char *value) {
-
 }
 
 
@@ -478,7 +541,7 @@ VaccineMonitor vaccine_monitor_create(char *input_filename, int bloom_size, int 
         printf("Inserting from file '%s' ...\n", input_filename);
         insert_from_file(m, input_filename);
         #ifdef DEBUG
-        // ht_print_keys(m->citizens, visit);
+        ht_print_keys(m->citizens, visit);
         #endif
     }
 
@@ -493,6 +556,10 @@ void vaccine_monitor_destroy(VaccineMonitor m) {
 }
 
 bool vaccine_monitor_act(VaccineMonitor monitor, int expr_index, char *value) {
+    char buf[BUFSIZ];
+    time_t now;
+    time(&now);
+    struct tm *tm = localtime(&now);
     switch (expr_index) {
     case 0: // command = vaccineStatusBloom , value = "citizenID virusName"
             vaccine_status_bloom(monitor, value);
@@ -522,8 +589,13 @@ bool vaccine_monitor_act(VaccineMonitor monitor, int expr_index, char *value) {
             memset(ans_buffer, 0, BUFSIZ);
         break;
 
-    case 3:
-
+    case 3: // command = popStatusByAge, values = values = [country] virusName date1 date2
+            pop_status_by_age(monitor, value);
+            if (error_flag)
+                print_error(false);
+            else 
+                printf("%s\n", ans_buffer);
+            memset(ans_buffer, 0, BUFSIZ);
         break;
 
     case 4:
@@ -531,11 +603,19 @@ bool vaccine_monitor_act(VaccineMonitor monitor, int expr_index, char *value) {
         break;
 
     case 5:  // command = vaccinateNow, values = citizenID firstName lastName country age virusName
-
-        break;
+            // we have to reformat the given values to an existing record
+            sprintf(buf, "%s YES %02d-%02d-%02d", value, tm->tm_mday, tm->tm_mon+1, tm->tm_year+1900);
+            // now call the respective routine
+            vaccinate_now(monitor, buf);
+            if (error_flag)
+                print_error(false);
+            else
+                printf("%s\n", ans_buffer);
+            memset(ans_buffer, 0, BUFSIZ);
+            break;
 
     case 6:  // command = list-nonVaccinated-Persons, values = virusName
-            list_not_vaccinated_persons(monitor, value);
+            list_not_vaccinated_persons(monitor, value); // TO-DO
             printf("%s\n", ans_buffer);
             memset(ans_buffer, 0, BUFSIZ);
         break;

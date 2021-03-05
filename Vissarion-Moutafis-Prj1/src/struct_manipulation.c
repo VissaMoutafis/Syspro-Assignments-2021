@@ -174,7 +174,9 @@ int person_cmp(void *p1, void *p2) {
 }
 
 u_int32_t person_hash(void *p) {
-    return hash_i((unsigned char *)((Person)p)->citizenID, strlen(((Person)p)->citizenID));
+    char * id = ((Person)p)->citizenID;
+    while(id[0] && id[0] == '0' && id[1]) id++;
+    return hash_i((unsigned char*)id, strlen(id));
 }
 
 void person_complete_destroy(void *_p) {
@@ -187,7 +189,7 @@ void person_complete_destroy(void *_p) {
 // Function to check the format of the person
 bool check_person_constistency(char *attrs[], int cols) {
     return cols <= 8 && cols >= 7                                   &&
-           attrs[0] && strlen(attrs[0]) <= 4                        &&
+           attrs[0] && atoi(attrs[0]) <= 9999                       &&
            attrs[1]                                                 &&
            attrs[2]                                                 &&
            attrs[3]                                                 &&
@@ -202,7 +204,7 @@ bool check_person_constistency(char *attrs[], int cols) {
 
 // Function to check if 2 people are the same.
 bool person_equal(Person p1, Person p2) {
-    return !strcmp(p1->citizenID, p2->citizenID)
+    return !compare_numeric_str(p1->citizenID, p2->citizenID)
         && !strcmp(p1->firstName, p2->firstName)
         && !strcmp(p1->lastName, p2->lastName)
         && !strcmp(p1->country_t->country, p2->country_t->country)

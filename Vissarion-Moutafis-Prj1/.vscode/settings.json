@@ -1,0 +1,14 @@
+{
+    "c_project": {
+        "mk_dir": "",
+        "dir": "",
+        "program": "build/vaccineMonitor",
+        "debug_flag": "DEBUG=1",
+        "arg1": "-c",
+        "arg2": "inputFile2",
+        "arg3": "-b",
+        "arg4": "100000",
+        "arg5": "#",
+        "arg6": "#",
+    },
+}
