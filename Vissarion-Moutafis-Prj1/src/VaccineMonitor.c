@@ -36,7 +36,7 @@ char *possible_commands[] = {
 
 // for value list argument checking (swallow checks)
 int max_values[] = {2, 2, 4, 4, 8, 6, 1, 0};
-int min_values[] = {2, 1, 3, 3, 8, 6, 1, 0};
+int min_values[] = {2, 1, 3, 3, 7, 6, 1, 0};
 
 struct vaccine_monitor {
     // General indexing for citizens
@@ -97,13 +97,14 @@ static void virus_info_insert(VaccineMonitor monitor, Person p, bool update, cha
             // not-vaccinated people
             if (update && is_vaccinated)
                 vaccinate_citizen(v, vacc_rec, date);
-        } else if (sl == v->not_vaccinated || !(vacc_rec = sl_search(v->vaccinated, dummy_vr))) {
+        } else if (!(vacc_rec = sl_search(v->vaccinated, dummy_vr))) {
             // here the person is neither of vacc of not-vacc lists
             // so just add him
             VaccRec vr = vacc_rec_create(p, date, true);
             sl_insert(sl, vr, false, &vacc_rec_dummy);
             if (is_vaccinated)
                 bf_insert(v->bf, p);
+
             #ifdef DEBUG
             if (is_vaccinated)
                 assert(bf_contains(v->bf, p));
@@ -228,7 +229,7 @@ static void insert_record(VaccineMonitor monitor, char *record, bool update) {
             ht_insert(monitor->citizens, p, false, &old);
             country_index_insert(monitor, p); 
             key = p;
-        } 
+        }
 
         // now we have to insert and/or update the respective virus info
         // if the record is incosistent with the current instance in the general table then 
@@ -501,8 +502,15 @@ static void pop_status_by_age(VaccineMonitor monitor, char *value) {
     print_pop_status(monitor, value, true);
 }
 
-static void vaccinate_now(VaccineMonitor monitor, char *person_record) {
-    insert_record(monitor, person_record, true);
+static void vaccinate_now(VaccineMonitor monitor, char *value) {
+    // we have to reformat the given values to an existing record
+    char buf[BUFSIZ];
+    time_t now;
+    time(&now);
+    struct tm *tm = localtime(&now);
+    sprintf(buf, "%s YES %02d-%02d-%02d", value, tm->tm_mday, tm->tm_mon+1, tm->tm_year+1900);
+    // now call the respective routine
+    insert_record(monitor, buf, true);
 }
 
 static void list_not_vaccinated_persons(VaccineMonitor monitor, char *value) {
@@ -556,10 +564,6 @@ void vaccine_monitor_destroy(VaccineMonitor m) {
 }
 
 bool vaccine_monitor_act(VaccineMonitor monitor, int expr_index, char *value) {
-    char buf[BUFSIZ];
-    time_t now;
-    time(&now);
-    struct tm *tm = localtime(&now);
     switch (expr_index) {
     case 0: // command = vaccineStatusBloom , value = "citizenID virusName"
             vaccine_status_bloom(monitor, value);
@@ -598,15 +602,18 @@ bool vaccine_monitor_act(VaccineMonitor monitor, int expr_index, char *value) {
             memset(ans_buffer, 0, BUFSIZ);
         break;
 
-    case 4:
-
-        break;
+    case 4: // command = insertCitizenRecord, values = citizenID firstName lastName country age virusName YES/NO [date]
+            insert_record(monitor, value, true);
+            if (error_flag)
+                print_error(false);
+            else
+                printf("%s\n", ans_buffer);
+            memset(ans_buffer, 0, BUFSIZ);
+            break;
 
     case 5:  // command = vaccinateNow, values = citizenID firstName lastName country age virusName
-            // we have to reformat the given values to an existing record
-            sprintf(buf, "%s YES %02d-%02d-%02d", value, tm->tm_mday, tm->tm_mon+1, tm->tm_year+1900);
-            // now call the respective routine
-            vaccinate_now(monitor, buf);
+            
+            vaccinate_now(monitor, value);
             if (error_flag)
                 print_error(false);
             else
