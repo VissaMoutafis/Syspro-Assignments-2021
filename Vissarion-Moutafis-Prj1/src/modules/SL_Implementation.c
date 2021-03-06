@@ -1,4 +1,5 @@
 #include "SL.h"
+#include <stdio.h>
 
 struct skip_list {
     SLNode head;
@@ -250,6 +251,19 @@ void sl_destroy(SL sl) {
     free(sl);
 }
 
+void sl_print(SL sl, Visit visit) {
+    assert(sl);
+    SLNode node = sl->head->next[0];
+
+    while (node->next[0]) {
+        assert(node->entry);
+        visit(node->entry);
+        node = node->next[0];
+    }
+    assert(node->entry);
+    visit(node->entry);
+}
+
 // Function to set a new destructor for the sl. The previous one is saved in prev_destructor pointer
 void sl_set_destructor(SL sl, ItemDestructor new_destructor, ItemDestructor *prev_destructor) {
     assert(sl);
@@ -258,6 +272,8 @@ void sl_set_destructor(SL sl, ItemDestructor new_destructor, ItemDestructor *pre
     *prev_destructor = sl->item_destructor;
     sl->item_destructor = new_destructor;
 }
+
+
 
 // test main
 

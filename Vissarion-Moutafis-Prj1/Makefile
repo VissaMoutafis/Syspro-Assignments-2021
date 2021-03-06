@@ -18,13 +18,15 @@ CFLAGS =  -Wall -Werror -I $(INCLUDE)
 
 TESTCASE = 
 
-ARGS =
+ARGS = -c inputFile -b 100000
 
 include $(SRC)/src.inc
 
 ifeq ($(DEBUG), 1) 
 	CFLAGS += -D DEBUG -g3
 endif
+
+$(PROGRAM): $(BUILD)/$(PROGRAM)
 
 $(BUILD)/$(PROGRAM) : $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $(BUILD)/$(PROGRAM) $(LIBRARIES)
@@ -33,14 +35,10 @@ $(BUILD)/$(PROGRAM) : $(OBJS)
 $(BIN)/%.o : $(SRC)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+run : $(BUILD)/$(PROGRAM)
+	./$(BUILD)/$(PROGRAM) $(ARGS)
+
+all: clean $(BUILD)/$(PROGRAM)
+
 clean:
 	rm -rf $(BUILD)/$(PROGRAM) $(OBJS) ./$(PROGRAM)
-
-clean-database: 
-	rm -rf $(DATABASE-FILES)/*
-
-run : $(BUILD)/$(PROGRAM)
-	./$(BUILD)/$(PROGRAM) -c inputFile -b 100000
-
-testcases: testFile.sh
-	./testFile.sh viruses.csv countries.csv 100 0

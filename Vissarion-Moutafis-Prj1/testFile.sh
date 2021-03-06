@@ -7,7 +7,8 @@
 # countriesFile: the path of the countries file (one word/line, no blanks)
 # numLines: the number of lines in the produced-testcase
 # duplicatesAllowed:  flag that determines if duplicates are allowed or not (0 unique records, > 0 duplicates )
-
+# 						if the flag is set to 1 then we will include some false or extreme test-lines to challenge 
+# 						the error checking of the program
 
 # change the internal field separator to parse the files appropriately
 OLD_IFS=$IFS
@@ -64,7 +65,7 @@ then
 fi
 
 # the length of false and duplicates recs is 2/10 of the numLines 
-falseRecs=$((4 * $numLines / 10))
+falseRecs=$((2 * $numLines / 10))
 if [ "$duplicatesAllowed" -eq 1 ]
 then 
 	numLines=$(($numLines - $falseRecs))

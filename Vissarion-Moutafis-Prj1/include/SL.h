@@ -28,3 +28,6 @@ void sl_destroy(SL sl);
 
 // Function to set a new destructor for the sl. The previous one is saved in prev_destructor pointer
 void sl_set_destructor(SL sl, ItemDestructor new_destructor, ItemDestructor *prev_destructor);
+
+// Funciton to print the entries
+void sl_print(SL sl, Visit visit);

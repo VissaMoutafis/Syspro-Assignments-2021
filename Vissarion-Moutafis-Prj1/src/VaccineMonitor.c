@@ -20,7 +20,7 @@ int pos_cmds_len = 8;
 char *allowed_formats[] = {"vaccineStatusBloom",        "vaccineStatus",
                            "populationStatus",          "popStatusByAge",
                            "insertCitizenRecord",       "vaccinateNow",
-                           "list-nonVaccinated-Persons", "exit"};
+                           "list-notVaccinated-Persons", "exit"};
 
 // for help printing
 char *possible_commands[] = {
@@ -28,15 +28,15 @@ char *possible_commands[] = {
     "/vaccineStatus citizenID [virusName]",
     "/populationStatus [country] virusName date1 date2",
     "/popStatusByAge [country] virusName date1 date2",
-    "/insertCitizenRecord citizenID firstName lastName jcountry age virusName "
+    "/insertCitizenRecord citizenID firstName lastName country age virusName "
     "YES/NO [date]",
     "/vaccinateNow citizenID firstName lastName contry age virusName",
-    "/list-nonVaccinated-Persons virusName",
+    "/list-notVaccinated-Persons virusName",
     "/exit"};
 
 // for value list argument checking (swallow checks)
 int max_values[] = {2, 2, 4, 4, 8, 6, 1, 0};
-int min_values[] = {2, 1, 3, 3, 7, 6, 1, 0};
+int min_values[] = {2, 1, 1, 1, 7, 6, 1, 0};
 
 struct vaccine_monitor {
     // General indexing for citizens
@@ -373,11 +373,11 @@ static void population_status_in_country (CountryIndex c, SL vaccinated, char *d
         assert(p->age >= 0);
         #endif
         int i = -1;
-        if (p->age <= 20)
+        if (p->age < 20)
             i = 0;
-        else if (p->age <= 40)
+        else if (p->age < 40)
             i = 1;
-        else if (p->age <= 60)
+        else if (p->age < 60)
             i = 2;
         else
             i = 3;
@@ -435,8 +435,18 @@ static void print_pop_status(VaccineMonitor monitor, char *value, bool by_age) {
     int cols=-1;
     
     char ** values = parse_line(value, &cols, FIELD_SEPARATOR);
-    bool dates_valid = check_date(values[cols-2]) && check_date(values[cols-1]);
-    bool there_is_country = (cols == 4);
+    char *date1, *date2, *virusName;
+    if (cols <= 2) {
+        date1 = "1-1-0";
+        date2 = "30-12-9999";
+        virusName = values[cols-1];
+    } else {
+        date1 = values[cols-2];
+        date2 = values[cols-1];
+        virusName = values[cols-3];
+    }
+    bool dates_valid = check_date(date1) && check_date(date2);
+    bool there_is_country = (cols == 4 || cols == 2);
     
     // dates check
     if (!dates_valid) {
@@ -444,7 +454,7 @@ static void print_pop_status(VaccineMonitor monitor, char *value, bool by_age) {
         error_flag = true;
     }
 
-    VirusInfo dummy_v = virus_info_create(values[cols-3], BF_HASH_FUNC_COUNT+1, 1, 0.5);
+    VirusInfo dummy_v = virus_info_create(virusName, BF_HASH_FUNC_COUNT+1, 1, 0.5);
     Pointer key = NULL;
     if (!error_flag && !(key = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, dummy_v)))) {
         strcpy(error_msg, "ERROR");
@@ -466,7 +476,7 @@ static void print_pop_status(VaccineMonitor monitor, char *value, bool by_age) {
             Pointer dummy_c = country_index_create(values[0]);
             CountryIndex c = (CountryIndex)list_node_get_entry(l, list_find(l, dummy_c));
 
-            population_status_in_country(c, v->vaccinated, values[cols-2], values[cols-1], vaccd_by_age, age_cnt);
+            population_status_in_country(c, v->vaccinated, date1, date2, vaccd_by_age, age_cnt);
             country_index_destroy(dummy_c);
 
             // put the answer to the ans_buffer
@@ -480,7 +490,7 @@ static void print_pop_status(VaccineMonitor monitor, char *value, bool by_age) {
                 // get the vaccinated count
                 memset(age_cnt, 0, sizeof(u_int32_t)*4);
                 memset(vaccd_by_age, 0, sizeof(u_int32_t) * 4);
-                population_status_in_country(c, v->vaccinated, values[cols-2], values[cols-1], vaccd_by_age, age_cnt);
+                population_status_in_country(c, v->vaccinated, date1, date2, vaccd_by_age, age_cnt);
                 cid_node = list_get_next(l, cid_node);
 
                 // put the answer to the ans_buffer (concat it)
@@ -513,7 +523,25 @@ static void vaccinate_now(VaccineMonitor monitor, char *value) {
     insert_record(monitor, buf, true);
 }
 
+void visit_vacc_rec(Pointer vr) {
+    VaccRec vacc_rec = (VaccRec)vr;
+    Person p = vacc_rec->p;
+    printf("%s %s %s %s %d\n", p->citizenID, p->firstName, p->lastName, p->country_t->country, p->age);
+}
+
 static void list_not_vaccinated_persons(VaccineMonitor monitor, char *value) {
+    // value = virusName
+    VirusInfo dummy_v = virus_info_create(value, BF_HASH_FUNC_COUNT+1, 1, 0.5);
+    VirusInfo v = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, dummy_v));
+    if (!v) {
+        error_flag = true;
+        sprintf(error_msg, "ERROR");
+    }
+
+    if (!error_flag) {
+        sl_print(v->not_vaccinated, visit_vacc_rec);
+    }
+    virus_info_destroy(dummy_v);
 }
 
 
@@ -623,7 +651,10 @@ bool vaccine_monitor_act(VaccineMonitor monitor, int expr_index, char *value) {
 
     case 6:  // command = list-nonVaccinated-Persons, values = virusName
             list_not_vaccinated_persons(monitor, value); // TO-DO
-            printf("%s\n", ans_buffer);
+            if (error_flag)
+                print_error(false);
+            else
+                printf("%s\n", ans_buffer);
             memset(ans_buffer, 0, BUFSIZ);
         break;
 
