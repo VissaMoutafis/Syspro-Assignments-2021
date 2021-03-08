@@ -301,7 +301,21 @@ static void vaccine_status_bloom(VaccineMonitor monitor, char *value) {
     // change the answer buffer accordingly
     sprintf(ans_buffer, "%s", vaccinated ? "MAYBE" : "NOT VACCINATED");
 }
+static void print_virus_status(VirusInfo v, VaccRec vr) {
+    strcat(ans_buffer, v->virusName);
+    Pointer key;
 
+    // if the citizen is part of the vaccinated people
+    if ((key = sl_search(v->vaccinated, vr))) {
+        char buf[100];
+        memset(buf, 0, 100);
+        sprintf(buf, " YES %s\n", ((VaccRec)key)->date);
+        strcat(ans_buffer, buf);
+    } else  {
+        // if he is not
+        strcat(ans_buffer, " NO\n");
+    }
+}
 static void vaccine_status(VaccineMonitor monitor, char *value) {
     // value = citizenID, [virusName]
     int cols = -1;
@@ -319,12 +333,7 @@ static void vaccine_status(VaccineMonitor monitor, char *value) {
             // Since the person is actually in the database then
             VirusInfo dummy_v = virus_info_create(parsed_values[1], BF_HASH_FUNC_COUNT, 1, 0.0);
             if ((vp = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, dummy_v)))) {
-                VirusInfo v =(VirusInfo)vp;
-                Pointer key;
-                if ((key = sl_search(v->vaccinated, dummy_vr)))
-                    sprintf(ans_buffer, "%s YES %s", v->virusName, ((VaccRec)key)->date);
-                else
-                    sprintf(ans_buffer, "%s NO", v->virusName);
+                print_virus_status((VirusInfo)vp, dummy_vr);
             } else {
                 sprintf(error_msg, "%s IS NOT A REGISTERED VIRUS\n", parsed_values[1]);
                 error_flag = true;
@@ -336,17 +345,7 @@ static void vaccine_status(VaccineMonitor monitor, char *value) {
             // search every node in the virus info list
             while (node) {
                 VirusInfo v = list_node_get_entry(monitor->virus_info, node);
-                strcat(ans_buffer, v->virusName);
-                Pointer key;                
-
-                // if the citizen is part of the vaccinated people 
-                if ((key = sl_search(v->vaccinated, dummy_vr))) {
-                    char buf[100];
-                    memset(buf, 0, 100);
-                    sprintf(buf, " YES %s\n", ((VaccRec)key)->date);
-                    strcat(ans_buffer, buf);
-                } else // if he is not
-                    strcat(ans_buffer, " NO\n");
+                print_virus_status(v, dummy_vr);
                 // proceed to the next node 
                 node = list_get_next(monitor->virus_info, node);
             }
@@ -539,7 +538,7 @@ static void list_not_vaccinated_persons(VaccineMonitor monitor, char *value) {
     }
 
     if (!error_flag) {
-        sl_print(v->not_vaccinated, visit_vacc_rec);
+        sl_apply(v->not_vaccinated, visit_vacc_rec);
     }
     virus_info_destroy(dummy_v);
 }

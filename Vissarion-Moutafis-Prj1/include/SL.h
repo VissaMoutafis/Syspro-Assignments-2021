@@ -30,4 +30,4 @@ void sl_destroy(SL sl);
 void sl_set_destructor(SL sl, ItemDestructor new_destructor, ItemDestructor *prev_destructor);
 
 // Funciton to print the entries
-void sl_print(SL sl, Visit visit);
+void sl_apply(SL sl, Apply visit);

@@ -251,7 +251,7 @@ void sl_destroy(SL sl) {
     free(sl);
 }
 
-void sl_print(SL sl, Visit visit) {
+void sl_apply(SL sl, Apply visit) {
     assert(sl);
     SLNode node = sl->head->next[0];
 

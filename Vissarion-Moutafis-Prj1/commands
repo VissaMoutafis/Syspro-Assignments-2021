@@ -17,5 +17,5 @@ vaccineStatusBloom 9899 Smallpox
 vaccinateNow 9899 spiros spirakis elladistan 21 Smallpox  
 vaccineStatusBloom 9899 Smallpox
 vaccineStatus 9899 Smallpox
-list-nonVaccinated-Persons SARS-CoV2
+list-notVaccinated-Persons SARS-CoV2
 exit

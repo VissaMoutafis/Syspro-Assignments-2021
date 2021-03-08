@@ -20,20 +20,27 @@ TESTCASE =
 
 ARGS = -c inputFile -b 100000
 
+DEBUG_MSG = OFF
+
 include $(SRC)/src.inc
 
 ifeq ($(DEBUG), 1) 
 	CFLAGS += -D DEBUG -g3
+	DEBUG_MSG = ON
 endif
 
 $(PROGRAM): $(BUILD)/$(PROGRAM)
 
-$(BUILD)/$(PROGRAM) : $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -o $(BUILD)/$(PROGRAM) $(LIBRARIES)
-	cp $(BUILD)/$(PROGRAM) ./$(PROGRAM)
+$(BUILD)/$(PROGRAM) : print-msg $(OBJS)
+	@$(CC) $(CFLAGS) $(OBJS) -o $(BUILD)/$(PROGRAM) $(LIBRARIES)
+	@cp $(BUILD)/$(PROGRAM) ./$(PROGRAM)
+	@echo Done.
 
 $(BIN)/%.o : $(SRC)/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(BIN)/%.o : $(SRC)/modules/%.c
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 run : $(BUILD)/$(PROGRAM)
 	./$(BUILD)/$(PROGRAM) $(ARGS)
@@ -41,4 +48,9 @@ run : $(BUILD)/$(PROGRAM)
 all: clean $(BUILD)/$(PROGRAM)
 
 clean:
-	rm -rf $(BUILD)/$(PROGRAM) $(OBJS) ./$(PROGRAM)
+	@echo Cleaning Binaries...
+	@rm -rf $(BUILD)/$(PROGRAM) $(OBJS) ./$(PROGRAM)
+	@echo Done.
+
+print-msg:
+	@echo Building $(PROGRAM). DEBUG MODE: $(DEBUG_MSG)
