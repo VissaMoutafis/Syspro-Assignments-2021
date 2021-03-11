@@ -154,8 +154,19 @@ bool check_date_in_range(char *_date, char *_date1, char *_date2) {
     return date >= start && date <= end;
 }
 
-// test main
-// int main(int argc, char **argv) {
-//     printf("%s\n", check_date_in_range(argv[1], argv[2], argv[3]) ? "YES" :"NO");
-//     exit(0);
-// }
+int dates_cmp(char *_date1, char *_date2) {
+    int d1, d2, m1, m2, y1, y2;
+    sscanf(_date1, "%d-%d-%d", &d1, &m1, &y1);
+    sscanf(_date2, "%d-%d-%d", &d2, &m2, &y2);
+
+    int date1, date2;
+    date1 = 10000 * y1 + 100 * m1 + d1;
+    date2 = 10000 * y2 + 100 * m2 + d2;
+
+    return date1 > date2 ? 1 : date1 == date2 ? 0 : -1;
+}
+    // test main
+    // int main(int argc, char **argv) {
+    //     printf("%s\n", check_date_in_range(argv[1], argv[2], argv[3]) ? "YES"
+    //     :"NO"); exit(0);
+    // }

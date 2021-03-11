@@ -291,12 +291,12 @@ static void vaccine_status_bloom(VaccineMonitor monitor, char *value) {
             vaccinated = bf_contains(((VirusInfo)v)->bf, person);
         else {
             error_flag = true;
-            sprintf(error_msg, "ERROR: VIRUS %s DOES NOT EXIST", dummy_v->virusName);
+            sprintf(error_msg, "ERROR: %s IS NOT A REGISTERED VIRUS", dummy_v->virusName);
         }
         virus_info_destroy(dummy_v);
     } else {
         error_flag = true;
-        sprintf(error_msg, "ERROR: CITIZEN %s DOES NOT EXIST", dummy_p->citizenID);
+        sprintf(error_msg, "ERROR: %s IS NOT A REGISTERED CITIZEN", dummy_p->citizenID);
     }
 
     // free the allocated memory
@@ -347,7 +347,7 @@ static void vaccine_status(VaccineMonitor monitor, char *value) {
             if ((vp = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, dummy_v)))) {
                 print_virus_status((VirusInfo)vp, dummy_vr, true);
             } else {
-                sprintf(error_msg, "%s IS NOT A REGISTERED VIRUS\n", parsed_values[1]);
+                sprintf(error_msg, "ERROR: %s IS NOT A REGISTERED VIRUS\n", parsed_values[1]);
                 error_flag = true;
             }
             virus_info_destroy(dummy_v);
@@ -364,7 +364,7 @@ static void vaccine_status(VaccineMonitor monitor, char *value) {
         }
         free(dummy_vr);
     } else {
-        strcpy(error_msg, "ERROR: CITIZEN ID DOES NOT EXIST");
+        sprintf(error_msg, "ERROR: %s IS NOT A REGISTERED CITIZEN ID", parsed_values[0]);
         error_flag = true;
     }
     // free the allocated memory
@@ -459,21 +459,18 @@ static void print_pop_status(VaccineMonitor monitor, char *value, bool by_age) {
         date2 = values[cols-1];
         virusName = values[cols-3];
     }
-    bool dates_valid = check_date(date1) && check_date(date2);
+    bool dates_valid = check_date(date1) && check_date(date2) && dates_cmp(date1, date2) <= 0;
     bool there_is_country = (cols == 4 || cols == 2);
     
     // dates check
-    if (!dates_valid) {
-        strcpy(error_msg, "ERROR");
+    if (!dates_valid)
         error_flag = true;
-    }
 
     VirusInfo dummy_v = virus_info_create(virusName, BF_HASH_FUNC_COUNT+1, 1, 0.5);
     Pointer key = NULL;
-    if (!error_flag && !(key = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, dummy_v)))) {
-        strcpy(error_msg, "ERROR");
+    if (!error_flag && !(key = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, dummy_v))))
         error_flag = true;
-    }
+
     
     // get it to a type'd mode, for manipulation ease (avoid constant casting)
     VirusInfo v = (VirusInfo)key;
@@ -489,12 +486,16 @@ static void print_pop_status(VaccineMonitor monitor, char *value, bool by_age) {
             // if there is a country then we must pass all the people in it
             Pointer dummy_c = country_index_create(values[0]);
             CountryIndex c = (CountryIndex)list_node_get_entry(l, list_find(l, dummy_c));
+            if (c != NULL)
+                population_status_in_country(c, v->vaccinated, v->not_vaccinated, date1, date2, vaccd_by_age, age_cnt);
+            else
+                error_flag = true;
 
-            population_status_in_country(c, v->vaccinated, v->not_vaccinated, date1, date2, vaccd_by_age, age_cnt);
             country_index_destroy(dummy_c);
 
             // put the answer to the ans_buffer
-            print_status(c->country, by_age, vaccd_by_age, age_cnt);
+            if (!error_flag)
+                print_status(c->country, by_age, vaccd_by_age, age_cnt);
         } else {
             // there is no country so we have to pass them all 
             ListNode cid_node = list_get_head(l);
@@ -516,6 +517,8 @@ static void print_pop_status(VaccineMonitor monitor, char *value, bool by_age) {
     virus_info_destroy(dummy_v);
     for (int i = 0; i < cols; i++) free(values[i]);
     free(values);
+    if (error_flag)
+        sprintf(error_msg, "ERROR");
 }
 
 static void population_status(VaccineMonitor monitor, char *value) {

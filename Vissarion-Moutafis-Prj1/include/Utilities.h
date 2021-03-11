@@ -24,3 +24,6 @@ bool check_date(char *date);
 
 // check if a date is in range [date1, date2]
 bool check_date_in_range(char *date, char *min_date, char *max_date);
+
+// compare dates return a positive number if date1>date2, 0 if equal, a negative number if date1<date2
+int dates_cmp(char *date1, char *date2);
