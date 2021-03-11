@@ -53,4 +53,4 @@ clean:
 	@echo Done.
 
 print-msg:
-	@echo Building $(PROGRAM). DEBUG MODE: $(DEBUG_MSG)
+	@echo "DEBUG MODE: $(DEBUG_MSG)\nBuilding $(PROGRAM)..."

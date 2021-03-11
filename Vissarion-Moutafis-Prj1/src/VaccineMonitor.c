@@ -20,7 +20,7 @@ int pos_cmds_len = 8;
 char *allowed_formats[] = {"vaccineStatusBloom",        "vaccineStatus",
                            "populationStatus",          "popStatusByAge",
                            "insertCitizenRecord",       "vaccinateNow",
-                           "list-notVaccinated-Persons", "exit"};
+                           "list-nonVaccinated-Persons", "exit"};
 
 // for help printing
 char *possible_commands[] = {
@@ -31,7 +31,7 @@ char *possible_commands[] = {
     "/insertCitizenRecord citizenID firstName lastName country age virusName "
     "YES/NO [date]",
     "/vaccinateNow citizenID firstName lastName contry age virusName",
-    "/list-notVaccinated-Persons virusName",
+    "/list-nonVaccinated-Persons virusName",
     "/exit"};
 
 // for value list argument checking (swallow checks)
@@ -289,8 +289,14 @@ static void vaccine_status_bloom(VaccineMonitor monitor, char *value) {
         VirusInfo dummy_v = virus_info_create(parsed_values[1], BF_HASH_FUNC_COUNT, 1, 0.0);
         if ((v = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, dummy_v))))
             vaccinated = bf_contains(((VirusInfo)v)->bf, person);
-
+        else {
+            error_flag = true;
+            sprintf(error_msg, "ERROR: VIRUS %s DOES NOT EXIST", dummy_v->virusName);
+        }
         virus_info_destroy(dummy_v);
+    } else {
+        error_flag = true;
+        sprintf(error_msg, "ERROR: CITIZEN %s DOES NOT EXIST", dummy_p->citizenID);
     }
 
     // free the allocated memory
@@ -301,19 +307,25 @@ static void vaccine_status_bloom(VaccineMonitor monitor, char *value) {
     // change the answer buffer accordingly
     sprintf(ans_buffer, "%s", vaccinated ? "MAYBE" : "NOT VACCINATED");
 }
-static void print_virus_status(VirusInfo v, VaccRec vr) {
-    strcat(ans_buffer, v->virusName);
+static void print_virus_status(VirusInfo v, VaccRec vr, bool single_virus) {
+    if (!single_virus) strcat(ans_buffer, v->virusName);
     Pointer key;
 
     // if the citizen is part of the vaccinated people
     if ((key = sl_search(v->vaccinated, vr))) {
-        char buf[100];
-        memset(buf, 0, 100);
-        sprintf(buf, " YES %s\n", ((VaccRec)key)->date);
-        strcat(ans_buffer, buf);
+        if (!single_virus){
+            char buf[100];
+            memset(buf, 0, 100);
+            sprintf(buf, " YES %s\n", ((VaccRec)key)->date);
+            strcat(ans_buffer, buf);
+        } else {
+            sprintf(ans_buffer, "VACCINATED ON %s", ((VaccRec)key)->date);
+        }
     } else  {
-        // if he is not
-        strcat(ans_buffer, " NO\n");
+        if (!single_virus)
+            strcat(ans_buffer, " NO\n");
+        else 
+            sprintf(ans_buffer, "NOT VACCINATED");
     }
 }
 static void vaccine_status(VaccineMonitor monitor, char *value) {
@@ -333,7 +345,7 @@ static void vaccine_status(VaccineMonitor monitor, char *value) {
             // Since the person is actually in the database then
             VirusInfo dummy_v = virus_info_create(parsed_values[1], BF_HASH_FUNC_COUNT, 1, 0.0);
             if ((vp = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, dummy_v)))) {
-                print_virus_status((VirusInfo)vp, dummy_vr);
+                print_virus_status((VirusInfo)vp, dummy_vr, true);
             } else {
                 sprintf(error_msg, "%s IS NOT A REGISTERED VIRUS\n", parsed_values[1]);
                 error_flag = true;
@@ -345,7 +357,7 @@ static void vaccine_status(VaccineMonitor monitor, char *value) {
             // search every node in the virus info list
             while (node) {
                 VirusInfo v = list_node_get_entry(monitor->virus_info, node);
-                print_virus_status(v, dummy_vr);
+                print_virus_status(v, dummy_vr, false);
                 // proceed to the next node 
                 node = list_get_next(monitor->virus_info, node);
             }
@@ -362,7 +374,7 @@ static void vaccine_status(VaccineMonitor monitor, char *value) {
 }
 
 // helper function
-static void population_status_in_country (CountryIndex c, SL vaccinated, char *date1, char *date2,  u_int32_t vaccd_by_age[], u_int32_t age_cnt[]) {
+static void population_status_in_country (CountryIndex c, SL vaccinated, SL not_vaccinated, char *date1, char *date2,  u_int32_t vaccd_by_age[], u_int32_t age_cnt[]) {
     ListNode node = list_get_head(c->citizen_list);
     while (node) {
         // we have to check if this person is in the vaccinated skip list of the
@@ -381,11 +393,14 @@ static void population_status_in_country (CountryIndex c, SL vaccinated, char *d
         else
             i = 3;
         assert(i > -1);
-        age_cnt[i] += 1;
+        
         // if we find the citizen into the vaccinated list then increase the vaccd count
-        if ((vr = sl_search(vaccinated, dummy_vr)) && check_date_in_range(vr->date, date1, date2)) {
+        if ((vr = sl_search(vaccinated, dummy_vr)) && check_date_in_range(vr->date, date1, date2))
             vaccd_by_age[i] += 1;
-        }
+        // we will count the person in the denominator (total persons vacc's/non-vacc'd)
+        // only if they have a record relative to the virus in the respective skip lists
+        if (vr || sl_search(not_vaccinated, dummy_vr))
+            age_cnt[i] += 1;
         
         vacc_rec_destroy(dummy_vr);
 
@@ -422,7 +437,7 @@ static void print_status(char *country, bool by_age, u_int32_t vaccd_by_age[], u
             vaccd += (float)vaccd_by_age[i];
             citizens += (float)age_cnt[i];
         }
-        sprintf(buf, "%s %.0f %.2f%%\n", country, vaccd, 100.0 * vaccd / citizens);
+        sprintf(buf, "%s %.0f %.2f%%\n", country, vaccd, citizens ? 100.0 * vaccd / citizens : 0.0);
         strcat(ans_buffer, buf);
     }
 }
@@ -475,7 +490,7 @@ static void print_pop_status(VaccineMonitor monitor, char *value, bool by_age) {
             Pointer dummy_c = country_index_create(values[0]);
             CountryIndex c = (CountryIndex)list_node_get_entry(l, list_find(l, dummy_c));
 
-            population_status_in_country(c, v->vaccinated, date1, date2, vaccd_by_age, age_cnt);
+            population_status_in_country(c, v->vaccinated, v->not_vaccinated, date1, date2, vaccd_by_age, age_cnt);
             country_index_destroy(dummy_c);
 
             // put the answer to the ans_buffer
@@ -489,7 +504,7 @@ static void print_pop_status(VaccineMonitor monitor, char *value, bool by_age) {
                 // get the vaccinated count
                 memset(age_cnt, 0, sizeof(u_int32_t)*4);
                 memset(vaccd_by_age, 0, sizeof(u_int32_t) * 4);
-                population_status_in_country(c, v->vaccinated, date1, date2, vaccd_by_age, age_cnt);
+                population_status_in_country(c, v->vaccinated, v->not_vaccinated, date1, date2, vaccd_by_age, age_cnt);
                 cid_node = list_get_next(l, cid_node);
 
                 // put the answer to the ans_buffer (concat it)
