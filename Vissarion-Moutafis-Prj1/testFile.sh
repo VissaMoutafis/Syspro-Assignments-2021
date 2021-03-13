@@ -64,8 +64,8 @@ then
 	duplicatesAllowed=1
 fi
 
-# the length of false and duplicates recs is 2/10 of the numLines 
-falseRecs=$((2 * $numLines / 10))
+# the length of false and duplicates recs is 15% of the numLines 
+falseRecs=$((15 * $numLines / 100))
 if [ "$duplicatesAllowed" -eq 1 ]
 then 
 	numLines=$(($numLines - $falseRecs))

@@ -3,3 +3,4 @@ testcases/
 hw1-spring-2021.pdf
 !bin/
 !build/
+*.o

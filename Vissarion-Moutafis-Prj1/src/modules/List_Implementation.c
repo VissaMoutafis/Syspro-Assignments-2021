@@ -1,6 +1,7 @@
 /*
 ** Double Linked List Implementation
-**  Written by Vissarion Moutafis sdi1800119
+** Written by Vissarion Moutafis sdi1800119 
+** for OS project 1 fall 2020
 */
 #include <stdio.h>
 
@@ -225,7 +226,7 @@ void list_node_set_entry(List list, ListNode node, Pointer new_entry, Pointer *o
     node->entry = new_entry;
 }
 
-// Additional-Extra Methods
+// Additional-Extra Methods for OS project 1
 
 void list_print(List list, Visit visit) {
     ListNode cur = list->head;
@@ -236,92 +237,92 @@ void list_print(List list, Visit visit) {
     }
 }
 
-Pointer list_find_min(List list, Compare compare) {
-    ListNode n = list->head;
-    Pointer cur, min;
-    min = n->entry;
+// Pointer list_find_min(List list, Compare compare) {
+//     ListNode n = list->head;
+//     Pointer cur, min;
+//     min = n->entry;
 
-    while (n != LIST_EOF) {
-        cur = n->entry;
-        min = compare(cur, min) < 0 ? cur : min;
-        n = n->next;
-    }
+//     while (n != LIST_EOF) {
+//         cur = n->entry;
+//         min = compare(cur, min) < 0 ? cur : min;
+//         n = n->next;
+//     }
 
-    return min;
-}
+//     return min;
+// }
 
-Pointer list_find_max(List list, Compare compare) {
-    ListNode n = list->head;
-    Pointer cur, max;
-    max = n->entry;
+// Pointer list_find_max(List list, Compare compare) {
+//     ListNode n = list->head;
+//     Pointer cur, max;
+//     max = n->entry;
 
-    while (n != LIST_EOF) {
-        cur = n->entry;
-        max = compare(cur, max) > 0 ? cur : max;
-        n = n->next;
-    }
+//     while (n != LIST_EOF) {
+//         cur = n->entry;
+//         max = compare(cur, max) > 0 ? cur : max;
+//         n = n->next;
+//     }
 
-    return max;
-}
+//     return max;
+// }
 
-void list_insert_sorted(List list, Pointer entry, Compare compare) {
-    ListNode c = list->head; 
+// void list_insert_sorted(List list, Pointer entry, Compare compare) {
+//     ListNode c = list->head; 
     
-    while (c != LIST_EOF && compare(c->entry, entry) > 0) {
-        // while c is in the list and the c->entry > entry
-        c = c->next;
-    }
-    // c will be the node that is next to the new entry node
-    ListNode new_node = create_node(entry, c, NULL);
+//     while (c != LIST_EOF && compare(c->entry, entry) > 0) {
+//         // while c is in the list and the c->entry > entry
+//         c = c->next;
+//     }
+//     // c will be the node that is next to the new entry node
+//     ListNode new_node = create_node(entry, c, NULL);
 
-    if (c == list->head)
-        list->head = new_node;
+//     if (c == list->head)
+//         list->head = new_node;
 
-    if (c != NULL){ 
-        new_node->prev = c->prev;
+//     if (c != NULL){ 
+//         new_node->prev = c->prev;
 
-        if (c->prev)
-            c->prev->next = new_node;
+//         if (c->prev)
+//             c->prev->next = new_node;
 
-        c->prev = new_node;
-    } else {
-        // we add it at the end of the list
-        new_node->prev = list->tail;
-        if (list->tail)
-            list->tail->next = new_node;
-        list->tail = new_node;
-    }
+//         c->prev = new_node;
+//     } else {
+//         // we add it at the end of the list
+//         new_node->prev = list->tail;
+//         if (list->tail)
+//             list->tail->next = new_node;
+//         list->tail = new_node;
+//     }
 
-    list->count ++;
-}
+//     list->count ++;
+// }
 
-List list_get_top_n(List list, Compare compare, int n) {
-    ListNode cur= list->head;
-    cur = list->head;
-    List top_n_th = list_create(list->compare, NULL);
-    // while we reach the n_th top or the list ends
-    while(cur != NULL) {
-            list_insert_sorted(top_n_th, cur->entry, compare);
-            cur = cur->next;
-    }
-    int to_delete = list->count - n;
+// List list_get_top_n(List list, Compare compare, int n) {
+//     ListNode cur= list->head;
+//     cur = list->head;
+//     List top_n_th = list_create(list->compare, NULL);
+//     // while we reach the n_th top or the list ends
+//     while(cur != NULL) {
+//             list_insert_sorted(top_n_th, cur->entry, compare);
+//             cur = cur->next;
+//     }
+//     int to_delete = list->count - n;
 
-    if (to_delete > 0 && n >= 0) {
-        while(to_delete-- && !list_empty(top_n_th)) {
-            ListNode tail = top_n_th->tail;
-            if (top_n_th->tail){
-                top_n_th->tail = tail->prev;
-                if (top_n_th->tail)
-                    top_n_th->tail->next = NULL;
-            }
-            if (top_n_th->tail == NULL)
-                top_n_th->head = top_n_th->tail = NULL;
-            free(tail);
+//     if (to_delete > 0 && n >= 0) {
+//         while(to_delete-- && !list_empty(top_n_th)) {
+//             ListNode tail = top_n_th->tail;
+//             if (top_n_th->tail){
+//                 top_n_th->tail = tail->prev;
+//                 if (top_n_th->tail)
+//                     top_n_th->tail->next = NULL;
+//             }
+//             if (top_n_th->tail == NULL)
+//                 top_n_th->head = top_n_th->tail = NULL;
+//             free(tail);
             
-        }
-    }
-    return top_n_th;
-}
+//         }
+//     }
+//     return top_n_th;
+// }
 
 
 

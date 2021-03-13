@@ -1,4 +1,5 @@
 /*
+** Main routine, executed at the beginning of the program 
 **  Implemented by Vissarion Moutafis
 */
 #include <stdio.h>

@@ -14,7 +14,7 @@ OBJS =
 
 LIBRARIES = -lm
 
-CFLAGS =  -Wall -Werror -I $(INCLUDE)
+CFLAGS = -Wall -Werror -I $(INCLUDE)
 
 TESTCASE = 
 
@@ -28,6 +28,8 @@ ifeq ($(DEBUG), 1)
 	CFLAGS += -D DEBUG -g3
 	DEBUG_MSG = ON
 endif
+
+all: $(BUILD)/$(PROGRAM)
 
 $(PROGRAM): $(BUILD)/$(PROGRAM)
 
@@ -45,7 +47,10 @@ $(BIN)/%.o : $(SRC)/modules/%.c
 run : $(BUILD)/$(PROGRAM)
 	./$(BUILD)/$(PROGRAM) $(ARGS)
 
-all: clean $(BUILD)/$(PROGRAM)
+re-run: clean $(BUILD)/$(PROGRAM)
+
+valgrind-run : $(BUILD)/$(PROGRAM)
+	valgrind --leak-check=full --show-leak-kinds=all ./$(BUILD)/$(PROGRAM) $(ARGS)
 
 clean:
 	@echo Cleaning Binaries...

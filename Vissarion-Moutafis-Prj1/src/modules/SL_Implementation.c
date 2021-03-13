@@ -1,3 +1,7 @@
+/*
+** Skip List Implementation
+** Implemented by Vissarion Moutafis sdi1800119
+*/
 #include "SL.h"
 #include <stdio.h>
 

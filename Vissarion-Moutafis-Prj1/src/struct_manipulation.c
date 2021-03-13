@@ -1,3 +1,8 @@
+/*
+** Basic Struct manipulation functions
+** Implemented by Vissarion Moutafis sdi1800119
+*/
+
 #include "StructManipulation.h"
 
 // VaccRec Manipulation
@@ -209,4 +214,35 @@ bool person_equal(Person p1, Person p2) {
         && !strcmp(p1->lastName, p2->lastName)
         && !strcmp(p1->country_t->country, p2->country_t->country)
         && p1->age == p2->age;
+}
+
+// create a person from a data line in the file
+Person str_to_person(char *record) {
+    // First we have to parse the record
+    char **parsed_rec = NULL;
+    int cols = -1;
+    parsed_rec = parse_line(record, &cols, FIELD_SEPARATOR);
+    
+    // if the instance is incosistent then ommit it
+    if (!check_person_constistency(parsed_rec, cols)) {
+        for (int i = 0; i < cols; i++) free(parsed_rec[i]);
+        free(parsed_rec);
+        return NULL;
+    }
+    // create the person instance
+    Person p = create_person(parsed_rec[0], 
+                            parsed_rec[1], 
+                            parsed_rec[2],
+                            country_index_create(parsed_rec[3]), // insert a country index pointer
+                            atoi(parsed_rec[4]), // insert age as an integer
+                            parsed_rec[5],
+                            parsed_rec[6], 
+                            cols == 8? parsed_rec[7] : NULL, //insert the date only in case there is a 8-th element 
+                            true); // make a deep copy
+    
+    // free the memory of the parse array
+    for (int i = 0; i < cols; i++) free(parsed_rec[i]);
+    free(parsed_rec);
+
+    return p;
 }

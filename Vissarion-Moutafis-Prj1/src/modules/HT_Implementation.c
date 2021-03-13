@@ -1,4 +1,4 @@
-/*  Hash Table Implementation by Vissarion Moutafis
+/*  Hash Table Implementation by Vissarion Moutafis sdi1800119
 **  Using Open Addressing with Double Hashing
 */
 #include <stdio.h>

@@ -1,3 +1,8 @@
+/*
+** Source code for the vaccine monitor app
+** Implemented by Vissarion Moutafis sdi1800119
+*/
+
 #include "VaccineMonitor.h"
 #include "StructManipulation.h"
 
@@ -37,17 +42,6 @@ char *possible_commands[] = {
 // for value list argument checking (swallow checks)
 int max_values[] = {2, 2, 4, 4, 8, 6, 1, 0};
 int min_values[] = {2, 1, 1, 1, 7, 6, 1, 0};
-
-struct vaccine_monitor {
-    // General indexing for citizens
-    HT citizens;
-    List citizen_lists_per_country;
-    // hash table {key: virusName, items:[bf, vacc_sl, non_vacc_sl]}
-    List virus_info;
-    int bloom_size;
-    int sl_height;
-    float sl_factor;
-};
 
 static void vaccinate_citizen(VirusInfo v, VaccRec vacc_rec, char *date) {
     Pointer vacc_rec_dummy=NULL;
@@ -179,37 +173,6 @@ static void country_index_insert(VaccineMonitor monitor, Person p) {
 
 // Vaccine Monitor Utilities
 
-// create a person from a data line in the file
-Person str_to_person(char *record) {
-    // First we have to parse the record
-    char **parsed_rec = NULL;
-    int cols = -1;
-    parsed_rec = parse_line(record, &cols, FIELD_SEPARATOR);
-    
-    // if the instance is incosistent then ommit it
-    if (!check_person_constistency(parsed_rec, cols)) {
-        for (int i = 0; i < cols; i++) free(parsed_rec[i]);
-        free(parsed_rec);
-        return NULL;
-    }
-    // create the person instance
-    Person p = create_person(parsed_rec[0], 
-                            parsed_rec[1], 
-                            parsed_rec[2],
-                            country_index_create(parsed_rec[3]), // insert a country index pointer
-                            atoi(parsed_rec[4]), // insert age as an integer
-                            parsed_rec[5],
-                            parsed_rec[6], 
-                            cols == 8? parsed_rec[7] : NULL, //insert the date only in case there is a 8-th element 
-                            true); // make a deep copy
-    
-    // free the memory of the parse array
-    for (int i = 0; i < cols; i++) free(parsed_rec[i]);
-    free(parsed_rec);
-
-    return p;
-}
-
 // Insert the record into the monitor. 
 // If the update flag is one then, if we find an instance of it, about a specific virus
 // either ommit the incosistent record, or 
@@ -253,7 +216,7 @@ static void insert_record(VaccineMonitor monitor, char *record, bool update) {
     }
 }
 
-bool insert_from_file(VaccineMonitor monitor, char *in_filename) {
+static bool insert_from_file(VaccineMonitor monitor, char *in_filename) {
     FILE *in = fopen(in_filename, "r");
     if (!in) return false;
     // get the number of lines of the input file
@@ -445,20 +408,13 @@ static void print_status(char *country, bool by_age, u_int32_t vaccd_by_age[], u
 
 // helper function
 static void print_pop_status(VaccineMonitor monitor, char *value, bool by_age) {
-    // values = [country] virusName date1 date2
+    // The parameter value = [country] virusName date1 date2
     int cols=-1;
-    
     char ** values = parse_line(value, &cols, FIELD_SEPARATOR);
-    char *date1, *date2, *virusName;
-    if (cols <= 2) {
-        date1 = "1-1-0";
-        date2 = "30-12-9999";
-        virusName = values[cols-1];
-    } else {
-        date1 = values[cols-2];
-        date2 = values[cols-1];
-        virusName = values[cols-3];
-    }
+    char * date1 = cols <= 2 ? "1-1-0" : values[cols - 2];
+    char *date2 = cols <= 2 ? "30-12-9999" : values[cols - 1];
+    char * virusName = cols <= 2 ? values[cols - 1] : values[cols - 3];
+    // for pretty conditioning
     bool dates_valid = check_date(date1) && check_date(date2) && dates_cmp(date1, date2) <= 0;
     bool there_is_country = (cols == 4 || cols == 2);
     
@@ -466,16 +422,15 @@ static void print_pop_status(VaccineMonitor monitor, char *value, bool by_age) {
     if (!dates_valid)
         error_flag = true;
 
+    // check if the virus exists in the database, if not fail.
     VirusInfo dummy_v = virus_info_create(virusName, BF_HASH_FUNC_COUNT+1, 1, 0.5);
     Pointer key = NULL;
     if (!error_flag && !(key = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, dummy_v))))
         error_flag = true;
-
     
     // get it to a type'd mode, for manipulation ease (avoid constant casting)
     VirusInfo v = (VirusInfo)key;
 
-    // don't proceed if we got an error
     if (!error_flag) {
         // for shorter naming
         List l = monitor->citizen_lists_per_country;
@@ -513,7 +468,7 @@ static void print_pop_status(VaccineMonitor monitor, char *value, bool by_age) {
             }
         }
     }
-
+    // free the allocated memory to avoid leaks
     virus_info_destroy(dummy_v);
     for (int i = 0; i < cols; i++) free(values[i]);
     free(values);

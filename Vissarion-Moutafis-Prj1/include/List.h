@@ -59,16 +59,16 @@ void list_node_set_entry(List list, ListNode node, Pointer new_entry, Pointer *o
 
 // Additional methods
 // insert sorted based on given compare
-void list_insert_sorted(List list, Pointer entry, Compare compare);
+// void list_insert_sorted(List list, Pointer entry, Compare compare);
 
 // given a list and a comparison function we will return the first n elements
-List list_get_top_n(List list, Compare compare, int n);
+// List list_get_top_n(List list, Compare compare, int n);
 
 // find the max node in a list based on user given compare
-Pointer list_find_max(List list, Compare compare);
+// Pointer list_find_max(List list, Compare compare);
 
 // find the min non in a listed based on a user giver compare
-Pointer list_find_min(List list, Compare compare);
+// Pointer list_find_min(List list, Compare compare);
 
 // simple print function
 void list_print(List list, Visit visit);

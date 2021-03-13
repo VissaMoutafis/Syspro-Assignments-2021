@@ -1,3 +1,8 @@
+/*
+** BF Implementation 
+** Implemented by Vissarion Moutafis sdi1800119
+*/
+
 #include "BF.h"
 
 #define BITS_PER_UINT8_T 8

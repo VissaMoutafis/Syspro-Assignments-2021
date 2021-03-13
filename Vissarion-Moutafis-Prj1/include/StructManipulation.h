@@ -12,6 +12,9 @@
 
 // Person manipulation methods
 
+// create a person from a data line in the file
+Person str_to_person(char *record);
+
 // create a person instance
 void *create_person(char * citizenID, char *firstName, char *lastName, CountryIndex country_t, int age, char *virusName, char *vaccinated, char *date, bool deep_copy);
 

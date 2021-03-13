@@ -20,7 +20,16 @@ char error_msg[BUFSIZ];
 bool error_flag;
 
 // struct typedefs for the app
-typedef struct vaccine_monitor *VaccineMonitor;
+typedef struct vaccine_monitor {
+    // General indexing for citizens
+    HT citizens;
+    List citizen_lists_per_country;
+    // hash table {key: virusName, items:[bf, vacc_sl, non_vacc_sl]}
+    List virus_info;
+    int bloom_size;
+    int sl_height;
+    float sl_factor;
+} * VaccineMonitor;
 
 //  entry for the hash tables that contain the bloom filters
 typedef struct virus_info_tuple {
@@ -57,6 +66,3 @@ void vaccine_monitor_destroy(VaccineMonitor m);
 // Basic functionality of the vaccine monitor. Return true if it succeeds.
 // Returns false if it fail and an error message is saved in error_msg string
 bool vaccine_monitor_act(VaccineMonitor monitor, int expr_index, char *value);
-
-
-// helping functions

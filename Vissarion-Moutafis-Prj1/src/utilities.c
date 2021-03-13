@@ -1,6 +1,6 @@
 /*
 ** Usefull utilities like string parsers and file lines to string converters
-**  Written by Vissarion Moutafis sdi1800119
+**  Implemented by Vissarion Moutafis sdi1800119
 */
 #include "Utilities.h"
 
