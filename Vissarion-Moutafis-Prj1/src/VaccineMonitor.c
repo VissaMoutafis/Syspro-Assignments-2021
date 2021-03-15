@@ -271,7 +271,6 @@ static void vaccine_status_bloom(VaccineMonitor monitor, char *value) {
     sprintf(ans_buffer, "%s", vaccinated ? "MAYBE" : "NOT VACCINATED");
 }
 static void print_virus_status(VirusInfo v, VaccRec vr, bool single_virus) {
-    if (!single_virus) strcat(ans_buffer, v->virusName);
     Pointer key;
 
     // if the citizen is part of the vaccinated people
@@ -279,15 +278,20 @@ static void print_virus_status(VirusInfo v, VaccRec vr, bool single_virus) {
         if (!single_virus){
             char buf[100];
             memset(buf, 0, 100);
-            sprintf(buf, " YES %s\n", ((VaccRec)key)->date);
+            sprintf(buf, "%s YES %s\n", v->virusName, ((VaccRec)key)->date);
             strcat(ans_buffer, buf);
         } else {
             sprintf(ans_buffer, "VACCINATED ON %s", ((VaccRec)key)->date);
         }
     } else  {
-        if (!single_virus)
-            strcat(ans_buffer, " NO\n");
-        else 
+        if (!single_virus) {
+            if (sl_search(v->not_vaccinated, vr)) {
+                char b[BUFSIZ];
+                memset(b, 0, BUFSIZ);
+                sprintf(b, "%s NO\n", v->virusName);
+                strcat(ans_buffer, b);
+            }
+        }else 
             sprintf(ans_buffer, "NOT VACCINATED");
     }
 }

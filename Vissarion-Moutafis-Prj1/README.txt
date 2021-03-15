@@ -72,3 +72,13 @@ These are located in Utilities file. Check Below Section.
 Finaly we provide the user with a "help" guide for proper command inputs, that is printed in case the user provide the TTY with a command that is not right,
 by the standards of the tty api (wrong amount of args, mis-spelled command name, etc).
 
+
+UTILITIES FILE:
+This file contains specific utilities such as my own version of fgets or a generic string parser, that help me
+keeping the logic simple and the memory allocated specific pointer for easier use and deallocation. Also there exists some 
+routines to manipulate date strings so that there is no redudancy in the critical routines of my code. 
+
+NOTE:
+Some functions are of no use, because this file is 
+part of my personal utility library and is used almost in every assignment I delivered since K24-Prj1.
+So you can be sure that this is gonna exist (maybe in different versions) in every assignment I will submit.
