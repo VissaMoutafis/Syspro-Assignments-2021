@@ -91,6 +91,10 @@ static void virus_info_insert(VaccineMonitor monitor, Person p, bool update, cha
             // not-vaccinated people
             if (update && is_vaccinated)
                 vaccinate_citizen(v, vacc_rec, date);
+            else if (!update) {
+                error_flag = true;
+                sprintf(error_msg, "ERROR IN RECORD %s %s %s %s %d", p->citizenID, p->firstName, p->lastName, p->country_t->country, p->age);
+            }
         } else if (!(vacc_rec = sl_search(v->vaccinated, dummy_vr))) {
             // here the person is neither of vacc of not-vacc lists
             // so just add him
@@ -110,7 +114,10 @@ static void virus_info_insert(VaccineMonitor monitor, Person p, bool update, cha
             assert(sl_search(v->vaccinated, dummy_vr));
             #endif
             error_flag = true;
-            sprintf(error_msg, "ERROR: CITIZEN %s ALREADY VACCINATED ON %s", ((VaccRec)vacc_rec)->p->citizenID, ((VaccRec)vacc_rec)->date);
+            if (update)
+                sprintf(error_msg, "ERROR: CITIZEN %s ALREADY VACCINATED ON %s", ((VaccRec)vacc_rec)->p->citizenID, ((VaccRec)vacc_rec)->date);
+            else
+                sprintf(error_msg, "ERROR IN RECORD %s %s %s %s %d", p->citizenID, p->firstName, p->lastName, p->country_t->country, p->age);
         }
         virus_info_destroy(dummy);
         vacc_rec_destroy(dummy_vr);
@@ -295,6 +302,7 @@ static void print_virus_status(VirusInfo v, VaccRec vr, bool single_virus) {
             sprintf(ans_buffer, "NOT VACCINATED");
     }
 }
+
 static void vaccine_status(VaccineMonitor monitor, char *value) {
     // value = citizenID, [virusName]
     int cols = -1;

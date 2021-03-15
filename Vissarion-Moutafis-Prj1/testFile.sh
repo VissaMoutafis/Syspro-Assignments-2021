@@ -65,7 +65,7 @@ then
 fi
 
 # the length of false and duplicates recs is 15% of the numLines 
-falseRecs=$((15 * $numLines / 100))
+falseRecs=$(( $RANDOM % ($numLines/3) ))
 if [ "$duplicatesAllowed" -eq 1 ]
 then 
 	numLines=$(($numLines - $falseRecs))
@@ -84,7 +84,7 @@ touch inputFile; rm -f inputFile; touch inputFile;
 
 i=0
 
-while [ "$i" -le  "$numLines" ] 
+while [ "$i" -lt  "$numLines" ] 
 do
 	# get a random id in the given range
 	id=$(($RANDOM % $ID_MAX + 1))
@@ -190,9 +190,9 @@ function lost_personal_attr {
 
 
 # add different cases of duplicates, not all acceptable
-for i in `seq 0 $falseRecs`
+for i in `seq 1 $falseRecs`
 do 
-	case $(($i % 5)) in
+	case $(($i % 4)) in
 		0)
 			dup_same_virus_corr		# the virus is the same but the answer is different
 			;;

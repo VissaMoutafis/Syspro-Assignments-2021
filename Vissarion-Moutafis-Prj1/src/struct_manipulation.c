@@ -198,7 +198,7 @@ bool check_person_constistency(char *attrs[], int cols) {
            attrs[1]                                                 &&
            attrs[2]                                                 &&
            attrs[3]                                                 &&
-           is_numeric(attrs[4])                                     &&
+           is_numeric(attrs[4]) && atoi(attrs[4]) > 0 && atoi(attrs[4])<=120&&
            atoi(attrs[4]) > 0                                       &&
            attrs[5]                                                 &&
            attrs[6]                                                 &&
