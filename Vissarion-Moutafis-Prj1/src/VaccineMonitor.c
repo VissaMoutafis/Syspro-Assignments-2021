@@ -66,16 +66,17 @@ static void vaccinate_citizen(VirusInfo v, VaccRec vacc_rec, char *date) {
         assert(sl_search(v->vaccinated, vacc_rec));
     #endif
 }
+
 // Function to insert a record in the structs of the according virusInfo tuple
 // If update flag is true then we will update the record if it exists
 // In the right spirit this is also a vaccination operation for the citizens
 static void virus_info_insert(VaccineMonitor monitor, Person p, bool update, char *virusName, char *date, bool is_vaccinated) {
     // First we will check if the virus info is created
-    VirusInfo dummy = virus_info_create(virusName, monitor->bloom_size, monitor->sl_height, monitor->sl_factor);
+    struct virus_info_tuple dummy = {.virusName=virusName};//
     Pointer key;
 
     // search for the virus info in the respective HT
-    if ((key = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, dummy)))) {
+    if ((key = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, &dummy)))) {
         Pointer vacc_rec = NULL, vacc_rec_dummy = NULL;
         VirusInfo v = (VirusInfo)key;
         VaccRec dummy_vr = vacc_rec_create(p, NULL, false);
@@ -119,23 +120,24 @@ static void virus_info_insert(VaccineMonitor monitor, Person p, bool update, cha
             else
                 sprintf(error_msg, "ERROR IN RECORD %s %s %s %s %d", p->citizenID, p->firstName, p->lastName, p->country_t->country, p->age);
         }
-        virus_info_destroy(dummy);
+        // virus_info_destroy(dummy);
         vacc_rec_destroy(dummy_vr);
     } else {
         // there is no instance of the virusInfo, so we will insert the dummy rec 
         // and we will also insert the person in the bloom filter and 
         // into the appropriate skip list
-        list_insert(monitor->virus_info, dummy, true);
+        VirusInfo new_vr = virus_info_create(virusName, monitor->bloom_size, monitor->sl_height, monitor->sl_factor);
+        list_insert(monitor->virus_info, new_vr, true);
         if (is_vaccinated)
             // insert into BF
-            bf_insert(dummy->bf, p);
+            bf_insert(new_vr->bf, p);
 
         //insert into the appropriate skip list
-        SL sl = (is_vaccinated == true) ? dummy->vaccinated : dummy->not_vaccinated;
+        SL sl = (is_vaccinated == true) ? new_vr->vaccinated : new_vr->not_vaccinated;
         VaccRec vr = vacc_rec_create(p, date, true);
         sl_insert(sl, vr, false, &key);
         #ifdef DEBUG
-        assert(list_find(monitor->virus_info, dummy));
+        assert(list_find(monitor->virus_info, new_vr));
         assert(sl_search(sl, vr));
         #endif
     }
@@ -256,14 +258,14 @@ static void vaccine_status_bloom(VaccineMonitor monitor, char *value) {
     if (ht_contains(monitor->citizens, dummy_p, &person)) {
         Pointer v;
         // Since the person is actually in the database then
-        VirusInfo dummy_v = virus_info_create(parsed_values[1], BF_HASH_FUNC_COUNT, 1, 0.0);
-        if ((v = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, dummy_v))))
+        struct virus_info_tuple dummy_v = {.virusName=parsed_values[1]};
+        if ((v = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, &dummy_v))))
             vaccinated = bf_contains(((VirusInfo)v)->bf, person);
         else {
             error_flag = true;
-            sprintf(error_msg, "ERROR: %s IS NOT A REGISTERED VIRUS", dummy_v->virusName);
+            sprintf(error_msg, "ERROR: %s IS NOT A REGISTERED VIRUS", dummy_v.virusName);
         }
-        virus_info_destroy(dummy_v);
+        // virus_info_destroy(dummy_v);
     } else {
         error_flag = true;
         sprintf(error_msg, "ERROR: %s IS NOT A REGISTERED CITIZEN", dummy_p->citizenID);
