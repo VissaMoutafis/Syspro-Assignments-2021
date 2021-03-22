@@ -72,7 +72,7 @@ static void vaccinate_citizen(VirusInfo v, VaccRec vacc_rec, char *date) {
 // In the right spirit this is also a vaccination operation for the citizens
 static void virus_info_insert(VaccineMonitor monitor, Person p, bool update, char *virusName, char *date, bool is_vaccinated) {
     // First we will check if the virus info is created
-    struct virus_info_tuple dummy = {.virusName=virusName};//
+    struct virus_info_tuple dummy = {.virusName=virusName};
     Pointer key;
 
     // search for the virus info in the respective HT
@@ -123,21 +123,21 @@ static void virus_info_insert(VaccineMonitor monitor, Person p, bool update, cha
         // virus_info_destroy(dummy);
         vacc_rec_destroy(dummy_vr);
     } else {
-        // there is no instance of the virusInfo, so we will insert the dummy rec 
+        // there is no instance of the virusInfo, so we will insert a new rec 
         // and we will also insert the person in the bloom filter and 
         // into the appropriate skip list
-        VirusInfo new_vr = virus_info_create(virusName, monitor->bloom_size, monitor->sl_height, monitor->sl_factor);
-        list_insert(monitor->virus_info, new_vr, true);
+        VirusInfo new_vi = virus_info_create(virusName, monitor->bloom_size, monitor->sl_height, monitor->sl_factor);
+        list_insert(monitor->virus_info, new_vi, true);
         if (is_vaccinated)
             // insert into BF
-            bf_insert(new_vr->bf, p);
+            bf_insert(new_vi->bf, p);
 
         //insert into the appropriate skip list
-        SL sl = (is_vaccinated == true) ? new_vr->vaccinated : new_vr->not_vaccinated;
+        SL sl = (is_vaccinated == true) ? new_vi->vaccinated : new_vi->not_vaccinated;
         VaccRec vr = vacc_rec_create(p, date, true);
         sl_insert(sl, vr, false, &key);
         #ifdef DEBUG
-        assert(list_find(monitor->virus_info, new_vr));
+        assert(list_find(monitor->virus_info, new_vi));
         assert(sl_search(sl, vr));
         #endif
     }
@@ -320,14 +320,14 @@ static void vaccine_status(VaccineMonitor monitor, char *value) {
         Pointer vp;
         if (cols == 2) {
             // Since the person is actually in the database then
-            VirusInfo dummy_v = virus_info_create(parsed_values[1], BF_HASH_FUNC_COUNT, 1, 0.0);
-            if ((vp = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, dummy_v)))) {
+            struct virus_info_tuple dummy_v = {.virusName=parsed_values[1]};//virus_info_create(parsed_values[1], BF_HASH_FUNC_COUNT, 1, 0.0);
+            if ((vp = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, &dummy_v)))) {
                 print_virus_status((VirusInfo)vp, dummy_vr, true);
             } else {
                 sprintf(error_msg, "ERROR: %s IS NOT A REGISTERED VIRUS\n", parsed_values[1]);
                 error_flag = true;
             }
-            virus_info_destroy(dummy_v);
+            // virus_info_destroy(dummy_v);
         } else if (cols == 1) {
             ListNode node = list_get_head(monitor->virus_info);
          
@@ -437,9 +437,9 @@ static void print_pop_status(VaccineMonitor monitor, char *value, bool by_age) {
         error_flag = true;
 
     // check if the virus exists in the database, if not fail.
-    VirusInfo dummy_v = virus_info_create(virusName, BF_HASH_FUNC_COUNT+1, 1, 0.5);
+    struct virus_info_tuple dummy_v = {.virusName=virusName};//virus_info_create(virusName, BF_HASH_FUNC_COUNT+1, 1, 0.5);
     Pointer key = NULL;
-    if (!error_flag && !(key = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, dummy_v))))
+    if (!error_flag && !(key = list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, &dummy_v))))
         error_flag = true;
     
     // get it to a type'd mode, for manipulation ease (avoid constant casting)
@@ -483,7 +483,7 @@ static void print_pop_status(VaccineMonitor monitor, char *value, bool by_age) {
         }
     }
     // free the allocated memory to avoid leaks
-    virus_info_destroy(dummy_v);
+    // virus_info_destroy(dummy_v);
     for (int i = 0; i < cols; i++) free(values[i]);
     free(values);
     if (error_flag)
@@ -561,7 +561,9 @@ VaccineMonitor vaccine_monitor_create(char *input_filename, int bloom_size, int 
     if (input_filename) {
         // insert all the valid records of citizens from this file
         printf("Inserting from file '%s' ...\n", input_filename);
-        insert_from_file(m, input_filename);
+        if (!insert_from_file(m, input_filename)){
+            fprintf(stderr, "ERROR: FAILED LOADING FROM FILE '%s'\n", input_filename);
+        }
         #ifdef DEBUG
         ht_print_keys(m->citizens, visit);
         #endif

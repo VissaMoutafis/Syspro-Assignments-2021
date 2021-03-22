@@ -72,6 +72,25 @@ These are located in Utilities file. Check Below Section.
 Finaly we provide the user with a "help" guide for proper command inputs, that is printed in case the user provide the TTY with a command that is not right,
 by the standards of the tty api (wrong amount of args, mis-spelled command name, etc).
 
+NOTES FOR THE INSRTUCTORS:
+- inserting from file : nothing changed according to directives
+- vaccine status bloom : nothing changed, according to directives 
+- vaccine status : nothing changed accirding to directives 
+- population status: estimating (for a country specifically of foreach country)
+                     the quantity (#yes in date range) / (#yes + #no in total)
+- population status by age: same as in "population status" but for specific age ranges,
+
+- NOTE that in the above 2 features we will traverse the list of country citizens to extract statistics foreach country,
+  and for every citizen we will search the skip lists of the given virus 
+- NOTE in the above 2 features we give the posibility to execute without a
+  date range so they could take from 1 to 4 arguments 
+- essentially vaccinate now and insert record use the same insertion function 
+  with the only difference that vaccinate now will set the last 2 field to 
+  "YES <current-date>" and then use insert.
+- list not vaccinated persons: list all the non vaccinated persons of a virus, 
+  so we will essentially just print the not-vaccinated skip list of the given virus 
+- exit: free all the allocated memory.
+
 
 UTILITIES FILE:
 This file contains specific utilities such as my own version of fgets or a generic string parser, that help me
