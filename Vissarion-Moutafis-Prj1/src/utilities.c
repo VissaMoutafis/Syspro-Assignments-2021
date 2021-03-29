@@ -131,9 +131,8 @@ int get_len_of_int(int num) {
 
 
 bool check_date(char *date) {
-    int d,m,y;
-    bool proper_format = (sscanf(date, "%d-%d-%d", &d,&m,&y) == 3);
-
+    int d,m,y, c;
+    bool proper_format = (sscanf(date, "%2d-%2d-%d%n", &d, &m, &y, &c) == 3 && date[c] == '\0');
     return proper_format
         && d > 0 && d <= 30
         && m > 0 && m <= 12
