@@ -65,7 +65,7 @@ then
 fi
 
 # the length of false and duplicates recs is 15% of the numLines 
-falseRecs=$(( $RANDOM % ($numLines/3) ))
+falseRecs=$(( $RANDOM % ($numLines/3) + 1))
 if [ "$duplicatesAllowed" -eq 1 ]
 then 
 	numLines=$(($numLines - $falseRecs))

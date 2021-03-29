@@ -259,13 +259,13 @@ void sl_apply(SL sl, Apply visit) {
     assert(sl);
     SLNode node = sl->head->next[0];
 
-    while (node->next[0]) {
+    while (node && node->next[0]) {
         assert(node->entry);
         visit(node->entry);
         node = node->next[0];
     }
-    assert(node->entry);
-    visit(node->entry);
+    if (node)
+        visit(node->entry);
 }
 
 // Function to set a new destructor for the sl. The previous one is saved in prev_destructor pointer
