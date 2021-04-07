@@ -1,5 +1,14 @@
 sdi1800119 - Vissarion Moutafis
 
+make all : compile everything
+
+make run : install and run with default args (check makefile to adjust them)
+
+make valgrind-run : install and run with valgrind with default parameters
+
+make re-run : recompile and run with default args.
+
+
 NOTE FOR INSTRUCTORS: 
 > During compilation I use -Wall and -Werr. The given hash functions file had a small cast warning 
   that -Wall got and -Werr printed as an error, so I added the needed type-cast to compile.
