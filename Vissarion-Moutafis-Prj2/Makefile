@@ -1,61 +1,76 @@
-PROGRAM = vaccineMonitor
+# root directory
+MAKE-DIR = $(PWD)
 
-CC = gcc
+# basic variables for dir hierarchy
+INCLUDE := $(MAKE-DIR)/include
+SRC := $(MAKE-DIR)/src
+BIN := $(MAKE-DIR)/bin
+BUILD := $(MAKE-DIR)/build
 
-INCLUDE = ./include
+# basic enviroment variables
+CC := gcc
+CFLAGS := -Wall -Werror -I $(INCLUDE)
+LIBS := -lm
+OBJS := 
 
-SRC  = ./src
-
-BIN = ./bin
-
-BUILD = ./build
-
-OBJS = 
-
-LIBRARIES = -lm
-
-CFLAGS = -Wall -Werror -I $(INCLUDE)
-
-TESTCASE = 
-
-ARGS = -c inputFile -b 100000
-
+# debug switch message
 DEBUG_MSG = OFF
 
+# the directories of the .mk files needed
+# for the app components
+MONITOR := $(SRC)/Monitor
+TRAVEL_MONITOR := $(SRC)/TravelMonitor
+
+# include the basic objective files
 include $(SRC)/src.inc
 
+# define some global variables
+export MAKE-DIR SRC BUILD BIN CFLAGS CC LIBS OBJS
+
+# check if debug mode is enabled
 ifeq ($(DEBUG), 1) 
 	CFLAGS += -D DEBUG -g3
 	DEBUG_MSG = ON
 endif
 
-all: $(BUILD)/$(PROGRAM)
-
-$(PROGRAM): $(BUILD)/$(PROGRAM)
-
-$(BUILD)/$(PROGRAM) : print-msg $(OBJS)
-	@$(CC) $(CFLAGS) $(OBJS) -o $(BUILD)/$(PROGRAM) $(LIBRARIES)
-	@cp $(BUILD)/$(PROGRAM) ./$(PROGRAM)
+.PHONY : all
+all : print-msg
+	@echo "Building Monitor module..."
+	@$(MAKE) -C $(MONITOR) -f monitor.mk 
+	@echo "Done"
+	@echo "Building Travel Monitor module..."	
+	@$(MAKE) -C $(TRAVEL_MONITOR) -f travel_monitor.mk
+	@echo Done.
+		
+.PHONY : monitor
+monitor :
+	@echo "Building Monitor module..."
+	@$(MAKE) -C $(MONITOR) -f monitor.mk 
 	@echo Done.
 
-$(BIN)/%.o : $(SRC)/%.c
-	@$(CC) $(CFLAGS) -c $< -o $@
+.PHONY : travel_monitor
+travel_monitor :	
+	@echo "Building Travel Monitor module..."	
+	@$(MAKE) -C $(TRAVEL_MONITOR) -f travel_monitor.mk
+	@echo Done.
 
-$(BIN)/%.o : $(SRC)/modules/%.c
-	@$(CC) $(CFLAGS) -c $< -o $@
-
-run : $(BUILD)/$(PROGRAM)
+.PHONY : run
+run : all
 	./$(BUILD)/$(PROGRAM) $(ARGS)
 
+.PHONY : re-run
 re-run: clean $(BUILD)/$(PROGRAM)
 
+.PHONY : valgrind-run 
 valgrind-run : $(BUILD)/$(PROGRAM)
 	valgrind --leak-check=full --show-leak-kinds=all ./$(BUILD)/$(PROGRAM) $(ARGS)
 
+.PHONY : clean
 clean:
-	@echo Cleaning Binaries...
-	@rm -rf $(BUILD)/$(PROGRAM) $(OBJS) ./$(PROGRAM)
-	@echo Done.
+	@$(MAKE) -C $(MONITOR) -f monitor.mk clean
+	@$(MAKE) -C $(TRAVEL_MONITOR) -f travel_monitor.mk clean
+	@$(RM) -f $(OBJS)
 
+.PHONY : print-msg
 print-msg:
-	@echo "DEBUG MODE: $(DEBUG_MSG)\nBuilding $(PROGRAM)..."
+	@echo "DEBUG MODE: $(DEBUG_MSG)"
