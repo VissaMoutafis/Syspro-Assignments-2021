@@ -319,13 +319,29 @@ void fm_read_from_file(FM fm, char *file_path, char ***records, int *length) {
         // get the number of the lines in the file in order to create a record table
         // also set the length variable 
         int lines = fget_lines(file_path);
-        *records = calloc(lines, sizeof(char *));
-        *length = lines;
+        *records = NULL;
+        *length = 0;
         for (unsigned int i = 0; i < lines; i++) {
             // create the record string
             char *record_line = make_str(&fp);
             // insert it in the record table
-            (*records)[i] = record_line;
+            if (strlen(record_line) == 0) {
+                // the string contains only the null char so free it and read the next string
+                free(record_line);
+                continue;
+            }
+            // reallocate the memory of the array
+            char **new_array = calloc((*length+1), sizeof(char *));
+            
+            // set the new array
+            if (*length > 0)
+                memcpy(new_array, *records, (*length)*sizeof(char *));
+            new_array[(*length)] = record_line;
+
+            // apply the extensions of the records array
+            free(*records); 
+            *records = new_array;
+            (*length) ++; 
         }
         // close the file now that we are done
         fclose(fp);
@@ -371,7 +387,7 @@ void fm_check_for_updates(FM fm, char ***new_files, int *length) {
     }
 }
 
-void fm_dectroy(FM fm) {
+void fm_destroy(FM fm) {
     list_destroy(&(fm->directory_list));
     ht_destroy(fm->file_path_table);
     free(fm);

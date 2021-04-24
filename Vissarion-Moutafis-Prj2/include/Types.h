@@ -34,7 +34,7 @@ typedef struct virus_info_tuple * VirusInfo;
 
 typedef struct list_per_country * CountryIndex;
 
-typedef struct {
+typedef struct person{
     char *citizenID;
     char *firstName;
     char *lastName;

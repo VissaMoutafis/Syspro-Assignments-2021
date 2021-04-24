@@ -13,7 +13,7 @@ run :
 
 .PHONY : clean
 clean :
-	@$(RM) -f $(MAKE-DIR)/$(PROGRAM) $(BIN)/$(PROGRAM) $(BUILD)/monitor.o
+	@$(RM) -f $(MAKE-DIR)/$(PROGRAM) $(BIN)/$(PROGRAM) $(BUILD)/monitor.o $(BUILD)/monitor_exec.o
 
 $(BUILD)/%.o : ./%.c
 	@$(CC) $(CFLAGS) -c $< -o $@

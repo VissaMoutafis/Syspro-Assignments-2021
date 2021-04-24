@@ -9,14 +9,14 @@
 int pos_cmds_len;
 
 // for format checking
-char *allowed_formats[8];
+char *allowed_formats[5];
 
 // for help printing
-char *possible_commands[8];
+char *possible_commands[5];
 
 //properties of the value_lists for different commands
-int max_values[8];
-int min_values[8];
+int max_values[5];
+int min_values[5];
 
 
 // Methods to print messages

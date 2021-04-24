@@ -41,7 +41,7 @@ typedef struct virus_info_tuple {
     SL not_vaccinated;              // skip list with non-vaccinated people
 } *VirusInfo;
 
-typedef struct {
+typedef struct vaccine_record{
     Person p;
     char *date;
 } * VaccRec;

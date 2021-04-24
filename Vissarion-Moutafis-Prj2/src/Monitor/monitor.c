@@ -1,6 +1,12 @@
 #include "VaccineMonitor.h"
 #include "StructManipulation.h"
 
+void visit(Pointer _p) {
+    Person p = (Person)_p;
+    printf("%s %s %s %s %d\n", p->citizenID, p->firstName, p->lastName,
+           p->country_t->country, p->age);
+}
+
 bool error_flag = false;
 char error_msg[BUFSIZ];
 char ans_buffer[BUFSIZ];
@@ -31,8 +37,13 @@ char *possible_commands[] = {
     "/exit"};
 
 // for value list argument checking (swallow checks)
-int max_values[] = {5, 4, 1, 1, 0};
-int min_values[] = {4, 1, 1, 1, 0};
+int max_values[5] = {5, 4, 1, 1, 0};
+int min_values[5] = {4, 1, 1, 1, 0};
+
+void answer(void) {
+    puts(ans_buffer);
+    memset(ans_buffer, 0, BUFSIZ);
+}
 
 static void vaccinate_citizen(VirusInfo v, VaccRec vacc_rec, char *date) {
     Pointer vacc_rec_dummy=NULL;
@@ -171,6 +182,41 @@ static void country_index_insert(VaccineMonitor monitor, Person p) {
     }
 }
 
+static void travel_request(VaccineMonitor monitor, char *value) {
+    // value: citizenID date countryFrom countryTo virusName
+    bool found = false;
+    char **values = NULL;
+    int values_len = 0;
+    // parse the values
+    values = parse_line(value, &values_len, FIELD_SEPARATOR);
+    
+    struct person dummy_p = {.citizenID=values[0]};
+    Pointer rec = NULL;
+    if (ht_contains(monitor->citizens, &dummy_p, &rec)) {
+        // get the virus skip lists
+        struct virus_info_tuple dummy_v = {.virusName=values[values_len-1]};
+        VirusInfo virus_info = (VirusInfo)list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, &dummy_v));
+        if (virus_info) {
+            // if the country has records about the specific virus
+            // check if the person is in the vaccinated skip list
+            struct vaccine_record dummy_vc = {.p=(Person)rec};
+            VaccRec vac_rec = (VaccRec)sl_search(virus_info->vaccinated, &dummy_vc);
+
+            // if he is vaccinated set the answer buffer as "YES <date of vaccination>"
+            if (vac_rec){
+                sprintf(ans_buffer, "YES %s", vac_rec->date);
+                found=true;
+            }
+        }
+    }
+
+    if (!found)
+        sprintf(ans_buffer, "NO");
+
+    for (int i = 0; i < values_len; i++) free(values[i]);
+    free(values);
+}
+
 // Vaccine Monitor Utilities
 
 // Insert the record into the monitor. 
@@ -226,7 +272,10 @@ static void insert_from_dir(VaccineMonitor monitor, FM fm, DirectoryEntry dentry
     // add all the records in the monitor
     for (int rec_id = 0; rec_id < length; rec_id++) {
         insert_record(monitor, records[rec_id], false);
+        free(records[rec_id]);
     }
+    free(records);
+
 }
 
 static void insert_from_fm(VaccineMonitor monitor, FM fm) {
@@ -282,18 +331,12 @@ void vaccine_monitor_destroy(VaccineMonitor m) {
 bool vaccine_monitor_act(VaccineMonitor monitor, int expr_index, char *value) {
     switch (expr_index) {
     case 0: // command: /travelRequest, value: citizenID date, countryFrom countryTo virusName
-            // travel_request(monitor, value);
-            // answer();
+            travel_request(monitor, value);
+            answer();
         break;
-
-    case 1: // command: /travelStats, value: virusName [date1 date2] [country]
-            // travel_stats(monitor, value);
-            // answer();
-        break;
-
     case 2: // command: /addVaccinationRecords, value: country
             // add_vaccination_record(monitor, value);
-            // answer();
+            answer();
         break;
 
     case 3: // command: /searchVaccinationStatus, value: citizenID

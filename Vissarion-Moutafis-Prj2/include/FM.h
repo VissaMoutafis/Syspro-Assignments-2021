@@ -41,7 +41,7 @@ void fm_read_from_file_entry(FM fm, FileEntry file_entry, char ***records, int *
 void fm_check_for_updates(FM fm, char ***new_files, int *length);
 
 // Free all the memory hold by the file manager
-void fm_dectroy(FM fm);
+void fm_destroy(FM fm);
 
 // get the directory list of fm
 List fm_get_directory_list(FM fm);

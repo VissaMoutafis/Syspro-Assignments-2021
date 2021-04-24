@@ -59,18 +59,19 @@ static bool check_arguments(int argc, char *argv[], char *values[], char * allow
 
 int main(int argc, char * argv[]) {
     // First check arguments 
-    char *values[2]={NULL, NULL};                        // the values of the arguments
-    char *allowed_args[2] = {"-c", "-b"};   // the 
+    // char *values[2]={NULL, NULL};                        // the values of the arguments
+    // char *allowed_args[2] = {"-c", "-b"};   // the 
 
-    if (!check_arguments(argc, argv, values, allowed_args)) {
-        fprintf(stderr, "Error in arguments (%s) . \nUsage: \n    ~$ ./vaccineMonitor -c citizenRecordsFile -b bloomSize\n", error_string[error_i]);
-        exit(1);
-    }
-
-
+    // if (!check_arguments(argc, argv, values, allowed_args)) {
+    //     fprintf(stderr, "Error in arguments (%s) . \nUsage: \n    ~$ ./vaccineMonitor -c citizenRecordsFile -b bloomSize\n", error_string[error_i]);
+    //     exit(1);
+    // }
+    // all the arguments are the 
+    char **dirs = argv+1;
+    FM fm = fm_create(dirs, argc-1);
 
     vaccine_monitor_initialize();
-    VaccineMonitor monitor = vaccine_monitor_create(values[0], atoi(values[1]), 10, 0.5);
+    VaccineMonitor monitor = vaccine_monitor_create(fm, 1000, 10, 0.5);
 
     // basic loop of the program
     while (!is_end) {
@@ -102,9 +103,10 @@ int main(int argc, char * argv[]) {
         if (parsed_expr) free(parsed_expr);
     }
 
-    // de-allocate the memory for every struct you have.
-    // DE-ALLOCATE THE MEMORY OF THE VACCINE MONITOR
+    // // de-allocate the memory for every struct you have.
+    // // DE-ALLOCATE THE MEMORY OF THE VACCINE MONITOR
+    // vaccine_monitor_destroy(monitor);
+    fm_destroy(fm);
     vaccine_monitor_destroy(monitor);
-    
     return 0;
 }
