@@ -8,6 +8,8 @@
 
 // basic typedef type 
 typedef struct file_manager *FM;
+typedef struct dentry *DirectoryEntry;
+typedef struct fentry *FileEntry;
 
 // This is a file manager for every monitor in order to keep track of all the directories
 // and files in its juristiction and ease the reading and updating process.
@@ -27,10 +29,12 @@ bool fm_add_file(FM fm, char *file_path);
 // Read all the lines from all the files, recorded by the file manager, 
 // in a specific directory.
 void fm_read_from_directory(FM fm, char *dir_path, char ***records, int *length);
+void fm_read_from_dir_entry(FM fm, DirectoryEntry dir_entry, char ***records, int *length);
 
 // Read all the lines from a specific file.
 // Return the records in a string array.
 void fm_read_from_file(FM fm, char *file_path, char ***records, int *length);
+void fm_read_from_file_entry(FM fm, FileEntry file_entry, char ***records, int *length);
 
 // Check for any added files in the recorded directories.
 // Return the paths of the newly added files 

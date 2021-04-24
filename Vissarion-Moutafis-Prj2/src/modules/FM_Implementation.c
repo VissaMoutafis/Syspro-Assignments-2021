@@ -5,15 +5,15 @@ struct file_manager {
     List directory_list;
 } ;
 
-typedef struct dentry {
+struct dentry {
     char *dir_path;     // directory path 
     List files;         // list of all the directory files
-} *DirectoryEntry;
+} ;
 
-typedef struct fentry {
+struct fentry {
     char *file_path;    // file path
     DirectoryEntry dir; // pointer to the directory entry in the dir hash table
-} *FileEntry;
+};
 
 
 // Utilities
@@ -382,3 +382,14 @@ List fm_get_directory_list(FM fm) {
     return fm->directory_list;
 }
 
+void fm_read_from_dir_entry(FM fm, DirectoryEntry dir_entry, char ***records, int *length) {
+    assert(fm);
+    assert(dir_entry);
+    fm_read_from_directory(fm, dir_entry->dir_path, records, length);
+}
+
+void fm_read_from_file_entry(FM fm, FileEntry file_entry, char ***records, int *length) {
+    assert(fm);
+    assert(file_entry);
+    fm_read_from_file(fm, file_entry->file_path, records, length);
+}

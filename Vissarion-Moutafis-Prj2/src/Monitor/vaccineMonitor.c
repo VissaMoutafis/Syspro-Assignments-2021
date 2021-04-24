@@ -19,7 +19,7 @@ static void print_error(bool exit_fail) {
 }
 
 // all the possible commands for the tty API of the app
-int pos_cmds_len = 8;
+int pos_cmds_len = 5;
 
 // for format checking
 char *allowed_formats[] = {"vaccineStatusBloom",        "vaccineStatus",

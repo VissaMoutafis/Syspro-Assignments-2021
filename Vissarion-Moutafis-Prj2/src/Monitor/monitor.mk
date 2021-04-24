@@ -1,6 +1,6 @@
 PROGRAM := monitor
 
-OBJS += $(BUILD)/monitor.o
+OBJS += $(BUILD)/monitor.o $(BUILD)/monitor_exec.o
 
 ARGS := 
 

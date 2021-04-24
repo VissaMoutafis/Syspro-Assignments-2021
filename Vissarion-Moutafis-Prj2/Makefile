@@ -9,7 +9,7 @@ BUILD := $(MAKE-DIR)/build
 
 # basic enviroment variables
 CC := gcc
-CFLAGS := -Wall -Werror -I $(INCLUDE)
+CFLAGS := -Wall -I $(INCLUDE)
 LIBS := -lm
 OBJS := 
 

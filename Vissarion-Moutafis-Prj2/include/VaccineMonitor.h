@@ -1,12 +1,14 @@
 #pragma once
 
 #include <stdio.h>
+
 #include "Types.h"
 #include "HT.h"
 #include "SL.h"
 #include "BF.h"
 #include "List.h"
 #include "Utilities.h"
+#include "FM.h"
 
 // as given by the instructors
 #define BF_HASH_FUNC_COUNT 16
@@ -58,7 +60,7 @@ void vaccine_monitor_initialize(void);
 void vaccine_monitor_finalize(void);
 
 // Function to create a vaccine monitor 
-VaccineMonitor vaccine_monitor_create(char *input_filename, int bloom_size, int sl_height, float sl_factor);
+VaccineMonitor vaccine_monitor_create(FM fm, int bloom_size, int sl_height, float sl_factor);
 
 // function to destroy and deallocate the memory of a vaccine monitor
 void vaccine_monitor_destroy(VaccineMonitor m);
