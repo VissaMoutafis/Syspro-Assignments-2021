@@ -182,40 +182,6 @@ static void country_index_insert(VaccineMonitor monitor, Person p) {
     }
 }
 
-static void travel_request(VaccineMonitor monitor, char *value) {
-    // value: citizenID date countryFrom countryTo virusName
-    bool found = false;
-    char **values = NULL;
-    int values_len = 0;
-    // parse the values
-    values = parse_line(value, &values_len, FIELD_SEPARATOR);
-    
-    struct person dummy_p = {.citizenID=values[0]};
-    Pointer rec = NULL;
-    if (ht_contains(monitor->citizens, &dummy_p, &rec)) {
-        // get the virus skip lists
-        struct virus_info_tuple dummy_v = {.virusName=values[values_len-1]};
-        VirusInfo virus_info = (VirusInfo)list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, &dummy_v));
-        if (virus_info) {
-            // if the country has records about the specific virus
-            // check if the person is in the vaccinated skip list
-            struct vaccine_record dummy_vc = {.p=(Person)rec};
-            VaccRec vac_rec = (VaccRec)sl_search(virus_info->vaccinated, &dummy_vc);
-
-            // if he is vaccinated set the answer buffer as "YES <date of vaccination>"
-            if (vac_rec){
-                sprintf(ans_buffer, "YES %s", vac_rec->date);
-                found=true;
-            }
-        }
-    }
-
-    if (!found)
-        sprintf(ans_buffer, "NO");
-
-    for (int i = 0; i < values_len; i++) free(values[i]);
-    free(values);
-}
 
 // Vaccine Monitor Utilities
 
@@ -288,6 +254,154 @@ static void insert_from_fm(VaccineMonitor monitor, FM fm) {
     }
 }
 
+static void travel_request(VaccineMonitor monitor, char *value) {
+    // value: citizenID date countryFrom countryTo virusName
+    bool found = false;
+    char **values = NULL;
+    int values_len = 0;
+    // parse the values
+    values = parse_line(value, &values_len, FIELD_SEPARATOR);
+    
+    struct person dummy_p = {.citizenID=values[0]};
+    Pointer rec = NULL;
+    if (ht_contains(monitor->citizens, &dummy_p, &rec)) {
+        // get the virus skip lists
+        struct virus_info_tuple dummy_v = {.virusName=values[values_len-1]};
+        VirusInfo virus_info = (VirusInfo)list_node_get_entry(monitor->virus_info, list_find(monitor->virus_info, &dummy_v));
+        if (virus_info) {
+            // if the country has records about the specific virus
+            // check if the person is in the vaccinated skip list
+            struct vaccine_record dummy_vc = {.p=(Person)rec};
+            VaccRec vac_rec = (VaccRec)sl_search(virus_info->vaccinated, &dummy_vc);
+
+            // if he is vaccinated set the answer buffer as "YES <date of vaccination>"
+            if (vac_rec){
+                sprintf(ans_buffer, "YES %s", vac_rec->date);
+                found=true;
+                monitor->accepted ++; // increase the accepted counter
+            }
+        }
+    }
+
+    if (!found){
+        monitor->rejected ++; // increase the rejected counter
+        sprintf(ans_buffer, "NO");
+    }
+
+    for (int i = 0; i < values_len; i++) free(values[i]);
+    free(values);
+}
+
+// function to search for added requests in the user-defined directory
+static void add_vaccination_records(VaccineMonitor monitor, char *value) {
+    // value = country-dir path
+
+    // first we use the File Manager Utility to check for new files in the already assigned directories
+    char **new_files = NULL;
+    int num_new_files = 0;
+    fm_check_for_updates(monitor->fm, &new_files, &num_new_files);
+    // now iterate through the new files and add their records in the monitor
+    for (int i = 0; i < num_new_files; i++) {
+        // get the records of the file
+        char **records = NULL;
+        int num_records = 0;
+        fm_read_from_file(monitor->fm, new_files[i], &records, &num_records);
+        // add all the records in the monitor
+        for (int rec_id = 0; rec_id < num_records; rec_id++) {
+            // insert the new records
+            insert_record(monitor, records[rec_id], false);
+            // delete the records entry since it's not useful no more
+            free(records[rec_id]);
+        }
+        // delete the records table since it's no usefull anymore
+        free(records);
+        // delete the new_files[i] path since it's not useful anymore
+        free(new_files[i]);
+    }
+    // free the memory hold by the new_files table.
+    free(new_files);
+    // for debug
+    #ifdef DEBUG
+        ht_print_keys(monitor->citizens, visit);
+    #endif
+}
+
+// utility to check whether a citizen is vacc's or not for a specific virus
+// input values are person struct and the virus info struct for the relative virus
+
+static void check_for_citizen(Person citizen, VirusInfo virus_info) {
+    char buf[BUFSIZ];
+    memset(buf, 0, BUFSIZ);
+    VaccRec vr = NULL;
+    struct vaccine_record dummy_vr = {.p=citizen};
+    if ((vr = (VaccRec)sl_search(virus_info->vaccinated, &dummy_vr))) {
+        sprintf(buf, "%s, VACCINATED ON %s\n", virus_info->virusName, vr->date);
+    } else if ((vr = (VaccRec)sl_search(virus_info->not_vaccinated, &dummy_vr))) {
+        sprintf(buf, "%s NOT YET VACCINATED\n", virus_info->virusName);
+    }
+
+    // if we actually found the citizen in either of the lists
+    if (strlen(buf))
+        strcat(ans_buffer, buf);
+}
+
+static void search_vaccination_status(VaccineMonitor monitor, char *value) {
+    // value: citizenID
+
+    // first we have to get the citizen from the monitor table
+    struct person dummy_p = {.citizenID=value};
+    Pointer rec = NULL;
+    if (ht_contains(monitor->citizens, &dummy_p, &rec)) {
+        // we found the citizen
+        Person citizen = (Person)rec;
+        // get the basic details
+        sprintf(ans_buffer, "%s %s %s %s\nAGE %d\n", citizen->citizenID, 
+                                                    citizen->firstName, 
+                                                    citizen->lastName, 
+                                                    citizen->country_t->country,
+                                                    citizen->age);
+        // Now we have to check for every virus in the current vaccine monitor 
+        // whether the citizen is vacc'd or non-vacc'd
+        ListNode node = list_get_head(monitor->virus_info);
+
+        while (node) {
+            VirusInfo virus_info = (VirusInfo)list_node_get_entry(monitor->virus_info, node);
+            check_for_citizen(citizen, virus_info);
+            node = list_get_next(monitor->virus_info, node);
+        }
+    }
+}
+
+// utility to print the logs
+static void monitor_print_logs(VaccineMonitor monitor, char *logs_path) {
+    // first we have to create the file
+    char logfile_path[BUFSIZ];
+    memset(logfile_path, 0, BUFSIZ);
+    sprintf(logfile_path, "%s/log_file.%d", logs_path, getpid());
+
+    int log_fd = open(logfile_path, O_WRONLY | O_APPEND | O_CREAT, 0644);
+    // first we have to write the countries
+    ListNode node = list_get_head(monitor->citizen_lists_per_country);
+    while (node) {
+        CountryIndex c = (CountryIndex)list_node_get_entry(monitor->citizen_lists_per_country, node);
+        write(log_fd, c->country, strlen(c->country));
+        write(log_fd, "\n", 1);
+        node = list_get_next(monitor->citizen_lists_per_country, node);
+    }
+    // Now we have to print the Stats
+    char stats[BUFSIZ];
+    memset(stats, 0, BUFSIZ);
+    sprintf(stats, "TOTAL TRAVEL REQUESTS %d\nACCEPTED %d\nREJECTED %d\n", 
+            monitor->accepted+monitor->rejected,
+            monitor->accepted,
+            monitor->rejected);
+        
+    // write the buffer into the logfile
+    write(log_fd, stats, strlen(stats)); 
+
+    close(log_fd);
+}
+
 // Basic Vaccine Monitor Methods
 
 void vaccine_monitor_initialize(void) { 
@@ -296,20 +410,24 @@ void vaccine_monitor_initialize(void) {
     memset(error_msg, 0, BUFSIZ);
 }
 
-void vaccine_monitor_finalize(void) {
+void vaccine_monitor_finalize(VaccineMonitor monitor) {
+    // first we have to print logs
+    monitor_print_logs(monitor, MONITOR_LOG_PATH);
+    // then we have to exit the main loop
     is_end = true;
 }
 
 VaccineMonitor vaccine_monitor_create(FM fm, int bloom_size, int sl_height, float sl_factor) {
     VaccineMonitor m = calloc(1, sizeof(*m));
-
+    m->accepted = 0;
+    m->rejected = 0;
     m->bloom_size = bloom_size;
     m->sl_height = sl_height;
     m->sl_factor = sl_factor;
     m->citizens = ht_create(person_cmp, person_hash, person_destroy);
     m->citizen_lists_per_country = list_create(country_index_cmp, country_index_destroy);
     m->virus_info = list_create(virus_info_cmp, virus_info_destroy);
-
+    m->fm = fm;
     if (fm) {
         // insert all the valid records of citizens from the directories in the fm
         insert_from_fm(m, fm);
@@ -334,16 +452,17 @@ bool vaccine_monitor_act(VaccineMonitor monitor, int expr_index, char *value) {
             travel_request(monitor, value);
             answer();
         break;
-    case 2: // command: /addVaccinationRecords, value: country
-            // add_vaccination_record(monitor, value);
-            answer();
+    case 2: // command: /addVaccinationRecords, value: country-dir path
+            add_vaccination_records(monitor, value);
         break;
 
     case 3: // command: /searchVaccinationStatus, value: citizenID
+            search_vaccination_status(monitor, value);
+            answer();
         break;
 
     case 4: // command: /exit, value: -
-            vaccine_monitor_finalize();
+            vaccine_monitor_finalize(monitor);
             break;
     default:
         return false;

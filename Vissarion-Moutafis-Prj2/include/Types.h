@@ -44,3 +44,7 @@ typedef struct person{
     bool vaccinated;
     char *date;
 } *Person;
+
+
+#define MONITOR_LOG_PATH "./logs/monitors"
+#define TRAVEL_MONITOR_LOG_PATH "./logs/travel-monitor"

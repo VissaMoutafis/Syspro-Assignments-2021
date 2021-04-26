@@ -75,6 +75,6 @@ do
         # create the new records file
         touch "$curPath/$country-$i.txt"
         # populate it with records that occur every $i-1 recs in the data set for the respective country
-        echo "$(echo "$data" | grep "$country" | awk "NR%$numFilesPerDir==$i-1")" >> "$curPath/$country-$i.txt"
+        echo "$(echo "$data" | grep "$country" | awk "NR%$numFilesPerDir==$i%$numFilesPerDir")" >> "$curPath/$country-$i.txt"
     done
 done

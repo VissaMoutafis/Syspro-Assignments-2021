@@ -23,6 +23,12 @@ bool error_flag;
 
 // struct typedefs for the app
 typedef struct vaccine_monitor {
+    // Prj 2 extension: A file manager that keeps track of some files. 
+    // It is supplied by the user
+    FM fm;
+    // Prj 2 extension: Accepted/Rejected requests
+    int accepted;
+    int rejected;
     // General indexing for citizens
     HT citizens;
     List citizen_lists_per_country;
@@ -57,7 +63,7 @@ typedef struct list_per_country {
 void vaccine_monitor_initialize(void); 
 
 // final changes to stop the program
-void vaccine_monitor_finalize(void);
+void vaccine_monitor_finalize(VaccineMonitor monitor);
 
 // Function to create a vaccine monitor 
 VaccineMonitor vaccine_monitor_create(FM fm, int bloom_size, int sl_height, float sl_factor);
