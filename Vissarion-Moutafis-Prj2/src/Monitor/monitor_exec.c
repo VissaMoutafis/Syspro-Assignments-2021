@@ -3,7 +3,7 @@
 #include "TTY.h"
 #include "Types.h"
 #include "Utilities.h"
-#include "VaccineMonitor.h"
+#include "Monitor.h"
 int error_i = 0;
 char *error_string[] = {
                         "", 
@@ -63,15 +63,15 @@ int main(int argc, char * argv[]) {
     // char *allowed_args[2] = {"-c", "-b"};   // the 
 
     // if (!check_arguments(argc, argv, values, allowed_args)) {
-    //     fprintf(stderr, "Error in arguments (%s) . \nUsage: \n    ~$ ./vaccineMonitor -c citizenRecordsFile -b bloomSize\n", error_string[error_i]);
+    //     fprintf(stderr, "Error in arguments (%s) . \nUsage: \n    ~$ ./Monitor -c citizenRecordsFile -b bloomSize\n", error_string[error_i]);
     //     exit(1);
     // }
     // all the arguments are the 
     char **dirs = argv+1;
     FM fm = fm_create(dirs, argc-1);
 
-    vaccine_monitor_initialize();
-    VaccineMonitor monitor = vaccine_monitor_create(fm, 1000, 10, 0.5);
+    monitor_initialize();
+    Monitor monitor = monitor_create(fm, 1000, 10, 0.5);
 
     // basic loop of the program
     while (!is_end) {
@@ -91,7 +91,7 @@ int main(int argc, char * argv[]) {
         if (check_format(command, &expr_index) && check_value_list(value, expr_index)) {
             // we will try to execute the command. If vaccine monitor fails then we will print the 
             // error message to stderr
-            if (!vaccine_monitor_act(monitor, expr_index, value)) {
+            if (!monitor_act(monitor, expr_index, value)) {
                 fprintf(stderr, "%s\n", error_msg);
             }
         } else 
@@ -105,8 +105,8 @@ int main(int argc, char * argv[]) {
 
     // // de-allocate the memory for every struct you have.
     // // DE-ALLOCATE THE MEMORY OF THE VACCINE MONITOR
-    // vaccine_monitor_destroy(monitor);
+    // monitor_destroy(monitor);
     fm_destroy(fm);
-    vaccine_monitor_destroy(monitor);
+    monitor_destroy(monitor);
     return 0;
 }

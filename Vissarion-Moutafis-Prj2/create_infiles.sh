@@ -69,12 +69,14 @@ do
     # set the current path for ease of use
     curPath="$mainPath/$country"
 
+    country_data="$(echo "$data" | grep "$country")"
+
     # create numFilePerDirectory files and populate them from the country data
     for i in `seq 1 $numFilesPerDir`
     do
         # create the new records file
         touch "$curPath/$country-$i.txt"
         # populate it with records that occur every $i-1 recs in the data set for the respective country
-        echo "$(echo "$data" | grep "$country" | awk "NR%$numFilesPerDir==$i%$numFilesPerDir")" >> "$curPath/$country-$i.txt"
+        echo "$(echo "$country_data" | awk "NR%$numFilesPerDir==$i%$numFilesPerDir")" >> "$curPath/$country-$i.txt"
     done
 done

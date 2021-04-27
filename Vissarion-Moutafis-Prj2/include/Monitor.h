@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdio.h>
-
 #include "Types.h"
 #include "HT.h"
 #include "SL.h"
@@ -22,7 +20,7 @@ char error_msg[BUFSIZ];
 bool error_flag;
 
 // struct typedefs for the app
-typedef struct vaccine_monitor {
+typedef struct monitor {
     // Prj 2 extension: A file manager that keeps track of some files. 
     // It is supplied by the user
     FM fm;
@@ -37,7 +35,7 @@ typedef struct vaccine_monitor {
     int bloom_size;
     int sl_height;
     float sl_factor;
-} * VaccineMonitor;
+} * Monitor;
 
 //  entry for the hash tables that contain the bloom filters
 typedef struct virus_info_tuple {
@@ -60,17 +58,17 @@ typedef struct list_per_country {
 // Basic Vaccine Monitor methods
 
 // initialize some basic variables that the monitor uses
-void vaccine_monitor_initialize(void); 
+void monitor_initialize(void); 
 
 // final changes to stop the program
-void vaccine_monitor_finalize(VaccineMonitor monitor);
+void monitor_finalize(Monitor monitor);
 
 // Function to create a vaccine monitor 
-VaccineMonitor vaccine_monitor_create(FM fm, int bloom_size, int sl_height, float sl_factor);
+Monitor monitor_create(FM fm, int bloom_size, int sl_height, float sl_factor);
 
 // function to destroy and deallocate the memory of a vaccine monitor
-void vaccine_monitor_destroy(VaccineMonitor m);
+void monitor_destroy(Monitor m);
 
 // Basic functionality of the vaccine monitor. Return true if it succeeds.
 // Returns false if it fail and an error message is saved in error_msg string
-bool vaccine_monitor_act(VaccineMonitor monitor, int expr_index, char *value);
+bool monitor_act(Monitor monitor, int expr_index, char *value);

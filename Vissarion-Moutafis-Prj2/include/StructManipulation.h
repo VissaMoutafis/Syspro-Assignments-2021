@@ -8,7 +8,7 @@
 #include "SL.h"
 #include "Types.h"
 #include "Utilities.h"
-#include "VaccineMonitor.h"
+#include "Monitor.h"
 
 // Person manipulation methods
 

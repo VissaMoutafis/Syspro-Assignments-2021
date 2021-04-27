@@ -1,4 +1,4 @@
-#include "VaccineMonitor.h"
+#include "Monitor.h"
 #include "StructManipulation.h"
 
 void visit(Pointer _p) {
@@ -72,7 +72,7 @@ static void vaccinate_citizen(VirusInfo v, VaccRec vacc_rec, char *date) {
 // Function to insert a record in the structs of the according virusInfo tuple
 // If update flag is true then we will update the record if it exists
 // In the right spirit this is also a vaccination operation for the citizens
-static void virus_info_insert(VaccineMonitor monitor, Person p, bool update, char *virusName, char *date, bool is_vaccinated) {
+static void virus_info_insert(Monitor monitor, Person p, bool update, char *virusName, char *date, bool is_vaccinated) {
     // First we will check if the virus info is created
     struct virus_info_tuple dummy = {.virusName=virusName};
     Pointer key;
@@ -146,7 +146,7 @@ static void virus_info_insert(VaccineMonitor monitor, Person p, bool update, cha
 }
 
 // Function to insert an entry to  the country index of a vaccine monitor
-static void country_index_insert(VaccineMonitor monitor, Person p) {
+static void country_index_insert(Monitor monitor, Person p) {
     CountryIndex dummy = p->country_t;
     Pointer key;
     // check if we already have a list
@@ -189,7 +189,7 @@ static void country_index_insert(VaccineMonitor monitor, Person p) {
 // If the update flag is one then, if we find an instance of it, about a specific virus
 // either ommit the incosistent record, or 
 // actually update the proper virus info lists and bloom filter 
-static void insert_record(VaccineMonitor monitor, char *record, bool update) {
+static void insert_record(Monitor monitor, char *record, bool update) {
     Person p = str_to_person(record);
 
     if (p) {
@@ -228,7 +228,7 @@ static void insert_record(VaccineMonitor monitor, char *record, bool update) {
     }
 }
 
-static void insert_from_dir(VaccineMonitor monitor, FM fm, DirectoryEntry dentry) {
+static void insert_from_dir(Monitor monitor, FM fm, DirectoryEntry dentry) {
     char **records=NULL;
     int length=0;
     
@@ -244,7 +244,7 @@ static void insert_from_dir(VaccineMonitor monitor, FM fm, DirectoryEntry dentry
 
 }
 
-static void insert_from_fm(VaccineMonitor monitor, FM fm) {
+static void insert_from_fm(Monitor monitor, FM fm) {
     // get the list of added records in the file manager
     List dir_list = fm_get_directory_list(fm);
     // iterate the directories and add their records in the monitor's structs
@@ -254,7 +254,7 @@ static void insert_from_fm(VaccineMonitor monitor, FM fm) {
     }
 }
 
-static void travel_request(VaccineMonitor monitor, char *value) {
+static void travel_request(Monitor monitor, char *value) {
     // value: citizenID date countryFrom countryTo virusName
     bool found = false;
     char **values = NULL;
@@ -293,7 +293,7 @@ static void travel_request(VaccineMonitor monitor, char *value) {
 }
 
 // function to search for added requests in the user-defined directory
-static void add_vaccination_records(VaccineMonitor monitor, char *value) {
+static void add_vaccination_records(Monitor monitor, char *value) {
     // value = country-dir path
 
     // first we use the File Manager Utility to check for new files in the already assigned directories
@@ -345,7 +345,7 @@ static void check_for_citizen(Person citizen, VirusInfo virus_info) {
         strcat(ans_buffer, buf);
 }
 
-static void search_vaccination_status(VaccineMonitor monitor, char *value) {
+static void search_vaccination_status(Monitor monitor, char *value) {
     // value: citizenID
 
     // first we have to get the citizen from the monitor table
@@ -373,7 +373,7 @@ static void search_vaccination_status(VaccineMonitor monitor, char *value) {
 }
 
 // utility to print the logs
-static void monitor_print_logs(VaccineMonitor monitor, char *logs_path) {
+static void monitor_print_logs(Monitor monitor, char *logs_path) {
     // first we have to create the file
     char logfile_path[BUFSIZ];
     memset(logfile_path, 0, BUFSIZ);
@@ -402,23 +402,23 @@ static void monitor_print_logs(VaccineMonitor monitor, char *logs_path) {
     close(log_fd);
 }
 
-// Basic Vaccine Monitor Methods
+// Basic Monitor Methods
 
-void vaccine_monitor_initialize(void) { 
+void monitor_initialize(void) { 
     is_end = false;
     memset(ans_buffer, 0, BUFSIZ);
     memset(error_msg, 0, BUFSIZ);
 }
 
-void vaccine_monitor_finalize(VaccineMonitor monitor) {
+void monitor_finalize(Monitor monitor) {
     // first we have to print logs
     monitor_print_logs(monitor, MONITOR_LOG_PATH);
     // then we have to exit the main loop
     is_end = true;
 }
 
-VaccineMonitor vaccine_monitor_create(FM fm, int bloom_size, int sl_height, float sl_factor) {
-    VaccineMonitor m = calloc(1, sizeof(*m));
+Monitor monitor_create(FM fm, int bloom_size, int sl_height, float sl_factor) {
+    Monitor m = calloc(1, sizeof(*m));
     m->accepted = 0;
     m->rejected = 0;
     m->bloom_size = bloom_size;
@@ -439,14 +439,14 @@ VaccineMonitor vaccine_monitor_create(FM fm, int bloom_size, int sl_height, floa
     return m;
 }
 
-void vaccine_monitor_destroy(VaccineMonitor m) {
+void monitor_destroy(Monitor m) {
     list_destroy(&(m->citizen_lists_per_country));
     ht_destroy(m->citizens);
     list_destroy(&(m->virus_info));
     free(m);
 }
 
-bool vaccine_monitor_act(VaccineMonitor monitor, int expr_index, char *value) {
+bool monitor_act(Monitor monitor, int expr_index, char *value) {
     switch (expr_index) {
     case 0: // command: /travelRequest, value: citizenID date, countryFrom countryTo virusName
             travel_request(monitor, value);
@@ -462,7 +462,7 @@ bool vaccine_monitor_act(VaccineMonitor monitor, int expr_index, char *value) {
         break;
 
     case 4: // command: /exit, value: -
-            vaccine_monitor_finalize(monitor);
+            monitor_finalize(monitor);
             break;
     default:
         return false;

@@ -27,7 +27,7 @@ bool fm_add_directory(FM fm, char *dir_path);
 bool fm_add_file(FM fm, char *file_path);
 
 // Read all the lines from all the files, recorded by the file manager, 
-// in a specific directory.
+// in a specific directory. WARNING: Basic assumption that the directory has levels < 2
 void fm_read_from_directory(FM fm, char *dir_path, char ***records, int *length);
 void fm_read_from_dir_entry(FM fm, DirectoryEntry dir_entry, char ***records, int *length);
 
