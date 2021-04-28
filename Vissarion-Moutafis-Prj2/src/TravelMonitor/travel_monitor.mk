@@ -1,6 +1,6 @@
 PROGRAM := travelMonitor
 
-OBJS += $(BUILD)/travelMonitor.o
+OBJS += $(BUILD)/travelMonitor.o $(BUILD)/travelMonitor_exec.o 
 
 ARGS := 
 
@@ -13,7 +13,7 @@ run :
 
 .PHONY : clean
 clean :
-	@$(RM) -f $(MAKE-DIR)/$(PROGRAM) $(BIN)/$(PROGRAM) $(BUILD)/travelMonitor.o
+	@$(RM) -f $(MAKE-DIR)/$(PROGRAM) $(BIN)/$(PROGRAM) $(BUILD)/travelMonitor.o $(BUILD)/travelMonitor_exec.o
 
 $(BUILD)/%.o : ./%.c
 	@$(CC) $(CFLAGS) -c $< -o $@

@@ -6,13 +6,17 @@
 #include "List.h"
 #include "BF.h"
 #include "Utilities.h"
+#include "MonitorManager.h"
 
 // the declaration of the TravelMonitor type
 typedef struct travel_monitor {
+    u_int32_t buffer_size;      // the size of the buffer for parent-child I/O via fifos
+    int num_monitors;           // the number of generated monitors
     int accepted;               // accepted requests counter
     int rejected;               // rejected requests counter
     HT virus_stats;             // struct that keeps track of all bloom filters for the viruses
-    int bloom_size;             // desired bloom_size   
+    MonitorManager manager;     // the monitor manager of the app
+    size_t bloom_size;          // desired bloom_size   
 } *TravelMonitor;
 
 
@@ -20,21 +24,10 @@ typedef struct travel_monitor {
 // of items in the 'virus_stats' hashtable
 typedef struct virus_stats {
     char *virus_name;           // The name of the virus 
-    SL monitor_blooms;          // SL containing the bloom filters and some more details
+    BF bf;                      // BF for the respective virus 
     List accepted;              // accepted requests with a date record
     List rejected;              // rejected requests with a date record
 } *VirusStats;
 
-// Declaration of the MonitorTrace struct.
-typedef struct monitor_trace {
-    pid_t pid;                  // PID of the monitor process instance 
-    char *fifos[2];             // fifos assigned to the monitor for communication
-    char **countries_paths;     // The paths of the country dirs that are assigned to the monitor process 
-} *MonitorTrace;
 
-// Declaration of the MonitorBloomEntry struct. item of 'monitor_blooms' skip list
-typedef struct monitor_blooms_entry {
-    MonitorTrace monitor;
-    BF bf;
-} *MonitorBloomEntry;
-
+TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_monitors, u_int32_t buffer_size);

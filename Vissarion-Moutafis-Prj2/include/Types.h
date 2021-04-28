@@ -48,3 +48,12 @@ typedef struct person{
 
 #define MONITOR_LOG_PATH "./logs/monitors"
 #define TRAVEL_MONITOR_LOG_PATH "./logs/travel-monitor"
+
+#define DEF_BUFFER_SIZE 100
+#define DEF_NUM_MONITORS 1
+#define DEF_BLOOM_SIZE 100
+
+#define FIFO_DIR "fifos"
+
+#define INIT_START_TAG "<i>"
+#define INIT_END_TAG "</i>"

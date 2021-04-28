@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include "TTY.h"
 #include "Types.h"
 #include "Utilities.h"
@@ -34,6 +32,12 @@ static bool check_arguments(int argc, char *argv[], char *values[], char * allow
     for (int i = 1; i < argc; i+=2) {
         int index=-1;
         if (check_arg(argv[i], allowed_args, 2, &index)) {
+            // make sure no arg is
+            // numeric
+            if (is_numeric(argv[i+1])) {
+                error_i = 4;
+                return false;
+            }
             // index is the index number of the proper argument listing
             values[index] = argv[i+1];
             
@@ -48,65 +52,64 @@ static bool check_arguments(int argc, char *argv[], char *values[], char * allow
             return false;
         }
     }
-    // make sure the second argument value (bloom filter size) is numeric
-    if (!is_numeric(values[1])) {
-        error_i = 4;
-        return false;
-    }
 
     return true;
 }
 
+// call as: ./monitor -i inputFifo -o outputFifo
 int main(int argc, char * argv[]) {
     // First check arguments 
-    // char *values[2]={NULL, NULL};                        // the values of the arguments
-    // char *allowed_args[2] = {"-c", "-b"};   // the 
+    char *values[2]={NULL, NULL};                        // the values of the arguments
+    char *allowed_args[2] = {"-i", "-o"};               // argument flags (input -i, output -o) 
 
-    // if (!check_arguments(argc, argv, values, allowed_args)) {
-    //     fprintf(stderr, "Error in arguments (%s) . \nUsage: \n    ~$ ./Monitor -c citizenRecordsFile -b bloomSize\n", error_string[error_i]);
-    //     exit(1);
-    // }
-    // all the arguments are the 
-    char **dirs = argv+1;
-    FM fm = fm_create(dirs, argc-1);
-
-    monitor_initialize();
-    Monitor monitor = monitor_create(fm, 1000, 10, 0.5);
-
-    // basic loop of the program
-    while (!is_end) {
-        // first get the input expression from the tty
-        char *expr = get_input();
-        // now parse it to the expression part and the value part
-        char ** parsed_expr = parse_expression(expr); // format: /command value(s)
-
-        // clarify the input with proper assignments
-        char *command = parsed_expr[0];
-        char *value = parsed_expr[1];
-        int expr_index;
-
-        // CREATE THE VACCINE MONITOR 
-
-        // now we have to check if the expression was ok based on the array of allowed formats
-        if (check_format(command, &expr_index) && check_value_list(value, expr_index)) {
-            // we will try to execute the command. If vaccine monitor fails then we will print the 
-            // error message to stderr
-            if (!monitor_act(monitor, expr_index, value)) {
-                fprintf(stderr, "%s\n", error_msg);
-            }
-        } else 
-            help();
-
-        if (expr) free(expr);
-        if (parsed_expr[0]) free(parsed_expr[0]);
-        if (parsed_expr[1]) free(parsed_expr[1]);
-        if (parsed_expr) free(parsed_expr);
+    if (!check_arguments(argc, argv, values, allowed_args)) {
+        fprintf(stderr, "Error in arguments (%s) \nUsage: \n    ~$ ./monitor -i inputFifo -o outputFifo\n", error_string[error_i]);
+        exit(1);
     }
+    puts("YET TO BE IMPLEMENTED...Exiting.");
+    // // all the arguments are the 
+    // char **dirs = NULL;
+    // int len = 0;
+    // get_dirs(&dirs, &len);
+    // FM fm = fm_create(dirs, argc-1);
 
-    // // de-allocate the memory for every struct you have.
-    // // DE-ALLOCATE THE MEMORY OF THE VACCINE MONITOR
+    // monitor_initialize();
+    // Monitor monitor = monitor_create(fm, 1000, 10, 0.5);
+
+    // // basic loop of the program
+    // while (!is_end) {
+    //     // first get the input expression from the tty
+    //     char *expr = get_input();
+    //     // now parse it to the expression part and the value part
+    //     char ** parsed_expr = parse_expression(expr); // format: /command value(s)
+
+    //     // clarify the input with proper assignments
+    //     char *command = parsed_expr[0];
+    //     char *value = parsed_expr[1];
+    //     int expr_index;
+
+    //     // CREATE THE VACCINE MONITOR 
+
+    //     // now we have to check if the expression was ok based on the array of allowed formats
+    //     if (check_format(command, &expr_index) && check_value_list(value, expr_index)) {
+    //         // we will try to execute the command. If vaccine monitor fails then we will print the 
+    //         // error message to stderr
+    //         if (!monitor_act(monitor, expr_index, value)) {
+    //             fprintf(stderr, "%s\n", error_msg);
+    //         }
+    //     } else 
+    //         help();
+
+    //     if (expr) free(expr);
+    //     if (parsed_expr[0]) free(parsed_expr[0]);
+    //     if (parsed_expr[1]) free(parsed_expr[1]);
+    //     if (parsed_expr) free(parsed_expr);
+    // }
+
+    // // // de-allocate the memory for every struct you have.
+    // // // DE-ALLOCATE THE MEMORY OF THE VACCINE MONITOR
+    // // monitor_destroy(monitor);
+    // fm_destroy(fm);
     // monitor_destroy(monitor);
-    fm_destroy(fm);
-    monitor_destroy(monitor);
-    return 0;
+    // return 0;
 }
