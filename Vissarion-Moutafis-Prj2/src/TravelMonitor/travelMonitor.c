@@ -16,10 +16,11 @@ bool assign_dirs(TravelMonitor monitor, char *input_dir) {
         int monitor_id = 0;
         int num_monitors = monitor->num_monitors; 
         for (int i = 0; i < num_elems; i++) {
+            if (!strcmp(dir_array[i]->d_name, ".") || !strcmp(dir_array[i]->d_name, ".."))continue;
             // get the dir path
             char country_path[BUFSIZ];
             memset(country_path, 0, BUFSIZ);
-            sprintf(country_path, "%s/%s\n", input_dir, dir_array[i]->d_name);
+            sprintf(country_path, "%s/%s", input_dir, dir_array[i]->d_name);
 
             // assign it to the respective monitor (round robin wise)
             monitor_manager_add_country(monitor->manager, monitor_id, country_path);
@@ -30,7 +31,7 @@ bool assign_dirs(TravelMonitor monitor, char *input_dir) {
 
     // close the dir
     closedir(dirp);
-    exit(1);
+
     // sent the assigned countries paths to monitors
     for (int i = 0; i < monitor->num_monitors; i++) {
         MonitorTrace t;
@@ -42,9 +43,12 @@ bool assign_dirs(TravelMonitor monitor, char *input_dir) {
         }
         char **countries = t.countries_paths;
         int num_countries = t.num_countries;
-        for (int j = 0; j < num_countries; i++) {
+        printf("Statring to send countries to monitor %d\n", i);
+
+        for (int j = 0; j < num_countries; j++) {
             // send the country to the child
-            send_msg(t.out_fifo, countries[i], strlen(countries[i]), INIT_CHLD);
+            printf("sending %s, via %d\n", countries[j], t.out_fifo);
+            send_msg(t.out_fifo, countries[j], strlen(countries[j]), INIT_CHLD);
         }
     } 
     return true;
@@ -73,8 +77,6 @@ bool create_monitor(TravelMonitor monitor, int i) {
             break;
 
         case 0:  // child behaviour
-            puts("Exec");
-            exit(1);
             // set the args for current child-process and call exec
             execl("./monitor", "./monitor", "-i", to_fifo_path, "-o", from_fifo_path, NULL);
 
@@ -83,7 +85,8 @@ bool create_monitor(TravelMonitor monitor, int i) {
         default:  // parent behaviour
             // add the monitor into the manager
             in_fifo = open(from_fifo_path, O_RDONLY | O_NONBLOCK);
-            out_fifo = open(to_fifo_path, O_WRONLY | O_NONBLOCK);
+            out_fifo = open(to_fifo_path, O_WRONLY);
+            printf("Parent reading from %s (%d) and writing to %s (%d)\n", from_fifo_path, in_fifo, to_fifo_path, out_fifo);
             monitor_manager_add(monitor->manager, pid, in_fifo, out_fifo);
 
             #ifdef DEBUG
@@ -97,6 +100,7 @@ bool create_monitor(TravelMonitor monitor, int i) {
 }
 
 bool create_n_monitors(TravelMonitor monitor) {
+    puts("create");
     bool all_ok = true;
     // create the fifo dir
     create_unique_fifo_pair(true, -1, NULL, NULL);
@@ -107,12 +111,63 @@ bool create_n_monitors(TravelMonitor monitor) {
     return all_ok;
 }
 
+static bool get_children_response(TravelMonitor monitor) {
+    puts("response");
+    // we will use poll to monitor the fifos
+    // first set up the fds
+    int nfd = monitor->num_monitors;
+    struct pollfd fds[nfd];
+    for (int i = 0; i < nfd; i++) {
+        MonitorTrace t;
+        memset(&t, 0, sizeof(Trace));
+        if (!monitor_manager_get_at(monitor->manager, i, &t)){
+            fprintf(stderr, "monitor_manager_get_at: Cannot get child at %d\n", i);
+            exit(1);
+        }
+        fds[i].fd = t.in_fifo;
+        fds[i].events = POLL_IN;
+    }
+    int active = nfd;
+    while (active) {
+        int ret = poll(fds, nfd, 1);
+        if (ret) {
+            for (int i = 0; i < nfd; i++) {
+                // we can read
+                if ((fds[i].revents & POLL_IN) == POLL_IN) {
+                    // there's something to read
+                    char *msg = NULL;
+                    int len = 0;
+                    int opcode = -1;
+                    read_msg(fds[0].fd, 1000, &msg, &len, &opcode);
+                    if (len == 0) {
+                        // process do not write anymore so just leave
+                        active --;
+                        continue;
+                    }
+                    // some handling
+                    char buf[BUFSIZ];
+                    memset(buf, 0, BUFSIZ);
+                    sprintf(buf, "opcode: %d, msg-len: %d, msg: ", opcode, len);
+                    memcpy(buf+31, msg, len);
+                    puts(buf);
+                    // end of handling
+
+                    free(msg);
+                }
+            }
+        }
+        if (ret < 0){perror("poll"); exit(1);}
+    }
+    return true;
+}
+
 bool initialization(TravelMonitor monitor, char *input_dir) {
     // initialization components
     // 2. Create fifos and fork the monitor processes
     // 3. Assign them the directories
     return create_n_monitors(monitor) 
-        && assign_dirs(monitor, input_dir); 
+        && assign_dirs(monitor, input_dir)
+        && get_children_response(monitor); 
 }
 
 // Travel Monitor Routines
@@ -140,54 +195,5 @@ TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_
 
 // test for I/O functions
 int main(void) {
-    mkfifo("test.fifo", 0777);
-    pid_t pid = fork();
-    int fd;
-    switch (pid)
-    {
-    case -1:
-        perror("fork");
-        exit(1);
-        break;
-    case 0:
-        fd = open("test.fifo", O_WRONLY | O_NONBLOCK);
-        char msg[]="This is the message's body.";
-        send_msg(fd, msg, strlen(msg), INIT_CHLD);
-
-        char msg2[] = "This is the second message!!";
-        send_msg(fd, msg2, strlen(msg2), INIT_CHLD);
-        close(fd);
-        exit(1);
-        break;
-    
-    default:
-        fd = open("test.fifo", O_RDONLY | O_NONBLOCK);
-        struct pollfd fds[1];
-        memset(fds, 0, sizeof(struct pollfd));
-        fds[0].fd = fd; 
-        fds[0].events = POLL_IN ;
-        while (1) {
-            int ret = poll(fds, 1, 3);
-            if (ret < 0) perror("poll");
-            if ((fds[0].revents & POLL_IN) == POLL_IN) {
-                printf("ret = %d\n", ret);
-                char *msg=NULL;
-                int len=0;
-                int opcode=-1;
-                read_msg(fds[0].fd, 1000, &msg, &len, &opcode);
-                char to_print[1+10+len+1 +3 + 1];
-                memset(to_print, 0, 10 + 10 + len + 1 + 3 + 1);
-                sprintf(to_print, "%d %d ", opcode, len);
-                memcpy(to_print+strlen(to_print), msg, len);
-                
-                puts(to_print);
-                free(msg);
-            }
-            if (ret == 0 && (fds[0].revents & POLLHUP) == POLLHUP) break;
-        }
-        puts("Read everything.");
-        wait(NULL);
-        break;
-    }
-    unlink("test.fifo");
+    TravelMonitor m = travel_monitor_create("testdir", 1000, 1, 7);
 }

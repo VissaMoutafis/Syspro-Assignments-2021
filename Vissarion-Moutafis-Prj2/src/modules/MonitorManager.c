@@ -138,13 +138,14 @@ static char *extract_country(char *path) {
 // add a copy of 'country' to i-th monitor
 void monitor_manager_add_country(MonitorManager manager, int i, char *country_path) {
     if (i < manager->num_monitors && manager->monitors[i].pid >= 0) {
-        // first add the country path in the monitor
         char ** country_paths = manager->monitors[i].countries_paths;
+        
         // create the new array
-        char ** new_array = calloc(manager->monitors[i].num_countries + 1, sizeof(char*));
+        char **new_array = calloc(manager->monitors[i].num_countries + 1, sizeof(char*));
         // copy the old array and delete it
-        memcpy(new_array, country_paths, manager->monitors[i].num_countries);
+        memcpy(new_array, country_paths, manager->monitors[i].num_countries*sizeof(char*));
         free(country_paths);
+
         //create the new entry and add it to the new array
         int write_at = manager->monitors[i].num_countries;
         char *new_path_entry = calloc(strlen(country_path)+1, sizeof(char));
@@ -152,7 +153,12 @@ void monitor_manager_add_country(MonitorManager manager, int i, char *country_pa
         new_array[write_at] = new_path_entry;
         // reset the slot's countries paths array
         manager->monitors[i].countries_paths = new_array;
-
+        manager->monitors[i].num_countries++;
+        
+        #ifdef DEBUG
+        for (int j=0; j<manager->monitors[i].num_countries; j++) 
+            puts(manager->monitors[i].countries_paths[j]);
+        #endif
         // add a records of that in the hashtable
 
         // first make a deep copy of the input trace entry

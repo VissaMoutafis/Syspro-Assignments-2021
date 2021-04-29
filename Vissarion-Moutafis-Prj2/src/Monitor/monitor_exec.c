@@ -2,6 +2,8 @@
 #include "Types.h"
 #include "Utilities.h"
 #include "Monitor.h"
+#include "IPC.h"
+
 int error_i = 0;
 char *error_string[] = {
                         "", 
@@ -66,17 +68,42 @@ int main(int argc, char * argv[]) {
         fprintf(stderr, "Error in arguments (%s) \nUsage: \n    ~$ ./monitor -i inputFifo -o outputFifo\n", error_string[error_i]);
         exit(1);
     }
-    puts("YET TO BE IMPLEMENTED...Exiting.");
-    exit(12);
-    // // all the arguments are the 
-    // char **dirs = NULL;
-    // int len = 0;
-    // get_dirs(&dirs, &len);
-    // FM fm = fm_create(dirs, argc-1);
+    
+    char *dirs[100];
+    int dir_num = 0;
 
-    // monitor_initialize();
-    // Monitor monitor = monitor_create(fm, 1000, 10, 0.5);
+    int in_fd = open(values[0], O_RDONLY | O_NONBLOCK);
+    int out_fd = open(values[1], O_WRONLY);
+    printf("Child reading from %s (%d) and writing to %s (%d)\n",
+           values[0], in_fd, values[1], out_fd);
+    struct pollfd fds[1];
+    fds[0].fd = in_fd;
+    fds[0].events = POLL_IN;
+    // fds[1].fd = out_fd;
+    // fds[1].events = POLL_OUT;
+    while (1) {
+        int ret = poll(fds, 1, 1);
+        if (ret ) {
+            if ((fds[0].revents & POLL_IN) == POLL_IN) {
+                char *msg = NULL;
+                int len = 0;
+                int opcode = -1;
+                read_msg(fds[0].fd, 1, &msg, &len, &opcode);
+                if (len == 0) break;
+                char *dir = calloc(len+1, sizeof(char));
+                memcpy(dir, msg, len);
+                dirs[dir_num] = dir;
+                dir_num++;
+                printf("Just received dir: '%s'\n", dir);
+            }
+        }
+    }
+    
+    FM fm = fm_create(dirs, dir_num);
 
+    monitor_initialize();
+    Monitor monitor = monitor_create(fm, 1000, 10, 0.5);
+    
     // // basic loop of the program
     // while (!is_end) {
     //     // first get the input expression from the tty

@@ -14,9 +14,9 @@ void create_unique_fifo_pair(bool init, int unique_id, char *from, char *to) {
     }
 
     sprintf(to, "%s/to-monitor-%d.fifo", FIFO_DIR, unique_id);
-    if (mkfifo(to, 0644) == -1) {perror("mkfifo"); exit(1);}
+    if (mkfifo(to, 0777) == -1) {perror("mkfifo"); exit(1);}
     sprintf(from, "%s/from-monitor-%d.fifo", FIFO_DIR, unique_id);
-    if (mkfifo(from, 0644) == -1) {perror("mkfifo"); exit(1);}
+    if (mkfifo(from, 0777) == -1) {perror("mkfifo"); exit(1);}
 }
 
 void clean_fifos(void) {
@@ -82,7 +82,10 @@ static void read_header(int fd, int bufsize, int *body_len, int *opcode) {
     char header[HDR_LEN];
     memset(header, 0, HDR_LEN);
     // first read the header
-    my_read(fd, header, HDR_LEN, bufsize);
+    if (my_read(fd, header, HDR_LEN, bufsize) == 0) {
+        *body_len = 0;
+        *opcode = -1;
+    }
     // parse the header and assign values
     parse_header(header, body_len, opcode);
 }
@@ -101,8 +104,8 @@ void read_msg(int fd, int bufsize, char **body, int *body_len, int *opcode) {
 }
 
 // Note that buffer must be assigned at least bytes_to_read bytes of memory
-// classic read, wrapper
-void my_read(int fd, char *buffer, int bytes_to_read, int bufsize) {
+// classic read, wrapper, return 0 if EOF, else return 1
+int my_read(int fd, char *buffer, int bytes_to_read, int bufsize) {
     if (bufsize > bytes_to_read)
         bufsize = bytes_to_read;
 
@@ -116,7 +119,7 @@ void my_read(int fd, char *buffer, int bytes_to_read, int bufsize) {
 
         // while we haven't read the whole message
         if ((bytes_read = read(fd, buf, to_read)) == -1) {perror("my_read"); exit(1);}
-
+        if (bytes_read == 0) return 0;
         // insert the buf into the buffer, at proper place
         memcpy(buffer+total_bytes_read, buf, bytes_read);
 
@@ -126,4 +129,5 @@ void my_read(int fd, char *buffer, int bytes_to_read, int bufsize) {
         // re-initialize the buf
         memset(buf, 0, bufsize);
     }
+    return 1;
 }

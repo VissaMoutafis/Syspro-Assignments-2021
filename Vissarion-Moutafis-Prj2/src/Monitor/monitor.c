@@ -435,7 +435,7 @@ Monitor monitor_create(FM fm, int bloom_size, int sl_height, float sl_factor) {
         ht_print_keys(m->citizens, visit);
         #endif
     }
-
+    
     return m;
 }
 

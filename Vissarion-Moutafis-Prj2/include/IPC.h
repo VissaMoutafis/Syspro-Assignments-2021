@@ -59,5 +59,5 @@ void send_msg(int fd, char *body, int body_len, int opcode);
 // NOTE THAT *body is exactly *body_len characters long, there is NO terminator
 void read_msg(int fd, int bufsize, char **body, int *body_len, int *opcode);
 
-// classic read wrapper
-void my_read(int fd, char *buffer, int bytes_to_read, int bufsize);
+// classic read wrapper. Return 1 in success and 0 when reads EOF
+int my_read(int fd, char *buffer, int bytes_to_read, int bufsize);
