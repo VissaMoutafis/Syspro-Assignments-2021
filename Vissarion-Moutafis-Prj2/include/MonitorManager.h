@@ -24,7 +24,10 @@ typedef struct monitor_manager {
     int active_monitors;        // count of the truly active monitors
 } *MonitorManager;
 
-
+typedef struct trace {
+    MonitorTrace *m_trace;
+    char *country;
+} *Trace;
 // create monitor manager 
 MonitorManager monitor_manager_create(int num_monitors);
 
@@ -41,4 +44,5 @@ int monitor_manager_search_pid(MonitorManager manager, pid_t pid, MonitorTrace *
 bool monitor_manager_get_at(MonitorManager manager, int i, MonitorTrace *trace);
 
 // add a copy of 'country' to i-th monitor
-void monitor_manager_add_country(MonitorManager manager, int i, char *country);
+void monitor_manager_add_country(MonitorManager manager, int i, char *country_path);
+

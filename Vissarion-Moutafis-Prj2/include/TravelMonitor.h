@@ -6,6 +6,7 @@
 #include "List.h"
 #include "BF.h"
 #include "Utilities.h"
+#include "FileUtilities.h"
 #include "MonitorManager.h"
 
 // the declaration of the TravelMonitor type
@@ -24,10 +25,14 @@ typedef struct travel_monitor {
 // of items in the 'virus_stats' hashtable
 typedef struct virus_stats {
     char *virus_name;           // The name of the virus 
-    BF bf;                      // BF for the respective virus 
+    SL bf_per_countries;        // SL of BFs for the respective virus 
     List accepted;              // accepted requests with a date record
     List rejected;              // rejected requests with a date record
 } *VirusStats;
 
+typedef struct bf_tuple {
+    char *country;
+    BF bf;
+} *BFTuple;
 
 TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_monitors, u_int32_t buffer_size);

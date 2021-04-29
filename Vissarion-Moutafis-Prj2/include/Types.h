@@ -12,7 +12,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h>
-
+#include <sys/wait.h>
 
 typedef void *Pointer; //We will use the Pointer notation for Item and/or Key type
 
@@ -49,11 +49,7 @@ typedef struct person{
 #define MONITOR_LOG_PATH "./logs/monitors"
 #define TRAVEL_MONITOR_LOG_PATH "./logs/travel-monitor"
 
-#define DEF_BUFFER_SIZE 100
 #define DEF_NUM_MONITORS 1
 #define DEF_BLOOM_SIZE 100
 
-#define FIFO_DIR "fifos"
 
-#define INIT_START_TAG "<i>"
-#define INIT_END_TAG "</i>"

@@ -67,6 +67,7 @@ int main(int argc, char * argv[]) {
         exit(1);
     }
     puts("YET TO BE IMPLEMENTED...Exiting.");
+    exit(12);
     // // all the arguments are the 
     // char **dirs = NULL;
     // int len = 0;
