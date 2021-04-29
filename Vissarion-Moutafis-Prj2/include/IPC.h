@@ -24,3 +24,19 @@
 
 // create a unique fifo. if init is true create only the fifo directory
 void create_unique_fifo_pair(bool init, int unique_id, char *from, char *to);
+
+// routine to clean up the fifos
+void clean_fifos(void);
+
+// I/O Routines
+
+// function to send messages in fifos 
+void send_msg(int fd, char *body, int body_len, int opcode);
+
+// function to read messages in fifos
+// We allocate memory for the body variable. User must free it.
+// NOTE THAT *body is exactly *body_len characters long, there is NO terminator
+void read_msg(int fd, int bufsize, char **body, int *body_len, int *opcode);
+
+// classic read wrapper
+void my_read(int fd, char *buffer, int bytes_to_read, int bufsize);

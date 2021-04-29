@@ -102,7 +102,7 @@ bool create_n_monitors(TravelMonitor monitor) {
         if (!create_monitor(monitor, i)) 
             all_ok = false;
     }
-    return true;
+    return all_ok;
 }
 
 bool initialization(TravelMonitor monitor, char *input_dir) {
@@ -135,7 +135,50 @@ TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_
     return monitor;
 }
 
-int main(void) {
-    travel_monitor_create("testdir", 1000, 1, 1000);
 
+// test for I/O functions
+int main(void) {
+    mkfifo("test.fifo", 0777);
+    pid_t pid = fork();
+    int fd;
+    switch (pid)
+    {
+    case -1:
+        perror("fork");
+        exit(1);
+        break;
+    case 0:
+        fd = open("test.fifo", O_WRONLY | O_NONBLOCK);
+        char msg[]="This is the message's body.";
+        send_msg(fd, msg, strlen(msg), COUNTRIES_OP_CHILD);
+        exit(0);
+        break;
+    
+    default:
+        fd = open("test.fifo", O_RDONLY);
+        struct pollfd fds[1];
+        memset(fds, 0, sizeof(struct pollfd));
+        fds[0].fd = 0; 
+        fds[0].events = POLL_IN | POLL_HUP;
+        while (1) {
+            int ret = poll(fds, 1, 3);
+            if (ret && fds[0].events & POLL_IN) {
+                char *msg=NULL;
+                int len=0;
+                int opcode=-1;
+                read_msg(fd, 1, &msg, &len, &opcode);
+                char to_print[1+10+len+1 +3 + 1];
+                memset(to_print, 0, 1 + 10 + len + 1 + 3 + 1);
+                sprintf(to_print, "%d %d ", opcode, len);
+                memcpy(to_print+strlen(to_print), msg, len);
+                
+                puts(to_print);
+                free(msg);
+            } 
+            if (fds[0].revents & POLL_HUP) break;
+        }
+        wait(NULL);
+        break;
+    }
+    unlink("test.fifo");
 }

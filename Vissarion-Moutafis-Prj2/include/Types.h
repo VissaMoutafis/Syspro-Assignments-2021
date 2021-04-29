@@ -13,6 +13,8 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <sys/wait.h>
+#include <signal.h>
+#include <poll.h>
 
 typedef void *Pointer; //We will use the Pointer notation for Item and/or Key type
 
