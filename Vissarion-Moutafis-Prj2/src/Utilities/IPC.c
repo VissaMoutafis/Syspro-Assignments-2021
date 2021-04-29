@@ -113,6 +113,7 @@ void my_read(int fd, char *buffer, int bytes_to_read, int bufsize) {
     while (total_bytes_read < bytes_to_read) {
         int bytes_left = bytes_to_read - total_bytes_read;
         int to_read = bytes_left < bufsize ? bytes_left : bufsize;
+
         // while we haven't read the whole message
         if ((bytes_read = read(fd, buf, to_read)) == -1) {perror("my_read"); exit(1);}
 

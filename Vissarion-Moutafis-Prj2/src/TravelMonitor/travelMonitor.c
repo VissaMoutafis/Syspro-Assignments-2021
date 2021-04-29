@@ -1,5 +1,6 @@
 #include "TravelMonitor.h"
 #include "IPC.h"
+
 // Basic Utilities
 bool assign_dirs(TravelMonitor monitor, char *input_dir) {
     DIR *dirp = opendir(input_dir);
@@ -42,7 +43,8 @@ bool assign_dirs(TravelMonitor monitor, char *input_dir) {
         char **countries = t.countries_paths;
         int num_countries = t.num_countries;
         for (int j = 0; j < num_countries; i++) {
-            // send_message(t.out_fifo, countries[i], flagssssssssss);
+            // send the country to the child
+            send_msg(t.out_fifo, countries[i], strlen(countries[i]), INIT_CHLD);
         }
     } 
     return true;
@@ -150,33 +152,40 @@ int main(void) {
     case 0:
         fd = open("test.fifo", O_WRONLY | O_NONBLOCK);
         char msg[]="This is the message's body.";
-        send_msg(fd, msg, strlen(msg), COUNTRIES_OP_CHILD);
-        exit(0);
+        send_msg(fd, msg, strlen(msg), INIT_CHLD);
+
+        char msg2[] = "This is the second message!!";
+        send_msg(fd, msg2, strlen(msg2), INIT_CHLD);
+        close(fd);
+        exit(1);
         break;
     
     default:
-        fd = open("test.fifo", O_RDONLY);
+        fd = open("test.fifo", O_RDONLY | O_NONBLOCK);
         struct pollfd fds[1];
         memset(fds, 0, sizeof(struct pollfd));
-        fds[0].fd = 0; 
-        fds[0].events = POLL_IN | POLL_HUP;
+        fds[0].fd = fd; 
+        fds[0].events = POLL_IN ;
         while (1) {
             int ret = poll(fds, 1, 3);
-            if (ret && fds[0].events & POLL_IN) {
+            if (ret < 0) perror("poll");
+            if ((fds[0].revents & POLL_IN) == POLL_IN) {
+                printf("ret = %d\n", ret);
                 char *msg=NULL;
                 int len=0;
                 int opcode=-1;
-                read_msg(fd, 1, &msg, &len, &opcode);
+                read_msg(fds[0].fd, 1000, &msg, &len, &opcode);
                 char to_print[1+10+len+1 +3 + 1];
-                memset(to_print, 0, 1 + 10 + len + 1 + 3 + 1);
+                memset(to_print, 0, 10 + 10 + len + 1 + 3 + 1);
                 sprintf(to_print, "%d %d ", opcode, len);
                 memcpy(to_print+strlen(to_print), msg, len);
                 
                 puts(to_print);
                 free(msg);
-            } 
-            if (fds[0].revents & POLL_HUP) break;
+            }
+            if (ret == 0 && (fds[0].revents & POLLHUP) == POLLHUP) break;
         }
+        puts("Read everything.");
         wait(NULL);
         break;
     }

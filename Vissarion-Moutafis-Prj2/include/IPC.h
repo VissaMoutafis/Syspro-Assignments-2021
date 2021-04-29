@@ -17,10 +17,31 @@
 // operational codes for the protocol
 // opcodes % 2 == 0 : parent -> child
 // opcodes % 2 == 1 : child -> parent
+// some opcodes are general purpose (specified below)
+////////////////////////////////////////////////////////
 
-// init 
-#define COUNTRIES_OP_PARENT 0
-#define COUNTRIES_OP_CHILD  1
+// Parent-process specific opcodes (THESE ARE RETURNED TO PAR)
+
+#define INIT_PAR 0
+#define Q1_PAR 2
+#define Q4_PAR 4
+
+// Child-process specific opcodes (THESE ARE SENT TO CHLD)
+
+#define INIT_CHLD 1         // for initialization stuff
+#define COUNTRY_CHLD 3      // for country path sending
+#define Q1_CHLD 5           // for query 1 
+#define Q4_CHLD 7
+
+// general opcodes
+#define SYN_OP 30
+#define ACK_OP 31
+#define EXIT_OP 70
+
+
+///////////////////////////////////////////////////////////////////
+
+// Basic Fifo Setup
 
 // create a unique fifo. if init is true create only the fifo directory
 void create_unique_fifo_pair(bool init, int unique_id, char *from, char *to);
