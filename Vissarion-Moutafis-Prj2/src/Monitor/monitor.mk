@@ -1,11 +1,11 @@
 PROGRAM := monitor
 
-OBJS += $(BUILD)/monitor.o $(BUILD)/monitor_exec.o
+CUR_OBJS += $(BUILD)/monitor.o $(BUILD)/monitor_exec.o $(BUILD)/monitorIPC.o $(BUILD)/monitorMessageHandlers.o
 
 ARGS := 
 
-$(BIN)/$(PROGRAM) : $(OBJS)
-	@$(CC) $(CFLAGS) $(OBJS) -o $(BIN)/$(PROGRAM) $(LIBS)
+$(BIN)/$(PROGRAM) : $(OBJS) $(CUR_OBJS)
+	@$(CC) $(CFLAGS) $(OBJS) $(CUR_OBJS) -o $(BIN)/$(PROGRAM) $(LIBS)
 	@cp $(BIN)/$(PROGRAM) $(MAKE-DIR)
 
 run :
@@ -13,7 +13,7 @@ run :
 
 .PHONY : clean
 clean :
-	@$(RM) -f $(MAKE-DIR)/$(PROGRAM) $(BIN)/$(PROGRAM) $(BUILD)/monitor.o $(BUILD)/monitor_exec.o
+	@$(RM) -f $(MAKE-DIR)/$(PROGRAM) $(BIN)/$(PROGRAM) $(CUR_OBJS)
 
 $(BUILD)/%.o : ./%.c
 	@$(CC) $(CFLAGS) -c $< -o $@

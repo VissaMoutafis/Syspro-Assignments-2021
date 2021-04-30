@@ -16,3 +16,4 @@ OBJS += $(BUILD)/file_utilities.o
 OBJS += $(BUILD)/struct_manipulation.o
 OBJS += $(BUILD)/TTY_API.o
 OBJS += $(BUILD)/IPC.o
+OBJS += $(BUILD)/config.o

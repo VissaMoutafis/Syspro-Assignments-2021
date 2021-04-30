@@ -7,6 +7,7 @@
 #include "List.h"
 #include "Utilities.h"
 #include "FM.h"
+#include "IPC.h"
 
 // as given by the instructors
 #define BF_HASH_FUNC_COUNT 16
@@ -72,3 +73,5 @@ void monitor_destroy(Monitor m);
 // Basic functionality of the vaccine monitor. Return true if it succeeds.
 // Returns false if it fail and an error message is saved in error_msg string
 bool monitor_act(Monitor monitor, int expr_index, char *value);
+
+

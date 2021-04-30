@@ -4,6 +4,8 @@
 #include "Monitor.h"
 #include "IPC.h"
 
+GetResponse get_response = monitor_get_response;
+
 int error_i = 0;
 char *error_string[] = {
                         "", 
@@ -69,75 +71,19 @@ int main(int argc, char * argv[]) {
         exit(1);
     }
     
-    char *dirs[100];
+    char **dirs = NULL;
     int dir_num = 0;
-
+    void *ret_args[] = {&dirs, &dir_num};
+    
     int in_fd = open(values[0], O_RDONLY | O_NONBLOCK);
     int out_fd = open(values[1], O_WRONLY);
-    printf("Child reading from %s (%d) and writing to %s (%d)\n",
-           values[0], in_fd, values[1], out_fd);
-    struct pollfd fds[1];
-    fds[0].fd = in_fd;
-    fds[0].events = POLL_IN;
-    // fds[1].fd = out_fd;
-    // fds[1].events = POLL_OUT;
-    while (1) {
-        int ret = poll(fds, 1, 1);
-        if (ret ) {
-            if ((fds[0].revents & POLL_IN) == POLL_IN) {
-                char *msg = NULL;
-                int len = 0;
-                int opcode = -1;
-                read_msg(fds[0].fd, 1, &msg, &len, &opcode);
-                if (len == 0) break;
-                char *dir = calloc(len+1, sizeof(char));
-                memcpy(dir, msg, len);
-                dirs[dir_num] = dir;
-                dir_num++;
-                printf("Just received dir: '%s'\n", dir);
-            }
-        }
-    }
+    get_response(NULL, get_dirs, 0, in_fd, ret_args);
     
-    FM fm = fm_create(dirs, dir_num);
+    printf("dirnum: %d\n", dir_num);
+    for (int i = 0; i < dir_num; i++) puts(dirs[i]);
+    // FM fm = fm_create(dirs, dir_num);
 
-    monitor_initialize();
-    Monitor monitor = monitor_create(fm, 1000, 10, 0.5);
-    
-    // // basic loop of the program
-    // while (!is_end) {
-    //     // first get the input expression from the tty
-    //     char *expr = get_input();
-    //     // now parse it to the expression part and the value part
-    //     char ** parsed_expr = parse_expression(expr); // format: /command value(s)
-
-    //     // clarify the input with proper assignments
-    //     char *command = parsed_expr[0];
-    //     char *value = parsed_expr[1];
-    //     int expr_index;
-
-    //     // CREATE THE VACCINE MONITOR 
-
-    //     // now we have to check if the expression was ok based on the array of allowed formats
-    //     if (check_format(command, &expr_index) && check_value_list(value, expr_index)) {
-    //         // we will try to execute the command. If vaccine monitor fails then we will print the 
-    //         // error message to stderr
-    //         if (!monitor_act(monitor, expr_index, value)) {
-    //             fprintf(stderr, "%s\n", error_msg);
-    //         }
-    //     } else 
-    //         help();
-
-    //     if (expr) free(expr);
-    //     if (parsed_expr[0]) free(parsed_expr[0]);
-    //     if (parsed_expr[1]) free(parsed_expr[1]);
-    //     if (parsed_expr) free(parsed_expr);
-    // }
-
-    // // // de-allocate the memory for every struct you have.
-    // // // DE-ALLOCATE THE MEMORY OF THE VACCINE MONITOR
-    // // monitor_destroy(monitor);
-    // fm_destroy(fm);
-    // monitor_destroy(monitor);
-    // return 0;
+    // monitor_initialize();
+    // Monitor monitor = monitor_create(fm, 1000, 10, 0.5);
+    exit(1);
 }

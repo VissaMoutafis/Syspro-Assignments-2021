@@ -1,10 +1,7 @@
 #pragma once
 
-#include "FileUtilities.h"
 #include "Types.h"
-
-#define FIFO_DIR "fifos"
-#define DEF_BUFFER_SIZE 100
+#include "MessageHandlers.h"
 
 // Protocol:
 // msg = header|body
@@ -13,11 +10,10 @@
 #define HDR_LEN 11             // the byte-length of msg header
 #define HDR_OP_LEN 1           // the byte-length of header's opcode
 #define HDR_MSGSIZE_LEN 10     // the byte-length of header's msg-size field
+#define SEP "$"                // separator if needed to divide data
 
-// operational codes for the protocol
-// opcodes % 2 == 0 : parent -> child
-// opcodes % 2 == 1 : child -> parent
-// some opcodes are general purpose (specified below)
+// AT THE END OF TRANSMISSION ALWAYS SEND A MSGEN_OP HEADER (with empty body if you like)
+
 ////////////////////////////////////////////////////////
 
 // Parent-process specific opcodes (THESE ARE RETURNED TO PAR)
@@ -34,20 +30,15 @@
 #define Q4_CHLD 7
 
 // general opcodes
-#define SYN_OP 30
-#define ACK_OP 31
-#define EXIT_OP 70
+#define MSGEND_OP 20
+#define SYN_OP 21
+#define ACK_OP 22
+#define EXIT_OP 23
 
+// return codes
+#define OK_RET 30
 
 ///////////////////////////////////////////////////////////////////
-
-// Basic Fifo Setup
-
-// create a unique fifo. if init is true create only the fifo directory
-void create_unique_fifo_pair(bool init, int unique_id, char *from, char *to);
-
-// routine to clean up the fifos
-void clean_fifos(void);
 
 // I/O Routines
 
@@ -61,3 +52,19 @@ void read_msg(int fd, int bufsize, char **body, int *body_len, int *opcode);
 
 // classic read wrapper. Return 1 in success and 0 when reads EOF
 int my_read(int fd, char *buffer, int bytes_to_read, int bufsize);
+
+////////////////////////////////////////////////////////////////////
+
+// Basic non-blocking ipc for different parts of the program
+// pass the monitor struct and 
+// the process numerical id given from the monitor manager.
+// Also pass the msg handler defined at IPC.h
+// If <the process_id> is -1 then we wait for a response from all processes
+// return > 0 in success else 0
+
+// type
+typedef int (*GetResponse)(void *monitor, MessageHandler handler, int process_id, int fd, void *return_args[]);
+
+// actual response system
+int travel_monitor_get_response(void *monitor, MessageHandler handler, int process_id, int fd, void *return_args[]);
+int monitor_get_response(void *monitor, MessageHandler handler, int process_id, int fd, void *return_args[]);

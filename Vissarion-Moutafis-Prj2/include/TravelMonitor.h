@@ -8,6 +8,8 @@
 #include "Utilities.h"
 #include "FileUtilities.h"
 #include "MonitorManager.h"
+#include "IPC.h"
+#include "Config.h"
 
 // the declaration of the TravelMonitor type
 typedef struct travel_monitor {
@@ -36,3 +38,5 @@ typedef struct bf_tuple {
 } *BFTuple;
 
 TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_monitors, u_int32_t buffer_size);
+
+
