@@ -89,14 +89,12 @@ bool create_monitor(TravelMonitor monitor, int i) {
         case -1:  // error behaviour
             fprintf(stderr, "Cannot fork child\n");
             return false;
-
-            break;
+        break;
 
         case 0:  // child behaviour
             // set the args for current child-process and call exec
             execl("./monitor", "./monitor", "-i", to_fifo_path, "-o", from_fifo_path, NULL);
-
-            break;
+        break;
 
         default:  // parent behaviour
             // add the monitor into the manager
@@ -108,14 +106,13 @@ bool create_monitor(TravelMonitor monitor, int i) {
             MonitorTrace t;
             assert(monitor_manager_search_pid(monitor->manager, pid, &t) >= 0);
             #endif
-            break;
+        break;
     }
 
     return true;
 }
 
 bool create_n_monitors(TravelMonitor monitor) {
-    puts("create");
     bool all_ok = true;
     // create the fifo dir
     create_unique_fifo_pair(true, -1, NULL, NULL);
@@ -125,14 +122,36 @@ bool create_n_monitors(TravelMonitor monitor) {
     }
     return all_ok;
 }
+bool send_init_stats(TravelMonitor monitor) {
+    // we will pass the msg:
+    // <buffer size>$<bloom size> : max length = 10 + 10 (INT MAX length is 10)
+    char buf[10+1+10];
+    memset(buf, 0, 21);
+    snprintf(buf, 21, "%0*u%0*lu", 10, monitor->buffer_size, 10, monitor->bloom_size);
+
+    for (int i = 0; i < monitor->num_monitors; i++) {
+        MonitorTrace t;
+        if (!monitor_manager_get_at(monitor->manager, i, &t)) {
+            fprintf(stderr, "send_init_stats: Cannot get monitor stats of %d-th monitor\n", i);
+            exit(1);
+        }
+        // send the init elements
+        send_msg(t.out_fifo, buf, 20, INIT_CHLD);
+        // communicate transmision termination
+        send_msg(t.out_fifo, NULL, 0, MSGEND_OP);
+    }
+    return true;
+}
+
 
 bool initialization(TravelMonitor monitor, char *input_dir) {
     // initialization components
     // 2. Create fifos and fork the monitor processes
     // 3. Assign them the directories
     return create_n_monitors(monitor) 
+        && send_init_stats(monitor)
         && assign_dirs(monitor, input_dir)
-        && get_response(monitor, get_bf_from_child, -1, -1, NULL); 
+        && get_response(monitor->buffer_size, monitor, get_bf_from_child, -1, -1, NULL); 
 }
 
 // Travel Monitor Routines
@@ -142,6 +161,7 @@ TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_
 
     monitor->buffer_size = buffer_size;
     monitor->num_monitors = num_monitors;
+    monitor->bloom_size = bloom_size;
     monitor->accepted = 0;
     monitor->rejected = 0;
     monitor->manager = monitor_manager_create(num_monitors);
@@ -159,5 +179,5 @@ TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_
 
 
 int main(void) {
-    TravelMonitor m = travel_monitor_create("testdir", 1000, 1, 7);
+    TravelMonitor m = travel_monitor_create("testdir", 20, 1, 7);
 }

@@ -402,6 +402,73 @@ static void monitor_print_logs(Monitor monitor, char *logs_path) {
     close(log_fd);
 }
 
+// return the last part of path. DOES NOT ALLOCATE MEMORY
+static char *extract_dir_from_path(char *path) {
+    int path_len = strlen(path);
+    int i;
+    for (i = path_len - 1; i > 0; i--) {
+        if (path[i] == '/') break;
+    }
+    return path + i + 1;
+}
+
+static void countries_to_buf(Monitor monitor, char **header, int *header_len) {
+    *header = NULL;
+    *header_len = 0;
+
+    // get the country_paths list
+    List l = fm_get_directory_list(monitor->fm);
+    ListNode node = list_get_head(l);
+    while (node) {
+        // get the dir name
+        DirectoryEntry dentry = list_node_get_entry(l, node);
+        char *dir_path = fm_get_dir_name(monitor->fm, dentry);
+        char *dir = extract_dir_from_path(dir_path);
+
+        // update the header buffer
+        char *new_header = calloc((*header_len)+strlen(dir)+1, sizeof(char));
+        if (*header_len) memcpy(new_header, *header, *header_len);
+        memcpy(new_header+(*header_len), dir, strlen(dir));
+        memcpy(new_header + (*header_len) + strlen(dir), SEP, 1);
+
+        *header_len = (*header_len) + strlen(dir)+1;
+        free(*header);
+        *header = new_header;
+
+        // proceed to the next node
+        node = list_get_next(l, node);
+    }
+}
+
+// function to set the buffer with bloom filters we send above
+void set_bf_buf(char *header, int header_len, VirusInfo virus_info, char **buf, int *bufsiz) {
+    // format <length to read till you reach bf (10 digs)><virus$header><bf_string>
+    *buf = NULL;
+    *bufsiz = 0;
+    char *virus_name = virus_info->virusName;
+    char *bloom_filter_buf = NULL;
+    int bf_bufsiz = 0;
+
+    // get the bloom filter from virus info in buffer form (format is specified by
+    // the BF struct)
+    bf_to_buffer(virus_info->bf, &bloom_filter_buf, &bf_bufsiz, SEP[0]);
+    // Now we are ready to construct the message
+    if (bf_bufsiz) {
+        *bufsiz = 10 + strlen(virus_name) + 1 + header_len + bf_bufsiz;
+        *buf = calloc(*bufsiz, sizeof(char));
+        int bytes_till_bf = 10 + strlen(virus_name) + 1 + header_len;
+        
+        // set the header of the message
+        sprintf(*buf, "%0*d", 10, bytes_till_bf);
+        memcpy((*buf) + 10, virus_name, strlen(virus_name));
+        memcpy((*buf) + 10 + strlen(virus_name), SEP, 1);
+        memcpy((*buf) + 10 + strlen(virus_name) + 1, header, header_len);
+        
+        // set the bf filter msg into the buffer
+        memcpy((*buf) + bytes_till_bf, bloom_filter_buf, bf_bufsiz);
+    }
+}
+
 // Basic Monitor Methods
 
 void monitor_initialize(void) { 
@@ -469,4 +536,33 @@ bool monitor_act(Monitor monitor, int expr_index, char *value) {
         break;
     }
     return true;
+}
+
+void monitor_send_blooms(Monitor monitor, int out_fd) {
+
+    // we have to send the blooms for all the viruses to the out_fd
+    // send each one separetely
+    ListNode node = list_get_head(monitor->virus_info);
+    
+    // set the countries 
+    char *header = NULL;
+    int header_len = 0;
+
+    countries_to_buf(monitor, &header, &header_len);
+    while (node) {
+        // get the virus entry 
+        VirusInfo virus_info = list_node_get_entry(monitor->virus_info, node);
+        // initiate the buffer by putting a header of <virus name>$<country 1>$<country 2>$...$<country n>
+        // and after that add the BF
+        char *buf = NULL;
+        int bufsiz = 0;
+        set_bf_buf(header, header_len, virus_info, &buf, &bufsiz);
+        // send the buffer
+        send_msg(out_fd, buf, bufsiz, INIT_PAR);
+        // free the memory
+        free(buf);
+        node = list_get_next(monitor->virus_info, node);
+    }
+    // notify that you done sending bfs
+    send_msg(out_fd, NULL, 0, MSGEND_OP);
 }

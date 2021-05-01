@@ -18,3 +18,4 @@ void get_bf_from_child(void *monitor, char *msg, int msg_len, void *return_args[
 // Monitors' message handlers
 
 void get_dirs(void *monitor, char *msg, int msg_len, void *return_args[]);
+void get_init_stats(void *monitor, char *msg, int msg_len, void *return_args[]);

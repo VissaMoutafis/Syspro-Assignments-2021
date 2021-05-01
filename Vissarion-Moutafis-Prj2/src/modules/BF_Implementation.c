@@ -132,31 +132,27 @@ void bf_to_buffer(BF bf, char **dest_buf, int *buf_len, char sep) {
     // format <bf><hash_func_count><sep><size><sep><bit_string></bf>
 
     // first determine the actual str size of the numeric fields
-    int size_len, hash_func_len;
+    int size_len;
     char b[BUFSIZ];
     memset(b, 0, BUFSIZ);
     sprintf(b, "%u", bf->size);
     size_len = strlen(b);
-    memset(b, 0, BUFSIZ);
-    sprintf(b, "%u", bf->hash_func_count);
-    hash_func_len = strlen(b);
 
     // then get the actual buffer size
     u_int32_t buffer_size =
         strlen(BF_START_TAG) * sizeof(char) +  // length of <bf>
-        size_len + hash_func_len +             // length of the numeric fields
+        size_len +                             // length of the numeric fields
         bf->size +                             // length of the bit string
         strlen(BF_END_TAG) * sizeof(char)      // length of </bf>
         + 2;                                   // 2 separators
     char *buf = calloc(buffer_size, sizeof(char));
 
-    sprintf(buf, "%s%u%c%u%c",  BF_START_TAG,
-                                    bf->hash_func_count,
-                                    sep,
+    sprintf(buf, "%s%u%c",  BF_START_TAG,
                                     bf->size,
                                     sep);
-    int write_at = buffer_size - bf->size - strlen(BF_END_TAG);
-    memcpy(&(buf[write_at]), bf->bit_string, bf->size);
+
+    int write_at = strlen(BF_START_TAG) + size_len;
+    memcpy(&(buf[write_at]), bf->bit_string, bf->size*sizeof(uint8_t));
     memcpy(&(buf[write_at+bf->size]), BF_END_TAG, strlen(BF_END_TAG));
     *dest_buf = buf;
     *buf_len = buffer_size;

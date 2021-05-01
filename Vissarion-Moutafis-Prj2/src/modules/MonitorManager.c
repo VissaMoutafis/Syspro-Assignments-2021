@@ -132,7 +132,7 @@ static char *extract_country(char *path) {
         if (path[i] == '/')
             break;
     }
-    return path+i;
+    return path+i+1;
 }
 
 // add a copy of 'country' to i-th monitor
@@ -155,10 +155,6 @@ void monitor_manager_add_country(MonitorManager manager, int i, char *country_pa
         manager->monitors[i].countries_paths = new_array;
         manager->monitors[i].num_countries++;
         
-        #ifdef DEBUG
-        for (int j=0; j<manager->monitors[i].num_countries; j++) 
-            puts(manager->monitors[i].countries_paths[j]);
-        #endif
         // add a records of that in the hashtable
 
         // first make a deep copy of the input trace entry

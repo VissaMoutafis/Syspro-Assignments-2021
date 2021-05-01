@@ -70,20 +70,38 @@ int main(int argc, char * argv[]) {
         fprintf(stderr, "Error in arguments (%s) \nUsage: \n    ~$ ./monitor -i inputFifo -o outputFifo\n", error_string[error_i]);
         exit(1);
     }
-    
-    char **dirs = NULL;
-    int dir_num = 0;
-    void *ret_args[] = {&dirs, &dir_num};
-    
+    // open the fifos
     int in_fd = open(values[0], O_RDONLY | O_NONBLOCK);
     int out_fd = open(values[1], O_WRONLY);
-    get_response(NULL, get_dirs, 0, in_fd, ret_args);
+
+    // set a return array
+    void *ret_args[2] = {NULL, NULL};
+    // get the buffer size and the bloom size from the parent process
+    u_int32_t buffer_size = 0;
+    size_t bloom_size = 0;
+    ret_args[0] = &buffer_size;
+    ret_args[1] = &bloom_size;
+    // we will read the stats as fast as we can
+    get_response(100, NULL, get_init_stats, 0, in_fd, ret_args);
+    printf("buffer_size = %u\nbloom size = %lu\n", buffer_size, bloom_size);
+
+    // now we have to get the dirs array
+    char **dirs = NULL;
+    int dir_num = 0;
+    ret_args[0] = &dirs;
+    ret_args[1] = &dir_num;
+    get_response(buffer_size, NULL, get_dirs, 0, in_fd, ret_args);
     
     printf("dirnum: %d\n", dir_num);
     for (int i = 0; i < dir_num; i++) puts(dirs[i]);
-    // FM fm = fm_create(dirs, dir_num);
+    FM fm = fm_create(dirs, dir_num);
 
-    // monitor_initialize();
-    // Monitor monitor = monitor_create(fm, 1000, 10, 0.5);
-    exit(1);
+    // initialize the monitor globals
+    monitor_initialize();
+    // create a monitor 
+    Monitor monitor = monitor_create(fm, bloom_size, SL_HEIGHT, SL_FACTOR);
+    // send the bloom filters to the parent process
+    monitor_send_blooms(monitor, out_fd);
+
+    
 }

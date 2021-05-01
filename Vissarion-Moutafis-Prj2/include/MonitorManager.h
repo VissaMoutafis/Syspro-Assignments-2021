@@ -24,10 +24,12 @@ typedef struct monitor_manager {
     int active_monitors;        // count of the truly active monitors
 } *MonitorManager;
 
+// entry of the <countries_index> hashtable
 typedef struct trace {
     MonitorTrace *m_trace;
     char *country;
 } *Trace;
+
 // create monitor manager 
 MonitorManager monitor_manager_create(int num_monitors);
 

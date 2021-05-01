@@ -45,3 +45,5 @@ void fm_destroy(FM fm);
 
 // get the directory list of fm
 List fm_get_directory_list(FM fm);
+
+char *fm_get_dir_name(FM fm, DirectoryEntry entry);

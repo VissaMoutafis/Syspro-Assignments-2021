@@ -409,3 +409,7 @@ void fm_read_from_file_entry(FM fm, FileEntry file_entry, char ***records, int *
     assert(file_entry);
     fm_read_from_file(fm, file_entry->file_path, records, length);
 }
+
+char * fm_get_dir_name(FM fm, DirectoryEntry entry) {
+    return entry ? entry->dir_path : NULL;
+}

@@ -1,5 +1,5 @@
 #include "TravelMonitor.h"
-#include "IPC.h"
+
 static void intialize_fds(void *_monitor, int nfd, struct pollfd fds[], int process_id) {
     TravelMonitor monitor = (TravelMonitor)_monitor;
     
@@ -30,7 +30,7 @@ static void intialize_fds(void *_monitor, int nfd, struct pollfd fds[], int proc
 }
 
 // function to check all the fds and handle the messages from each one
-static void check_fds(void *_monitor, struct pollfd fds[], int nfd, int *active, MessageHandler handler, void *return_args[]) {
+static void check_fds(int bufsiz, void *_monitor, struct pollfd fds[], int nfd, int *active, MessageHandler handler, void *return_args[]) {
     TravelMonitor monitor = (TravelMonitor)_monitor;
     for (int i = 0; i < nfd; i++) {
         // we can read
@@ -39,7 +39,7 @@ static void check_fds(void *_monitor, struct pollfd fds[], int nfd, int *active,
             char *msg = NULL;
             int len = 0;
             int opcode = -1;
-            read_msg(fds[0].fd, 1000, &msg, &len, &opcode);
+            read_msg(fds[0].fd, bufsiz, &msg, &len, &opcode);
 
             // check if the process has stoped transmitting
             if (opcode == MSGEND_OP) {
@@ -57,7 +57,7 @@ static void check_fds(void *_monitor, struct pollfd fds[], int nfd, int *active,
     }
 }
 
-int travel_monitor_get_response(void *_monitor, MessageHandler handler, int process_id, int fd, void *return_args[]) {
+int travel_monitor_get_response(int bufsiz, void *_monitor, MessageHandler handler, int process_id, int fd, void *return_args[]) {
     // in travel monitor we don't care about <fd>
 
     // we will use poll to monitor the fifos
@@ -73,7 +73,7 @@ int travel_monitor_get_response(void *_monitor, MessageHandler handler, int proc
     while (active) {
         int ret = poll(fds, nfd, 1);
         if (ret) {
-            check_fds(monitor, fds, nfd, &active, handler, return_args);
+            check_fds(bufsiz, monitor, fds, nfd, &active, handler, return_args);
         }
         if (ret < 0){perror("poll"); exit(1);}
     }

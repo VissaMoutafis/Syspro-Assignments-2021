@@ -9,6 +9,9 @@
 #include "FM.h"
 #include "IPC.h"
 
+#define SL_HEIGHT 10
+#define SL_FACTOR 0.5
+
 // as given by the instructors
 #define BF_HASH_FUNC_COUNT 16
 
@@ -75,3 +78,9 @@ void monitor_destroy(Monitor m);
 bool monitor_act(Monitor monitor, int expr_index, char *value);
 
 
+// EXTENSIONS FOR IPC HANDLING
+
+// sending the bloom filters as a whole message 
+// all divided by a SEP character
+// header of the packet has INIT_PAR
+void monitor_send_blooms(Monitor monitor, int to_fd);
