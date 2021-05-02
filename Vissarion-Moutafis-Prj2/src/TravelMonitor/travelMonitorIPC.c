@@ -43,6 +43,7 @@ static void check_fds(int bufsiz, void *_monitor, struct pollfd fds[], int nfd, 
 
             // check if the process has stoped transmitting
             if (opcode == MSGEND_OP) {
+                if (len && msg) free(msg);
                 // process do not write anymore so just leave
                 (*active)--;
                 continue;

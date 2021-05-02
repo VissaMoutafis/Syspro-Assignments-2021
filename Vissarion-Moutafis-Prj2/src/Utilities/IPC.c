@@ -80,7 +80,7 @@ void read_msg(int fd, int bufsize, char **body, int *body_len, int *opcode) {
     read_header(fd, bufsize, body_len, opcode);
     
     // check if the message has a body
-    if (body_len > 0) {
+    if (*body_len > 0) {
         // Now we have to read the actual body of the message
         *body = calloc(*body_len, sizeof(char));
         // read the body

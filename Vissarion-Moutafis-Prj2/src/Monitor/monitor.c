@@ -425,18 +425,23 @@ static void countries_to_buf(Monitor monitor, char **header, int *header_len) {
         char *dir_path = fm_get_dir_name(monitor->fm, dentry);
         char *dir = extract_dir_from_path(dir_path);
 
+        ListNode next = list_get_next(l, node);
+
         // update the header buffer
-        char *new_header = calloc((*header_len)+strlen(dir)+1, sizeof(char));
+        int new_len = next ? (*header_len) + strlen(dir) + 1 : (*header_len) + strlen(dir);
+        char *new_header = calloc(new_len, sizeof(char));
         if (*header_len) memcpy(new_header, *header, *header_len);
         memcpy(new_header+(*header_len), dir, strlen(dir));
-        memcpy(new_header + (*header_len) + strlen(dir), SEP, 1);
+        
+        if (next)
+            memcpy(new_header + (*header_len) + strlen(dir), SEP, 1);
 
-        *header_len = (*header_len) + strlen(dir)+1;
+        *header_len = new_len;
         free(*header);
         *header = new_header;
 
         // proceed to the next node
-        node = list_get_next(l, node);
+        node = next;
     }
 }
 
@@ -467,6 +472,8 @@ void set_bf_buf(char *header, int header_len, VirusInfo virus_info, char **buf, 
         // set the bf filter msg into the buffer
         memcpy((*buf) + bytes_till_bf, bloom_filter_buf, bf_bufsiz);
     }
+
+    if (bf_bufsiz) free(bloom_filter_buf);
 }
 
 // Basic Monitor Methods
@@ -510,6 +517,7 @@ void monitor_destroy(Monitor m) {
     list_destroy(&(m->citizen_lists_per_country));
     ht_destroy(m->citizens);
     list_destroy(&(m->virus_info));
+    fm_destroy(m->fm);
     free(m);
 }
 
@@ -563,6 +571,10 @@ void monitor_send_blooms(Monitor monitor, int out_fd) {
         free(buf);
         node = list_get_next(monitor->virus_info, node);
     }
+
     // notify that you done sending bfs
     send_msg(out_fd, NULL, 0, MSGEND_OP);
+
+    // free the buffers used
+    free(header);
 }

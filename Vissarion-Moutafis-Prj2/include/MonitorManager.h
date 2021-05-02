@@ -48,3 +48,5 @@ bool monitor_manager_get_at(MonitorManager manager, int i, MonitorTrace *trace);
 // add a copy of 'country' to i-th monitor
 void monitor_manager_add_country(MonitorManager manager, int i, char *country_path);
 
+// destroy monitor manager
+void monitor_manager_destroy(MonitorManager monitor);

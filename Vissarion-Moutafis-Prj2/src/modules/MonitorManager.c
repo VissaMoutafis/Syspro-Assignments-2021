@@ -167,3 +167,15 @@ void monitor_manager_add_country(MonitorManager manager, int i, char *country_pa
         #endif
     }
 }
+
+void monitor_manager_destroy(MonitorManager monitor) {
+    
+    for (int i = 0; i < monitor->num_monitors; i++) {
+        for (int j = 0; j < monitor->monitors[i].num_countries; j++)
+            free(monitor->monitors[i].countries_paths[j]);
+        free(monitor->monitors[i].countries_paths);
+    }
+    free(monitor->monitors);
+    ht_destroy(monitor->countries_index);
+    free(monitor);
+}

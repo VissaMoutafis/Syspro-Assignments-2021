@@ -96,12 +96,16 @@ int main(int argc, char * argv[]) {
     for (int i = 0; i < dir_num; i++) puts(dirs[i]);
     FM fm = fm_create(dirs, dir_num);
 
+    // we no longer need dirs array
+    for (int i = 0; i < dir_num; i++) free(dirs[i]);
+    free(dirs);
+
     // initialize the monitor globals
     monitor_initialize();
     // create a monitor 
     Monitor monitor = monitor_create(fm, bloom_size, SL_HEIGHT, SL_FACTOR);
     // send the bloom filters to the parent process
     monitor_send_blooms(monitor, out_fd);
-
+    monitor_destroy(monitor);
     
 }

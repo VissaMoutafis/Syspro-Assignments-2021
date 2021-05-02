@@ -61,7 +61,7 @@ void bf_destroy(BF bf) {
 void bf_insert(BF bf, Pointer entry) {
     assert(bf != NULL);
     
-    size_t total_bits = bf->size;
+    size_t total_bits = bf->size*sizeof(uint8_t);
 
     for (int i = 0; i < bf->hash_func_count; i++) {
         // for every hash function estimate the hash value and the index that you should change to 1
@@ -76,7 +76,7 @@ void bf_insert(BF bf, Pointer entry) {
 bool bf_contains(BF bf, Pointer entry) {
     assert(bf != NULL);
 
-    size_t total_bits = bf->size;
+    size_t total_bits = bf->size*sizeof(uint8_t);
 
     for (int i = 0; i < bf->hash_func_count; i++) {
         // find the index to check

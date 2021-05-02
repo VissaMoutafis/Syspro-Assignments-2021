@@ -3,6 +3,52 @@
 GetResponse get_response = travel_monitor_get_response;
 
 // Basic Utilities
+
+bool send_dirs(TravelMonitor monitor) {
+    // sent the assigned countries paths to monitors
+    for (int i = 0; i < monitor->num_monitors; i++) {
+        MonitorTrace t;
+        memset(&t, 0, sizeof(MonitorTrace));
+        // get the trace at i-th position
+        if (!monitor_manager_get_at(monitor->manager, i, &t)) {
+            fprintf(stderr,
+                    "Error in getting the %d-th monitor, at dir assignment.\n",
+                    i);
+            exit(1);
+        }
+        char **countries = t.countries_paths;
+        int num_countries = t.num_countries;
+        char *buffer = NULL;  // the buffer we will send to child
+        int bufsiz = 0;       // the buffer size
+        for (int j = 0; j < num_countries; j++) {
+            // reconstruct the buffer
+
+            // get the country length
+            int country_len = strlen(countries[j]);
+
+            // set-up new buffer (prev_size + country_len + length for
+            // separator)
+            char *new_buf = calloc(bufsiz + country_len + 1, sizeof(char));
+            if (bufsiz) {
+                memcpy(new_buf, buffer, bufsiz);
+                free(buffer);
+            }
+            memcpy(new_buf + bufsiz, countries[j], country_len);
+            memcpy(new_buf + bufsiz + country_len, SEP, 1);
+            // re-set the original <buffer> and <bufsiz>
+            buffer = new_buf;
+            bufsiz += country_len + 1;
+        }
+        // send the country to the child
+        send_msg(t.out_fifo, buffer, bufsiz, INIT_CHLD);
+        // send end message code (<msg> set to NULL)
+        send_msg(t.out_fifo, NULL, 0, MSGEND_OP);
+        // delete the monitor
+        free(buffer);
+    }
+    return true;
+}
+
 bool assign_dirs(TravelMonitor monitor, char *input_dir) {
     DIR *dirp = opendir(input_dir);
     if (dirp == NULL) {
@@ -17,7 +63,7 @@ bool assign_dirs(TravelMonitor monitor, char *input_dir) {
         int monitor_id = 0;
         int num_monitors = monitor->num_monitors; 
         for (int i = 0; i < num_elems; i++) {
-            if (!strcmp(dir_array[i]->d_name, ".") || !strcmp(dir_array[i]->d_name, ".."))continue;
+            if (!strcmp(dir_array[i]->d_name, ".") || !strcmp(dir_array[i]->d_name, "..")) {free(dir_array[i]);continue;}
             // get the dir path
             char country_path[BUFSIZ];
             memset(country_path, 0, BUFSIZ);
@@ -27,48 +73,15 @@ bool assign_dirs(TravelMonitor monitor, char *input_dir) {
             monitor_manager_add_country(monitor->manager, monitor_id, country_path);
             // get the next monitor
             monitor_id = (monitor_id + 1) % num_monitors;
-        }
-    }
 
+            //we no longer need the dir[i]
+            free(dir_array[i]);
+        }
+        free(dir_array);
+    }
     // close the dir
     closedir(dirp);
 
-    // sent the assigned countries paths to monitors
-    for (int i = 0; i < monitor->num_monitors; i++) {
-        MonitorTrace t;
-        memset(&t, 0, sizeof(MonitorTrace));
-        // get the trace at i-th position
-        if (!monitor_manager_get_at(monitor->manager, i, &t)) {
-            fprintf(stderr, "Error in getting the %d-th monitor, at dir assignment.\n", i);
-            exit(1);
-        }
-        char **countries = t.countries_paths;
-        int num_countries = t.num_countries;
-        char *buffer = NULL; // the buffer we will send to child
-        int bufsiz = 0;      // the buffer size
-        for (int j = 0; j < num_countries; j++) {
-            //reconstruct the buffer
-            
-            // get the country length
-            int country_len = strlen(countries[j]);
-
-            // set-up new buffer (prev_size + country_len + length for separator)
-            char *new_buf = calloc(bufsiz+country_len+1, sizeof(char));
-            if (bufsiz) {
-                memcpy(new_buf, buffer, bufsiz);
-                free(buffer);
-            }
-            memcpy(new_buf+bufsiz, countries[j], country_len);
-            memcpy(new_buf+bufsiz+country_len, SEP, 1);
-            // re-set the original <buffer> and <bufsiz>
-            buffer = new_buf;
-            bufsiz += country_len+1;
-        }
-        // send the country to the child
-        send_msg(t.out_fifo, buffer, bufsiz, INIT_CHLD);
-        // send end message code (<msg> set to NULL)
-        send_msg(t.out_fifo, NULL, 0, MSGEND_OP);
-    }
     return true;
 }
 
@@ -145,12 +158,15 @@ bool send_init_stats(TravelMonitor monitor) {
 
 
 bool initialization(TravelMonitor monitor, char *input_dir) {
-    // initialization components
-    // 2. Create fifos and fork the monitor processes
-    // 3. Assign them the directories
+    // fork monitors
+    // send them init stats
+    // assign them directories
+    // send them the assigned dirs
+    // wait for the response to initialize the travel monitor
     return create_n_monitors(monitor) 
         && send_init_stats(monitor)
         && assign_dirs(monitor, input_dir)
+        && send_dirs(monitor)
         && get_response(monitor->buffer_size, monitor, get_bf_from_child, -1, -1, NULL); 
 }
 
@@ -178,6 +194,13 @@ TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_
 }
 
 
+void travel_monitor_destroy(TravelMonitor m) {
+    monitor_manager_destroy(m->manager);
+    // ht_destroy(m->virus_stats);
+    free(m);
+}
+
 int main(void) {
-    TravelMonitor m = travel_monitor_create("testdir", 20, 1, 7);
+    TravelMonitor m = travel_monitor_create("testdir", 40, 1, 7);
+    travel_monitor_destroy(m);
 }
