@@ -11,6 +11,10 @@
 #include "IPC.h"
 #include "Config.h"
 
+// sl height for VirusStats::bf_per_countries
+#define COUNTRY_SL_HEIGHT 10
+
+
 // the declaration of the TravelMonitor type
 typedef struct travel_monitor {
     u_int32_t buffer_size;      // the size of the buffer for parent-child I/O via fifos
@@ -37,6 +41,17 @@ typedef struct bf_tuple {
     BF bf;
 } *BFTuple;
 
+typedef struct request_record {
+    char *date;
+
+} *RequestRec;
+
 TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_monitors, u_int32_t buffer_size);
 
+
+
+
+// for init functionality: we call it at the creation of the monitor (inside the function)
+// WARNING : DO NOT use outside of monitor module routines
+bool initialization(TravelMonitor monitor, char *input_dir);
 

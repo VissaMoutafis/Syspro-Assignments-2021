@@ -246,3 +246,89 @@ Person str_to_person(char *record) {
 
     return p;
 }
+
+
+// Extension for Travel Monitor structs
+
+Pointer request_record_create(char *date){
+    RequestRec r = calloc(1, sizeof(*r));
+    r->date = calloc(strlen(date)+1, sizeof(char));
+    strcpy(r->date, date);
+
+    return (Pointer)r;
+}
+
+int request_record_compare(Pointer _r1, Pointer _r2) {
+    RequestRec r1, r2;
+    r1 = (RequestRec)_r1;
+    r2 = (RequestRec)_r2;
+    return strcmp(r1->date, r2->date);
+}
+
+void request_record_destroy(Pointer _r) {
+    free(((RequestRec)_r)->date);
+    free(_r);
+}
+
+Pointer bftuple_create(char *country, BF bf) {
+    assert(bf);
+    assert(country);
+
+    BFTuple bft = calloc(1, sizeof(*bft));
+    bft->country = calloc(strlen(country)+1, sizeof(char));
+    strcpy(bft->country, country);
+    bft->bf = bf;
+
+    return (Pointer)bft;
+}
+
+int bftuple_compare(Pointer _bft1, Pointer _bft2) {
+    BFTuple bft1, bft2;
+    bft1 = (BFTuple)_bft1;
+    bft2 = (BFTuple)_bft2;
+    return strcmp(bft1->country, bft2->country);
+}
+
+void bftuple_destroy(Pointer _bft) {
+    assert(_bft);
+
+    BFTuple bft = (BFTuple)_bft;
+    free(bft->country);
+    bf_destroy(bft->bf);
+    free(bft);
+}
+
+
+Pointer virus_stats_create(char *virus_name) {
+    assert(virus_name);
+
+    VirusStats vs = calloc(1, sizeof(*vs));
+    vs->virus_name = calloc(strlen(virus_name)+1, sizeof(char));
+    strcpy(vs->virus_name, virus_name);
+    vs->accepted = list_create(request_record_compare, request_record_destroy);
+    vs->rejected = list_create(request_record_compare, request_record_destroy);
+    vs->bf_per_countries = sl_create(bftuple_compare, bftuple_destroy, COUNTRY_SL_HEIGHT, 0.5);
+
+    return (Pointer)vs;
+}
+
+int virus_stats_compare(Pointer _vs1, Pointer _vs2) {
+    VirusStats vs1, vs2;
+    vs1 = (VirusStats)_vs1;
+    vs2 = (VirusStats)_vs2;
+    return strcmp(vs1->virus_name, vs2->virus_name);
+}
+
+u_int32_t virus_stats_hash(Pointer _vs) {
+    VirusStats vs = (VirusStats)_vs;
+    return hash_i((unsigned char *)vs->virus_name, strlen(vs->virus_name));
+}
+
+void virus_stats_destroy(Pointer _vs) {
+    VirusStats vs = (VirusStats)_vs;
+    free(vs->virus_name);
+    sl_destroy(vs->bf_per_countries);
+    list_destroy(&(vs->accepted));
+    list_destroy(&(vs->rejected));
+    free(vs);
+}

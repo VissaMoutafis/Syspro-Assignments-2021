@@ -1,6 +1,10 @@
 PROGRAM := travelMonitor
 
-CUR_OBJS = $(BUILD)/travelMonitor.o $(BUILD)/travelMonitor_exec.o $(BUILD)/travelMonitorIPC.o $(BUILD)/travelMonitorMessageHandlers.o
+CUR_OBJS = $(BUILD)/travelMonitor.o \
+		$(BUILD)/travelMonitor_exec.o \
+		$(BUILD)/travelMonitorIPC.o \
+		$(BUILD)/travelMonitorMessageHandlers.o \
+		$(BUILD)/travelMonitor_setup.o
 
 ARGS := 
 

@@ -446,7 +446,7 @@ static void countries_to_buf(Monitor monitor, char **header, int *header_len) {
 }
 
 // function to set the buffer with bloom filters we send above
-void set_bf_buf(char *header, int header_len, VirusInfo virus_info, char **buf, int *bufsiz) {
+static void set_bf_buf(char *header, int header_len, VirusInfo virus_info, char **buf, int *bufsiz) {
     // format <length to read till you reach bf (10 digs)><virus$header><bf_string>
     *buf = NULL;
     *bufsiz = 0;

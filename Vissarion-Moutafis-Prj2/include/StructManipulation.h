@@ -8,6 +8,7 @@
 #include "SL.h"
 #include "Types.h"
 #include "Utilities.h"
+#include "TravelMonitor.h"
 #include "Monitor.h"
 
 // Person manipulation methods
@@ -68,3 +69,22 @@ void *vacc_rec_create(Person p, char *date, bool deep);
 void vacc_rec_destroy(Pointer _vr);
 
 int vacc_rec_cmp(Pointer v1, Pointer v2);
+
+
+// Travel Monitor Extension: structs and manipulators
+
+// RequestRec manipulators
+Pointer request_record_create(char *date);
+int request_record_compare(Pointer _r1, Pointer _r2);
+void request_record_destroy(Pointer _r);
+
+// BFTuple manipulators
+Pointer bftuple_create(char *country, BF bf);
+int bftuple_compare(Pointer _bft1, Pointer _bft2);
+void bftuple_destroy(Pointer _bft);
+
+// VirusStats manipulators
+Pointer virus_stats_create(char *virus_name);
+int virus_stats_compare(Pointer _vs1, Pointer _vs2);
+u_int32_t virus_stats_hash(Pointer _vs);
+void virus_stats_destroy(Pointer _vs);
