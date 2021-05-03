@@ -294,11 +294,15 @@ void bftuple_destroy(Pointer _bft) {
 
     BFTuple bft = (BFTuple)_bft;
     free(bft->country);
-    bf_destroy(bft->bf);
     free(bft);
 }
 
-
+int dummy_compare(Pointer a, Pointer b) {
+    return 1;
+}
+void bf_destroy_wrapper(Pointer bf) {
+    bf_destroy((BF)bf);
+}
 Pointer virus_stats_create(char *virus_name) {
     assert(virus_name);
 
@@ -308,7 +312,7 @@ Pointer virus_stats_create(char *virus_name) {
     vs->accepted = list_create(request_record_compare, request_record_destroy);
     vs->rejected = list_create(request_record_compare, request_record_destroy);
     vs->bf_per_countries = sl_create(bftuple_compare, bftuple_destroy, COUNTRY_SL_HEIGHT, 0.5);
-
+    vs->unique_bfs = list_create(dummy_compare, bf_destroy_wrapper);
     return (Pointer)vs;
 }
 
@@ -330,5 +334,22 @@ void virus_stats_destroy(Pointer _vs) {
     sl_destroy(vs->bf_per_countries);
     list_destroy(&(vs->accepted));
     list_destroy(&(vs->rejected));
+    list_destroy(&(vs->unique_bfs));
     free(vs);
+}
+
+void virus_stats_add_bf(VirusStats vs, char *country, BF bf) {
+    Pointer old = NULL;
+    sl_insert(vs->bf_per_countries, bftuple_create(country, bf), false, &old);
+
+    #ifdef DEBUG
+    assert(old == NULL);
+    struct bf_tuple bft = {.country = country};
+    sl_search(vs->bf_per_countries, &bft);
+    #endif
+}
+
+void virus_stats_add_rec(VirusStats vs, RequestRec rec, bool accepted) {
+    List l = accepted ? vs->accepted : vs->rejected;
+    list_insert(l, rec, true);
 }

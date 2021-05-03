@@ -124,6 +124,8 @@ BF bf_create_from_buffer(char *buffer, int len, char sep) {
     bf->size = attributes[1];
     bf->bit_string = calloc(bf->size, sizeof(uint8_t));
     memcpy(bf->bit_string, &(buffer[i+1]), bf->size);
+
+    free(attributes);
     return bf;
 }
 

@@ -34,6 +34,7 @@ typedef struct virus_stats {
     SL bf_per_countries;        // SL of BFs for the respective virus 
     List accepted;              // accepted requests with a date record
     List rejected;              // rejected requests with a date record
+    List unique_bfs;            // helper struct in order to avoid double freeing when we kill the bfs
 } *VirusStats;
 
 typedef struct bf_tuple {

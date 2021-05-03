@@ -88,3 +88,6 @@ Pointer virus_stats_create(char *virus_name);
 int virus_stats_compare(Pointer _vs1, Pointer _vs2);
 u_int32_t virus_stats_hash(Pointer _vs);
 void virus_stats_destroy(Pointer _vs);
+// extra stuff
+void virus_stats_add_bf(VirusStats vs, char *country, BF bf);
+void virus_stats_add_rec(VirusStats vs, RequestRec rec, bool accepted);
