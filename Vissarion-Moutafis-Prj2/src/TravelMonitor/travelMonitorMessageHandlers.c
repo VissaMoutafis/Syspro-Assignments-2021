@@ -2,17 +2,17 @@
 #include "StructManipulation.h"
 
 void get_bf_from_child(void *_monitor, char *msg, int msg_len, void *return_args[]) {
-    // just print it to see it works
-    char buf[msg_len+1];
-    memset(buf, 0, msg_len+1);
-    memcpy(buf, msg, msg_len);
-    printf("Len: %d -- ", msg_len);
-    for (int i = 0; i < msg_len; i++)
-        if (msg[i])
-            putchar(msg[i]);
-        else
-            putchar('-');
-    puts("");
+    // // just print it to see it works
+    // char buf[msg_len+1];
+    // memset(buf, 0, msg_len+1);
+    // memcpy(buf, msg, msg_len);
+    // printf("Len: %d -- ", msg_len);
+    // for (int i = 0; i < msg_len; i++)
+    //     if (msg[i])
+    //         putchar(msg[i]);
+    //     else
+    //         putchar('-');
+    // puts("");
 
     // we know that the first 10 bytes are the byte-length of fields : <virus name><SEP><country 1><SEP>...<SEP><country n>
     // and after that we have the bf msg that we could use to create a new BF
@@ -37,7 +37,6 @@ void get_bf_from_child(void *_monitor, char *msg, int msg_len, void *return_args
 
     // and get the bf buffer and create a new BF
     char *bf_buffer = msg + 10 + header_bytes;
-    printf("header bytes:%d\nheader: %s\nbf: %s\n", header_bytes, header, bf_buffer);
     BF bf = bf_create_from_buffer(bf_buffer, strlen(bf_buffer), SEP[0]);
 
     // Now we have to add properly the new bf. First find the according 

@@ -106,6 +106,21 @@ int main(int argc, char * argv[]) {
     Monitor monitor = monitor_create(fm, bloom_size, SL_HEIGHT, SL_FACTOR);
     // send the bloom filters to the parent process
     monitor_send_blooms(monitor, out_fd);
-    monitor_destroy(monitor);
     
+    // HERE WE START THE LOOP FOR THE ACTUAL FUNCTIONALITIES OF THE MONITOR
+    // BASIC LOGIC
+    // 1. wait for pipe input
+    // 2. answer the query and send it to parent via pipe (block signals while doing it)
+    // 3. handle signals appropriately
+    // 4. return to main functionality
+
+    // There are some extreme cases where the child might take SIGINT or SIGTERM 
+    // from parent in which case we must clear the memory and terminate
+    
+    // PUT THE CODE BELOW
+
+    // PUT THE CODE ABOVE
+
+    // final cleaning function (adjust in the appropriate place of code)
+    monitor_destroy(monitor);
 }

@@ -48,10 +48,5 @@ typedef struct person{
 } *Person;
 
 
-#define MONITOR_LOG_PATH "./logs/monitors"
-#define TRAVEL_MONITOR_LOG_PATH "./logs/travel-monitor"
-
-#define DEF_NUM_MONITORS 1
-#define DEF_BLOOM_SIZE 100
 
 

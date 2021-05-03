@@ -58,7 +58,7 @@ static void vaccinate_citizen(VirusInfo v, VaccRec vacc_rec, char *date) {
 
     // insert the person instance into the vaccinated group and
     sl_insert(v->vaccinated, vacc_rec, false, &vacc_rec_dummy);
-    bf_insert(v->bf, vacc_rec->p);
+    bf_insert(v->bf, vacc_rec->p->citizenID);
     // we also have to alter the date in vacc_rec
     vacc_rec->date = calloc(1 + strlen(date), sizeof(char));
     strcpy(vacc_rec->date, date);
@@ -104,11 +104,11 @@ static void virus_info_insert(Monitor monitor, Person p, bool update, char *viru
             VaccRec vr = vacc_rec_create(p, date, true);
             sl_insert(sl, vr, false, &vacc_rec_dummy);
             if (is_vaccinated)
-                bf_insert(v->bf, p);
+                bf_insert(v->bf, p->citizenID);
 
             #ifdef DEBUG
             if (is_vaccinated)
-                assert(bf_contains(v->bf, p));
+                assert(bf_contains(v->bf, p->citizenID));
             assert(sl_search(sl, vr));
             #endif
         } else {
@@ -132,7 +132,7 @@ static void virus_info_insert(Monitor monitor, Person p, bool update, char *viru
         list_insert(monitor->virus_info, new_vi, true);
         if (is_vaccinated)
             // insert into BF
-            bf_insert(new_vi->bf, p);
+            bf_insert(new_vi->bf, p->citizenID);
 
         //insert into the appropriate skip list
         SL sl = (is_vaccinated == true) ? new_vi->vaccinated : new_vi->not_vaccinated;

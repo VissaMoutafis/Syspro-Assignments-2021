@@ -8,20 +8,9 @@
 #include "Utilities.h"
 #include "FM.h"
 #include "IPC.h"
+#include "Config.h"
 
-#define SL_HEIGHT 10
-#define SL_FACTOR 0.5
 
-// as given by the instructors
-#define BF_HASH_FUNC_COUNT 16
-
-#define FIELD_SEPARATOR " "
-
-// variable to determine whether the user wants to exit the application or not
-bool is_end;
-
-char error_msg[BUFSIZ];
-bool error_flag;
 
 // struct typedefs for the app
 typedef struct monitor {

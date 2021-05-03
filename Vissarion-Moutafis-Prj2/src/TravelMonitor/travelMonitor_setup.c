@@ -1,4 +1,29 @@
-#include "TravelMonitor.h"
+#include "Setup.h"
+
+//routine to create fifos
+void create_unique_fifo_pair(bool init, int unique_id, char *from, char *to) {
+    if (init) {
+        // check if the fifo dir exists. create it. return;
+        if (access(FIFO_DIR, F_OK) == 0) delete_dir(FIFO_DIR);
+
+        if (mkdir(FIFO_DIR, 0777) == -1) {
+            perror("mkdir at fifo dir creation");
+            exit(1);
+        }
+        return;
+    }
+
+    sprintf(to, "%s/to-monitor-%d.fifo", FIFO_DIR, unique_id);
+    if (mkfifo(to, 0777) == -1) {perror("mkfifo"); exit(1);}
+    sprintf(from, "%s/from-monitor-%d.fifo", FIFO_DIR, unique_id);
+    if (mkfifo(from, 0777) == -1) {perror("mkfifo"); exit(1);}
+}
+
+void clean_fifos(void) {
+    // check if the fifo dir exists. create it. return;
+    if (access(FIFO_DIR, F_OK) == 0) delete_dir(FIFO_DIR);
+    else {perror("clean fifos"); exit(1);}
+}
 
 bool send_dirs(TravelMonitor monitor) {
     // sent the assigned countries paths to monitors
@@ -153,13 +178,25 @@ bool send_init_stats(TravelMonitor monitor) {
     return true;
 }
 
+bool create_logs(void) {
+    // we have to check if the logs directories are created. if they are we delete them and then create empty ones
+    if (access(ROOT_LOG_PATH, F_OK) == 0) delete_element(ROOT_LOG_PATH);
+
+    bool success = mkdir(ROOT_LOG_PATH, 0777) != -1
+                && mkdir(TRAVEL_MONITOR_LOG_PATH, 0777) != -1
+                && mkdir(MONITOR_LOG_PATH, 0777) != -1;
+    return success;
+}
+
 bool initialization(TravelMonitor monitor, char *input_dir) {
+    // create the log files
     // fork monitors
     // send them init stats
     // assign them directories
     // send them the assigned dirs
     // wait for the response to initialize the travel monitor
-    return create_n_monitors(monitor) 
+    return create_logs()
+        && create_n_monitors(monitor) 
         && send_init_stats(monitor)
         && assign_dirs(monitor, input_dir)
         && send_dirs(monitor)

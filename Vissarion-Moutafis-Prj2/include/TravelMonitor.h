@@ -47,12 +47,9 @@ typedef struct request_record {
 
 } *RequestRec;
 
+
+// create a travel monitor
 TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_monitors, u_int32_t buffer_size);
 
-
-
-
-// for init functionality: we call it at the creation of the monitor (inside the function)
-// WARNING : DO NOT use outside of monitor module routines
-bool initialization(TravelMonitor monitor, char *input_dir);
-
+// destroy the travel monitor 
+void travel_monitor_destroy(TravelMonitor monitor);
