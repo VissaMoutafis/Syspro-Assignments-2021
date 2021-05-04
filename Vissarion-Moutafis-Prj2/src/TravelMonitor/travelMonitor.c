@@ -43,7 +43,7 @@ static void print_error(bool exit_fail) {
 
 // Basic Utilities
 
-static bool try_answer_request(TravelMonitor monitor, VirusStats vs, BFTuple bft, char * citizenID, char *countryFrom, char *date) {
+static bool try_answer_travel_request(TravelMonitor monitor, VirusStats vs, BFTuple bft, char * citizenID, char *countryFrom, char *date) {
     if (!bf_contains(bft->bf, citizenID)) {
         // set up the answer
         memset(ans_buffer, 0, BUFSIZ);
@@ -58,11 +58,16 @@ static bool try_answer_request(TravelMonitor monitor, VirusStats vs, BFTuple bft
     return false;
 }
 
+// specific vaccination date check 
 static bool check_vacc_date(char *date, char *req_date) {
-    
+    int d1, d2, m1, m2, y1, y2;
+    sscanf(date, "%d-%d-%d", &d1, &m1, &y1);
+    sscanf(req_date, "%d-%d-%d", &d2, &m2, &y2);
+
+    return m2 - m1 < 6 && m2 >= m1;
 }
 
-static bool delegate_to_child(TravelMonitor monitor, VirusStats vs, char *value, char *countryFrom, char *req_date) {
+static bool travel_request_child(TravelMonitor monitor, VirusStats vs, char *value, char *countryFrom, char *req_date) {
         // first find the respective monitor
         struct trace t = {.country = countryFrom};
         Pointer entry = NULL;
@@ -105,6 +110,42 @@ static bool delegate_to_child(TravelMonitor monitor, VirusStats vs, char *value,
         return false;
 }
 
+bool try_answer_request(TravelMonitor monitor, int opcode, void *args[], void *ret_args[]) {
+    // GRAND TODO
+    switch (opcode)
+    {
+    case 0:
+    break;
+
+    case 1:
+    break;
+
+    case 3:
+    break;
+    
+    default:
+        break;
+    }
+}
+
+bool delegate_to_children(TravelMonitor monitor, int opcode, void *args[], void *ret_args[]) {
+    // GRAND TODO
+    switch (opcode)
+    {
+    case 0:
+    break;
+
+    case 1:
+    break;
+
+    case 3:
+    break;
+    
+    default:
+        break;
+    }
+}
+
 void travel_request(TravelMonitor monitor, char *value) {
     // value: citizenID date countryFrom [countryTo] virusName
 
@@ -131,8 +172,10 @@ void travel_request(TravelMonitor monitor, char *value) {
         
         // check if the parent can answer the request with certainty (ONLY IN REJECTED)
         if (bft) {
-            if (!try_answer_request(monitor, vs, bft, citizenID, countryFrom, date))
-                answered = delegate_to_child(monitor, vs, value, countryFrom, date);
+            void *args1[] = {vs, bft, citizenID, countryFrom, date};
+            void *args2[] = {vs, value, countryFrom, date};
+            if (!try_answer_request(monitor, 0, args1, NULL))
+                answered = delegate_to_children(monitor, 0, args2, NULL);
         }
     }
 
@@ -140,7 +183,8 @@ void travel_request(TravelMonitor monitor, char *value) {
     free(parsed_value);
 
     if (!answered) {
-        do some error stuff
+        error_flag = true;
+        sprintf(error_msg, "ERROR");
     }
 }
 
@@ -186,23 +230,34 @@ bool travel_monitor_act(TravelMonitor monitor, int expr_index, char *value) {
     switch (expr_index) {
         case 0: // comman: /travelRequest, value: citizenID date countryFrom [countryTo] virusName
                 travel_request(monitor, value);
-                answer();
+                if (error_flag)
+                    print_error(false);
+                else
+                    answer();
         break;
 
         case 1: // command: /travelStats, value: virusName date1 date2 [country]
                 travel_stats(monitor, value);
-                answer();
-        break;
+                if (error_flag)
+                    print_error(false);
+                else
+                    answer();
+                break;
 
         case 2: // command: /addVaccinationRecords, value: country
                 add_vaccination_records(monitor, value);
+                if (error_flag)
+                    print_error(false);
                 // there is no need for answers
         break;
 
         case 3: // command: /searchVaccinationStatus, value: citizenID
                 search_vaccination_status(monitor, value);
-                answer();
-        break;
+                if (error_flag)
+                    print_error(false);
+                else
+                    answer();
+                break;
 
         case 4: // command: exit, value: NULL
                 travel_monitor_finalize(monitor);
