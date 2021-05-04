@@ -85,11 +85,13 @@ int main(int argc, char ** argv) {
         fprintf(stderr, "The sizeOfBloom arg is non-positive. Falling back to default: %u", DEF_BLOOM_SIZE);
 
     // Create a monitor
-    TravelMonitor m = travel_monitor_create("testdir", 40, 1, 7);
+    TravelMonitor m = travel_monitor_create("testdir", 20, 1, 7);
 
     // WRITE MAIN FLOW CODE BELOW
 
     // WRITE MAIN FLOW CODE ABOVE
+
+    travel_monitor_act(m, 0, "8275 1-1-1 Spain CRE");
 
     travel_monitor_destroy(m);
 }

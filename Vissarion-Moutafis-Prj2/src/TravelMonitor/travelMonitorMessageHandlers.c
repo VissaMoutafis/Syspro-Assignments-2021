@@ -2,10 +2,7 @@
 #include "StructManipulation.h"
 
 void get_bf_from_child(void *_monitor, char *msg, int msg_len, void *return_args[]) {
-    // // just print it to see it works
-    // char buf[msg_len+1];
-    // memset(buf, 0, msg_len+1);
-    // memcpy(buf, msg, msg_len);
+    // just print it to see it works
     // printf("Len: %d -- ", msg_len);
     // for (int i = 0; i < msg_len; i++)
     //     if (msg[i])
@@ -37,7 +34,8 @@ void get_bf_from_child(void *_monitor, char *msg, int msg_len, void *return_args
 
     // and get the bf buffer and create a new BF
     char *bf_buffer = msg + 10 + header_bytes;
-    BF bf = bf_create_from_buffer(bf_buffer, strlen(bf_buffer), SEP[0]);
+    BF bf = bf_create_from_buffer(bf_buffer, msg_len-10-header_bytes, SEP[0]);
+    assert(bf);
 
     // Now we have to add properly the new bf. First find the according 
     // virus_stats in the hash (if there is none, create one)
@@ -60,4 +58,9 @@ void get_bf_from_child(void *_monitor, char *msg, int msg_len, void *return_args
 
     for (int i = 0; i < cols; i++) free(parsed_header[i]);
     free(parsed_header);
+}
+
+void travel_request_handler(void *monitor, char *msg, int msg_len, void *return_args[]) {
+    // ret args = {char *response, char *date}
+    
 }

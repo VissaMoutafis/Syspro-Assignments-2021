@@ -94,68 +94,40 @@ bool bf_contains(BF bf, Pointer entry) {
 // create a Bloom filter from a string buffer with serial data, 
 // based on a separator given by the user.
 BF bf_create_from_buffer(char *buffer, int len, char sep) {
-    // format <bf><hash_func_count><sep><size><sep><bit_string></bf>
+    // format <10 digs for size><sep><bit_string></bf>
     BF bf = calloc(1, sizeof(*bf));
-    // read the buffer first
-    u_int32_t *attributes = calloc(2, sizeof(*attributes));
 
-    // check opening tag
-    char tag[strlen(BF_START_TAG)+1];
-    memset(tag, 0, strlen(BF_START_TAG) + 1);
-    strncpy(tag, buffer, strlen(BF_START_TAG));
-    if (strcmp(tag, BF_START_TAG)) {
-        fprintf(stderr, "BF: The buffer has no valid format.");
-        free(bf);
-        return NULL;
-    }
-    // parse the string
-    u_int32_t i;
-    int attr_i = 0;
-    for (i = strlen(BF_START_TAG); i < len - strlen(BF_END_TAG); i++) {
-        if (buffer[i] == sep) {
-            attr_i ++;
-            if (attr_i > 1) break;
-        } else {
-            attributes[attr_i] = 10 * attributes[attr_i] + (buffer[i] - '0');
-        }
-    }
+    // get size
+    char size_str[11];
+    memset(size_str, 0, 11);
+    memcpy(size_str, buffer, 10);
 
-    bf->hash_func_count = attributes[0];
-    bf->size = attributes[1];
+    // set attributes
+    bf->hash_func_count = BF_HASH_FUNC_COUNT;
+    bf->size = strtoul(size_str, NULL, 10);
+    
+    // get bit_string
     bf->bit_string = calloc(bf->size, sizeof(uint8_t));
-    memcpy(bf->bit_string, &(buffer[i+1]), bf->size);
+    memcpy(bf->bit_string, &(buffer[10]), bf->size);
 
-    free(attributes);
     return bf;
 }
 
 // write data to a buffer from the given BF, separated by a user provided sep
 void bf_to_buffer(BF bf, char **dest_buf, int *buf_len, char sep) {
-    // format <bf><hash_func_count><sep><size><sep><bit_string></bf>
-
-    // first determine the actual str size of the numeric fields
-    int size_len;
-    char b[BUFSIZ];
-    memset(b, 0, BUFSIZ);
-    sprintf(b, "%u", bf->size);
-    size_len = strlen(b);
+    // format <10 digs for size><bit_string>
 
     // then get the actual buffer size
     u_int32_t buffer_size =
-        strlen(BF_START_TAG) * sizeof(char) +  // length of <bf>
-        size_len +                             // length of the numeric fields
-        bf->size +                             // length of the bit string
-        strlen(BF_END_TAG) * sizeof(char)      // length of </bf>
-        + 2;                                   // 2 separators
+        10 +                                    // length of the numeric fields for size
+        bf->size;                               // length of the bit string
+
     char *buf = calloc(buffer_size, sizeof(char));
 
-    sprintf(buf, "%s%u%c",  BF_START_TAG,
-                                    bf->size,
-                                    sep);
+    sprintf(buf, "%0*u", 10, bf->size);
 
-    int write_at = strlen(BF_START_TAG) + size_len;
+    int write_at = 10;
     memcpy(&(buf[write_at]), bf->bit_string, bf->size*sizeof(uint8_t));
-    memcpy(&(buf[write_at+bf->size]), BF_END_TAG, strlen(BF_END_TAG));
     *dest_buf = buf;
     *buf_len = buffer_size;
 }

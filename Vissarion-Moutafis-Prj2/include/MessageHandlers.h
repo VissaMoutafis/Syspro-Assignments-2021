@@ -11,7 +11,7 @@ typedef void (*MessageHandler)(void *monitor, char *msg, int msg_len, void *retu
 
 // Travel Monitor's message handlers
 void get_bf_from_child(void *monitor, char *msg, int msg_len, void *return_args[]);
-
+void travel_request_handler(void *monitor, char *msg, int msg_len, void *return_args[]);
 
 ///////////////////////////////////////////////////////////////////////////////////
 

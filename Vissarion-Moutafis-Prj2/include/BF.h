@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Types.h"
- 
+#include "Config.h"
+
 typedef struct bloom_filter *BF;
 
 // Bloom Filter Basic Methods

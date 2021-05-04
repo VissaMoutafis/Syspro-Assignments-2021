@@ -53,3 +53,6 @@ TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_
 
 // destroy the travel monitor 
 void travel_monitor_destroy(TravelMonitor monitor);
+
+// basic workflow
+bool travel_monitor_act(TravelMonitor monitor, int expr_index, char *value);
