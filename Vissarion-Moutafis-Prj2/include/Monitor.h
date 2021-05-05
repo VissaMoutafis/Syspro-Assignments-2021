@@ -51,7 +51,7 @@ typedef struct list_per_country {
 // Basic Vaccine Monitor methods
 
 // initialize some basic variables that the monitor uses
-void monitor_initialize(void); 
+void monitor_initialize(int out_fd); 
 
 // final changes to stop the program
 void monitor_finalize(Monitor monitor);

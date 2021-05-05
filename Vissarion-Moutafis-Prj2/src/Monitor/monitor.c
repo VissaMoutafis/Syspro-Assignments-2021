@@ -10,6 +10,8 @@ void visit(Pointer _p) {
 bool error_flag = false;
 char error_msg[BUFSIZ];
 char ans_buffer[BUFSIZ];
+int out_fd = -1;
+
 
 static void print_error(bool exit_fail) {
     fprintf(stderr, "%s\n", error_msg);
@@ -40,8 +42,16 @@ char *possible_commands[] = {
 int max_values[5] = {5, 4, 1, 1, 0};
 int min_values[5] = {4, 1, 1, 1, 0};
 
-void answer(void) {
-    puts(ans_buffer);
+void answer(int opcode) {
+    int buf_len = strlen(ans_buffer);
+    char buf[buf_len];
+    memset(buf, 0, buf_len);
+    memcpy(buf, ans_buffer, buf_len);
+    send_msg(out_fd, buf, buf_len, opcode);
+    send_msg(out_fd, NULL, 0, MSGEND_OP);
+
+    puts(ans_buffer); //remove
+
     memset(ans_buffer, 0, BUFSIZ);
 }
 
@@ -276,7 +286,7 @@ static void travel_request(Monitor monitor, char *value) {
 
             // if he is vaccinated set the answer buffer as "YES <date of vaccination>"
             if (vac_rec){
-                sprintf(ans_buffer, "YES %s", vac_rec->date);
+                sprintf(ans_buffer, "YES%s%s", FIELD_SEPARATOR, vac_rec->date);
                 found=true;
                 monitor->accepted ++; // increase the accepted counter
             }
@@ -478,8 +488,15 @@ static void set_bf_buf(char *header, int header_len, VirusInfo virus_info, char 
 
 // Basic Monitor Methods
 
-void monitor_initialize(void) { 
+void monitor_initialize(int _out_fd) { 
+    // for basic workflow loop
     is_end = false;
+
+    // for communication
+    out_fd = _out_fd;
+
+    // basic I/O globals
+    error_flag = false;
     memset(ans_buffer, 0, BUFSIZ);
     memset(error_msg, 0, BUFSIZ);
 }
@@ -525,7 +542,7 @@ bool monitor_act(Monitor monitor, int expr_index, char *value) {
     switch (expr_index) {
     case 0: // command: /travelRequest, value: citizenID date, countryFrom countryTo virusName
             travel_request(monitor, value);
-            answer();
+            answer(Q1_PAR); // response to parent for Q1
         break;
     case 2: // command: /addVaccinationRecords, value: country-dir path
             add_vaccination_records(monitor, value);
@@ -533,7 +550,7 @@ bool monitor_act(Monitor monitor, int expr_index, char *value) {
 
     case 3: // command: /searchVaccinationStatus, value: citizenID
             search_vaccination_status(monitor, value);
-            answer();
+            answer(Q4_PAR); // response to parent for Q4
         break;
 
     case 4: // command: /exit, value: -

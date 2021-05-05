@@ -63,7 +63,6 @@ int my_read(int fd, char *buffer, int bytes_to_read, int bufsize);
 // Also pass the msg handler defined at IPC.h
 // and an fd that is specificly used to determine the in_fd of monitors (children). 
 // return > 0 in success else 0
-
 // type
 typedef int (*GetResponse)(int bufsiz, void *monitor, MessageHandler handler, int process_id, int fd, void *return_args[]);
 

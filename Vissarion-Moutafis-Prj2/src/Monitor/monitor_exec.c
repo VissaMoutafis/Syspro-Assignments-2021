@@ -101,7 +101,7 @@ int main(int argc, char * argv[]) {
     free(dirs);
 
     // initialize the monitor globals
-    monitor_initialize();
+    monitor_initialize(out_fd);
     // create a monitor 
     Monitor monitor = monitor_create(fm, bloom_size, SL_HEIGHT, SL_FACTOR);
     // send the bloom filters to the parent process
@@ -116,10 +116,20 @@ int main(int argc, char * argv[]) {
 
     // There are some extreme cases where the child might take SIGINT or SIGTERM 
     // from parent in which case we must clear the memory and terminate
-    
-    // PUT THE CODE BELOW
 
-    // PUT THE CODE ABOVE
+    // main work-flow    
+    // while (!is_end) {
+        char *value = NULL;
+        int expr_index = -1;
+        void *ret_args2[] = {&expr_index, &value};
+        // wait for a response from the parent travel monitor
+        get_response(buffer_size, monitor, get_query, 0, in_fd, ret_args2);
+        if (expr_index >= 0) {
+            monitor_act(monitor, expr_index, value);
+            free(value);
+        }
+    
+    // }
 
     // final cleaning function (adjust in the appropriate place of code)
     monitor_destroy(monitor);

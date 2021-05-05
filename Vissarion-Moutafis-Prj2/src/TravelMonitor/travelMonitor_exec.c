@@ -91,7 +91,7 @@ int main(int argc, char ** argv) {
 
     // WRITE MAIN FLOW CODE ABOVE
 
-    travel_monitor_act(m, 0, "8275 1-1-1 Spain CRE");
+    travel_monitor_act(m, 0, "2262 3-6-1963 New-Guinea Small-Pox");
 
     travel_monitor_destroy(m);
 }

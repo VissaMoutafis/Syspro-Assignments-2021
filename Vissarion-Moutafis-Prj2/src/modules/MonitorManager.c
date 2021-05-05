@@ -6,7 +6,7 @@ int cmp_trace(Pointer _t1, Pointer _t2) {
     t1 = (Trace)_t1;
     t2 = (Trace)_t2;
 
-    return t1->country - t2->country; // pid is the key of the monitors
+    return strcmp(t1->country,t2->country);
 }
 
 void del_trace(Pointer _t) {
@@ -164,6 +164,7 @@ void monitor_manager_add_country(MonitorManager manager, int i, char *country_pa
 
         #ifdef DEBUG
         assert(old == NULL);
+        puts(trace->country);
         #endif
     }
 }

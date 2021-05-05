@@ -31,3 +31,26 @@ void get_init_stats(void *monitor, char *msg, int msg_len, void *return_args[]) 
     *(u_int32_t*)return_args[0] = strtoul(bufsiz, NULL, 10);
     *(size_t*)return_args[1] = strtoul(bloomsiz, NULL, 10);
 }
+
+void get_query(void *monitor, char *msg, int msg_len, void *return_args[]) {
+    // ret_args: {int expr_index, char *value}
+    // msg: <10digs of expr_index><value>
+    // first 10 bytes is the expr_index
+    // the next msg_len - 10 bytes is the value (NOT terminated by a '\0')
+    assert(msg_len >= 10);
+
+    char expr_id_str[11];
+    memset(expr_id_str, 0, 11);
+    memcpy(expr_id_str, msg, 10);
+    *((int *)return_args[0]) = atoi(expr_id_str);
+
+    // now we have to read the value
+    int value_len = msg_len-10+1;
+    char *value = calloc(value_len, sizeof(char));
+    memcpy(value, msg+10, value_len-1);
+    *((char **)return_args[1]) = value;
+
+    #ifdef DEBUG
+    printf("get_query: expr_id: %d, value: %s\n", *((int *)return_args[0]), *((char **)return_args[1]));
+    #endif
+}

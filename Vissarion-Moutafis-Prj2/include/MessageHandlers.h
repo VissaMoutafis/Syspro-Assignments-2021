@@ -19,3 +19,4 @@ void travel_request_handler(void *monitor, char *msg, int msg_len, void *return_
 
 void get_dirs(void *monitor, char *msg, int msg_len, void *return_args[]);
 void get_init_stats(void *monitor, char *msg, int msg_len, void *return_args[]);
+void get_query(void *monitor, char *msg, int msg_len, void *return_args[]);

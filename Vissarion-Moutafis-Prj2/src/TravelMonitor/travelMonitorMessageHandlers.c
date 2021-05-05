@@ -62,5 +62,25 @@ void get_bf_from_child(void *_monitor, char *msg, int msg_len, void *return_args
 
 void travel_request_handler(void *monitor, char *msg, int msg_len, void *return_args[]) {
     // ret args = {char *response, char *date}
-    
+    // msg: <YES/NO><1 space character><date of vaccination if answer is YES>
+    char *ans = calloc(msg_len+1, sizeof(char));
+    memcpy(ans, msg, msg_len);
+
+    if (strcmp(ans, "NO") == 0) {
+        // response == NO, date = NULL
+        *((char **)return_args[0]) = ans;
+        *((char**)return_args[1]) = NULL;
+    } else {
+        // response == YES, we must set date
+        int cols=0; 
+        char **parsed_ans = parse_line(ans, &cols, FIELD_SEPARATOR);
+        
+        // error checking
+        assert(cols == 2);
+
+        *((char**)return_args[0]) = parsed_ans[0];
+        *((char **)return_args[1]) = parsed_ans[1];
+        free(ans);
+        free(parsed_ans);
+    }
 }

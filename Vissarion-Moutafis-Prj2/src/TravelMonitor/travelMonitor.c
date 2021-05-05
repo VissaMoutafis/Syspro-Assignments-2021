@@ -43,7 +43,22 @@ static void print_error(bool exit_fail) {
 
 // Basic Utilities
 
-static bool try_answer_travel_request(TravelMonitor monitor, VirusStats vs, BFTuple bft, char * citizenID, char *countryFrom, char *date) {
+// specific vaccination date check
+static bool check_vacc_date(char *date, char *req_date) {
+    int d1, d2, m1, m2, y1, y2;
+    sscanf(date, "%d-%d-%d", &d1, &m1, &y1);
+    sscanf(req_date, "%d-%d-%d", &d2, &m2, &y2);
+
+    return m2 - m1 < 6 && m2 >= m1;
+}
+
+static bool try_answer_travel_request(TravelMonitor monitor, void *args[], void *ret_args[]) {
+    // args: {VirusStats vs, BFTuple bft, char *citizenID, char *date}
+    // ret_args: NULL
+    VirusStats vs = (VirusStats)args[0];
+    BFTuple bft = (BFTuple)args[1];
+    char *citizenID = (char *)args[2];
+    char *date = (char *)args[3];
     if (!bf_contains(bft->bf, citizenID)) {
         // set up the answer
         memset(ans_buffer, 0, BUFSIZ);
@@ -58,74 +73,86 @@ static bool try_answer_travel_request(TravelMonitor monitor, VirusStats vs, BFTu
     return false;
 }
 
-// specific vaccination date check 
-static bool check_vacc_date(char *date, char *req_date) {
-    int d1, d2, m1, m2, y1, y2;
-    sscanf(date, "%d-%d-%d", &d1, &m1, &y1);
-    sscanf(req_date, "%d-%d-%d", &d2, &m2, &y2);
 
-    return m2 - m1 < 6 && m2 >= m1;
-}
 
-static bool travel_request_child(TravelMonitor monitor, VirusStats vs, char *value, char *countryFrom, char *req_date) {
-        // first find the respective monitor
-        struct trace t = {.country = countryFrom};
-        Pointer entry = NULL;
-        if (ht_contains(monitor->manager->countries_index, &t, &entry)) {
-            MonitorTrace* m_trace = ((Trace)entry)->m_trace, dummy;
-            int id = -1;
-            id = monitor_manager_search_pid(monitor->manager, m_trace->pid, &dummy);
-            // send a message and w8 for response
-            int buf_len = strlen(value);
-            char buf[buf_len];
-            memcpy(buf, value, buf_len);
-            send_msg(m_trace->out_fifo, buf, buf_len, Q1_CHLD);
+static bool delegate_travel_request(TravelMonitor monitor, void *args[], void *ret_args[]) {
+    // args: {vs, value, countryFrom, date}
+    // ret_args: NULL
+    VirusStats vs = (VirusStats)args[0]; 
+    char *value = (char *)args[1]; 
+    char *countryFrom = (char *)args[2]; 
+    char *req_date = (char *)args[3];
+    
+    // first find the respective monitor
+    struct trace t = {.country = countryFrom};
+    Pointer entry = NULL;
+    if (ht_contains(monitor->manager->countries_index, &t, &entry)) {
+        MonitorTrace *m_trace = ((Trace)entry)->m_trace, dummy;
+        int id = -1;
+        id = monitor_manager_search_pid(monitor->manager, m_trace->pid, &dummy);
+        // send a message and w8 for response
+        int buf_len = strlen(value)+10; //value + 10 digs for expr index
+        char buf[buf_len];
+        sprintf(buf, "%0*d", 10, 0);
+        memcpy(buf+10, value, buf_len-10);
+        send_msg(m_trace->out_fifo, buf, buf_len, Q1_CHLD);
+        send_msg(m_trace->out_fifo, NULL, 0, MSGEND_OP);
 
-            // responses format: YES$<date> or NO
-            char *response = NULL;
-            char *date = NULL;
-            void *ret_args[] = {&response, &date};
-            // get response 
-            travel_monitor_get_response(monitor->buffer_size, monitor, travel_request_handler, id, m_trace->in_fifo, ret_args);
-            
-            bool accepted = false;
-            // now we need to check response and set up the ans_buffer
-            if (strcmp(response, "NO")) {
-                memset(ans_buffer, 0, BUFSIZ);
-                sprintf(ans_buffer, "REQUEST REJECTED - YOU ARE NOT VACCINATED");
-            } else if (check_vacc_date(date, req_date) > 0) {
-                memset(ans_buffer, 0, BUFSIZ);
-                sprintf(ans_buffer, "REQUEST REJECTED - YOU WILL NEED ANOTHER VACCINATION BEFORE");
-            } else {
-                accepted = true;
-                memset(ans_buffer, 0, BUFSIZ);
-                sprintf(ans_buffer, "REQUEST ACCEPTED - HAPPY TRAVELS");
-            }
-            // add the request into the appropriate l
-            List l = accepted ? vs->accepted : vs->rejected;
-            list_insert(l, request_record_create(date), true);
-            return true;
+        // responses format: YES$<date> or NO
+        char *response = NULL;
+        char *date = NULL;
+        void *ret_args[] = {&response, &date};
+        // get response
+        travel_monitor_get_response(monitor->buffer_size, monitor, travel_request_handler, id, m_trace->in_fifo, ret_args);
+
+        bool accepted = false;
+        // now we need to check response and set up the ans_buffer
+        if (strcmp(response, "NO") == 0) {
+            memset(ans_buffer, 0, BUFSIZ);
+            sprintf(ans_buffer, "REQUEST REJECTED - YOU ARE NOT VACCINATED");
+        } else if (!check_vacc_date(date, req_date)) {
+            memset(ans_buffer, 0, BUFSIZ);
+            sprintf(
+                ans_buffer,
+                "REQUEST REJECTED - YOU WILL NEED ANOTHER VACCINATION BEFORE");
+        } else {
+            accepted = true;
+            memset(ans_buffer, 0, BUFSIZ);
+            sprintf(ans_buffer, "REQUEST ACCEPTED - HAPPY TRAVELS");
         }
+        // add the request into the appropriate l
+        List l = accepted ? vs->accepted : vs->rejected;
+        list_insert(l, request_record_create(req_date), true);
 
-        return false;
+        if (date) free(date);
+        free(response);
+        return true;
+    }
+
+    return false;
 }
 
 bool try_answer_request(TravelMonitor monitor, int opcode, void *args[], void *ret_args[]) {
     // GRAND TODO
     switch (opcode)
     {
-    case 0:
+    case 0: // command: /travelRequest
+        return try_answer_travel_request(monitor, args, ret_args);
     break;
 
     case 1:
+
     break;
 
     case 3:
+    
     break;
     
     default:
-        break;
+        puts("Uknown activity");
+    break;
     }
+    return false;
 }
 
 bool delegate_to_children(TravelMonitor monitor, int opcode, void *args[], void *ret_args[]) {
@@ -133,6 +160,7 @@ bool delegate_to_children(TravelMonitor monitor, int opcode, void *args[], void 
     switch (opcode)
     {
     case 0:
+        return delegate_travel_request(monitor, args, ret_args);
     break;
 
     case 1:
@@ -172,9 +200,9 @@ void travel_request(TravelMonitor monitor, char *value) {
         
         // check if the parent can answer the request with certainty (ONLY IN REJECTED)
         if (bft) {
-            void *args1[] = {vs, bft, citizenID, countryFrom, date};
+            void *args1[] = {vs, bft, citizenID, date};
             void *args2[] = {vs, value, countryFrom, date};
-            if (!try_answer_request(monitor, 0, args1, NULL))
+            if (!(answered = try_answer_request(monitor, 0, args1, NULL)))
                 answered = delegate_to_children(monitor, 0, args2, NULL);
         }
     }
