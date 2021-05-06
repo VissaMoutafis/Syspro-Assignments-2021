@@ -14,7 +14,7 @@ char *allowed_formats[] = {"/travelRequest",
                            "/travelStats",
                            "/addVaccinationRecords",
                            "/searchVaccinationStatus",
-                           "exit"};
+                           "/exit"};
 
 // for help printing
 char *possible_commands[] = {
@@ -48,7 +48,7 @@ static bool check_vacc_date(char *date, char *req_date) {
     int d1, d2, m1, m2, y1, y2;
     sscanf(date, "%d-%d-%d", &d1, &m1, &y1);
     sscanf(req_date, "%d-%d-%d", &d2, &m2, &y2);
-
+    m2 += (y2-y1)*12;
     return m2 - m1 < 6 && m2 >= m1;
 }
 
@@ -65,7 +65,7 @@ static bool try_answer_travel_request(TravelMonitor monitor, void *args[], void 
         sprintf(ans_buffer, "REQUEST REJECTED - YOU ARE NOT VACCINATED");
 
         // add a rejection record
-        RequestRec new_rec = request_record_create(date);
+        RequestRec new_rec = request_record_create(date, bft);
         list_insert(vs->rejected, new_rec, true);
         return true;
     }
@@ -73,37 +73,39 @@ static bool try_answer_travel_request(TravelMonitor monitor, void *args[], void 
     return false;
 }
 
-
+static void send_query_to_child(int opcode, int expr_id, char *value, int out_fd) {
+    int buf_len = strlen(value) + 10;  // value + 10 digs for expr index
+    char buf[buf_len];
+    sprintf(buf, "%0*d", 10, expr_id);
+    memcpy(buf + 10, value, buf_len - 10);
+    send_msg(out_fd, buf, buf_len, Q1_CHLD);
+    send_msg(out_fd, NULL, 0, MSGEND_OP);
+}
 
 static bool delegate_travel_request(TravelMonitor monitor, void *args[], void *ret_args[]) {
-    // args: {vs, value, countryFrom, date}
+    // args: {vs, value, countryFrom, date, bft}
     // ret_args: NULL
     VirusStats vs = (VirusStats)args[0]; 
     char *value = (char *)args[1]; 
     char *countryFrom = (char *)args[2]; 
     char *req_date = (char *)args[3];
-    
+    BFTuple bft = (BFTuple)args[4];
+
     // first find the respective monitor
     struct trace t = {.country = countryFrom};
     Pointer entry = NULL;
     if (ht_contains(monitor->manager->countries_index, &t, &entry)) {
-        MonitorTrace *m_trace = ((Trace)entry)->m_trace, dummy;
-        int id = -1;
-        id = monitor_manager_search_pid(monitor->manager, m_trace->pid, &dummy);
+        MonitorTrace *m_trace = ((Trace)entry)->m_trace;
+
         // send a message and w8 for response
-        int buf_len = strlen(value)+10; //value + 10 digs for expr index
-        char buf[buf_len];
-        sprintf(buf, "%0*d", 10, 0);
-        memcpy(buf+10, value, buf_len-10);
-        send_msg(m_trace->out_fifo, buf, buf_len, Q1_CHLD);
-        send_msg(m_trace->out_fifo, NULL, 0, MSGEND_OP);
+        send_query_to_child(Q1_CHLD, 0, value, m_trace->out_fifo);
 
         // responses format: YES$<date> or NO
         char *response = NULL;
         char *date = NULL;
         void *ret_args[] = {&response, &date};
         // get response
-        travel_monitor_get_response(monitor->buffer_size, monitor, travel_request_handler, id, m_trace->in_fifo, ret_args);
+        travel_monitor_get_response(monitor->buffer_size, monitor, travel_request_handler, m_trace->in_fifo, ret_args);
 
         bool accepted = false;
         // now we need to check response and set up the ans_buffer
@@ -122,7 +124,7 @@ static bool delegate_travel_request(TravelMonitor monitor, void *args[], void *r
         }
         // add the request into the appropriate l
         List l = accepted ? vs->accepted : vs->rejected;
-        list_insert(l, request_record_create(req_date), true);
+        list_insert(l, request_record_create(req_date, bft), true);
 
         if (date) free(date);
         free(response);
@@ -132,20 +134,23 @@ static bool delegate_travel_request(TravelMonitor monitor, void *args[], void *r
     return false;
 }
 
+
+static bool delegate_vacc_status_search(TravelMonitor monitor, void *args[], void *ret_args[]) {
+    char *value = (char *)args[0];
+    // now we have to send it to all of the monitors
+    for (int i = 0; i < monitor->manager->num_monitors; i++) {
+        MonitorTrace *m_trace = &(monitor->manager->monitors[i]);
+        send_query_to_child(Q4_CHLD, 3, value, m_trace->out_fifo);
+    }
+    return true;
+}
+
 bool try_answer_request(TravelMonitor monitor, int opcode, void *args[], void *ret_args[]) {
     // GRAND TODO
     switch (opcode)
     {
     case 0: // command: /travelRequest
         return try_answer_travel_request(monitor, args, ret_args);
-    break;
-
-    case 1:
-
-    break;
-
-    case 3:
-    
     break;
     
     default:
@@ -163,15 +168,16 @@ bool delegate_to_children(TravelMonitor monitor, int opcode, void *args[], void 
         return delegate_travel_request(monitor, args, ret_args);
     break;
 
-    case 1:
-    break;
-
     case 3:
+        delegate_vacc_status_search(monitor, args, ret_args);
     break;
     
     default:
-        break;
+        puts("Uknown activity");
+    break;
     }
+
+    return false;
 }
 
 void travel_request(TravelMonitor monitor, char *value) {
@@ -201,7 +207,7 @@ void travel_request(TravelMonitor monitor, char *value) {
         // check if the parent can answer the request with certainty (ONLY IN REJECTED)
         if (bft) {
             void *args1[] = {vs, bft, citizenID, date};
-            void *args2[] = {vs, value, countryFrom, date};
+            void *args2[] = {vs, value, countryFrom, date, bft};
             if (!(answered = try_answer_request(monitor, 0, args1, NULL)))
                 answered = delegate_to_children(monitor, 0, args2, NULL);
         }
@@ -216,8 +222,67 @@ void travel_request(TravelMonitor monitor, char *value) {
     }
 }
 
-void travel_stats(TravelMonitor monitor, char *values) {
+static int count_recs(List recs, char *date1, char *date2, char *country) {
+    ListNode node = list_get_head(recs);
+    int cnt = 0;
 
+    while (node) {
+        RequestRec r = (RequestRec)list_node_get_entry(recs, node);
+        if (!country || strcmp(country, r->country_tuple->country) == 0) {
+            assert(r->date);
+            if (check_date_in_range(r->date, date1, date2))
+                cnt++;
+        }
+
+        node = list_get_next(recs, node);
+    }
+
+    return cnt;
+}
+
+void travel_stats(TravelMonitor monitor, char *value) {
+    puts(value);
+    // values: virusName date1 date2 [country]
+    int cols = 0;
+    char **parsed_value = parse_line(value, &cols, FIELD_SEPARATOR);
+    #ifdef DEBUG
+        assert(cols);
+        assert(parsed_value);
+    #endif
+    // get the needed fields
+    char *virus_name = parsed_value[0];
+    char *country = (cols==2 || cols == 4) ? parsed_value[cols-1] : NULL;
+    char *date1 = "1-1-1";     
+    char *date2 = "30-12-3000";
+
+    if (cols >= 3) {
+        if (check_date(parsed_value[1]) && check_date(parsed_value[2]) && dates_cmp(parsed_value[1], parsed_value[2]) < 0) {
+            date1 = parsed_value[1];
+            date2 = parsed_value[2];
+        } else {
+            error_flag = true;
+            sprintf(error_msg, "ERROR: WRONG DATE FORMAT");
+        }
+    }
+
+    if (!error_flag) {
+        // Now we have to find the VirusStats record
+        struct virus_stats dummy_vs = {.virus_name = virus_name};
+        Pointer entry = NULL;
+        if (ht_contains(monitor->virus_stats, &dummy_vs, &entry)) {
+            VirusStats vs = (VirusStats)entry;
+            int accepted = count_recs(vs->accepted, date1, date2, country);
+            int rejected = count_recs(vs->rejected, date1, date2, country);
+            sprintf(ans_buffer, "TOTAL REQUESTS %d\nACCEPTED %d\nREJECTED %d", accepted+rejected, accepted, rejected);
+        } else {
+            // we did not found the virus so there is a problem
+            error_flag = true;
+            sprintf(error_msg, "ERROR: VIRUS NOT RECORDED");
+        }
+    }
+
+    for (int i = 0; i < cols; i++) free(parsed_value[i]);
+    free(parsed_value);
 }
 
 void add_vaccination_records(TravelMonitor monitor, char *value) {
@@ -225,11 +290,23 @@ void add_vaccination_records(TravelMonitor monitor, char *value) {
 }
 
 void search_vaccination_status(TravelMonitor monitor, char *value) {
+    void *args[] = {value};
+    delegate_to_children(monitor, 3, args, NULL);
 
+    char *vaccination_recs=NULL;
+    void *ret_args[] = {vaccination_recs};
+    travel_monitor_get_response(monitor->buffer_size, monitor, get_vaccination_status, -1, ret_args);
 }
 
 
 // Travel Monitor Routines
+
+void travel_monitor_initialize(void) {
+    error_flag = false;
+    memset(error_msg, 0, BUFSIZ);
+    memset(ans_buffer, 0, BUFSIZ);
+    is_end = false;
+}
 
 TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_monitors, u_int32_t buffer_size) {
     TravelMonitor monitor = calloc(1, sizeof(*monitor));
@@ -252,7 +329,10 @@ TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_
     return monitor;
 }
 
-void travel_monitor_finalize(TravelMonitor monitor) {}
+
+void travel_monitor_finalize(TravelMonitor monitor) {
+    is_end = true;
+}
 
 bool travel_monitor_act(TravelMonitor monitor, int expr_index, char *value) {
     switch (expr_index) {

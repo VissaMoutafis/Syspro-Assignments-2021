@@ -44,13 +44,14 @@ int min_values[5] = {4, 1, 1, 1, 0};
 
 void answer(int opcode) {
     int buf_len = strlen(ans_buffer);
-    char buf[buf_len];
-    memset(buf, 0, buf_len);
-    memcpy(buf, ans_buffer, buf_len);
-    send_msg(out_fd, buf, buf_len, opcode);
+    if (buf_len) {    char buf[buf_len];
+        memset(buf, 0, buf_len);
+        memcpy(buf, ans_buffer, buf_len);
+        send_msg(out_fd, buf, buf_len, opcode);
+    }
     send_msg(out_fd, NULL, 0, MSGEND_OP);
 
-    puts(ans_buffer); //remove
+    // puts(ans_buffer); //remove
 
     memset(ans_buffer, 0, BUFSIZ);
 }

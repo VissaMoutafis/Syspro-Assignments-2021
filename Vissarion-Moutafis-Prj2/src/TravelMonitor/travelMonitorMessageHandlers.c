@@ -84,3 +84,12 @@ void travel_request_handler(void *monitor, char *msg, int msg_len, void *return_
         free(parsed_ans);
     }
 }
+
+void get_vaccination_status(void *monitor, char *msg, int msg_len, void *return_args[]) {
+    // return_args = {char *vaccination_records}
+    // msg = vaccinations record without a '\0'
+
+    char *b = calloc(msg_len+1, sizeof(char));
+    memcpy(b, msg, msg_len);
+    *((char**)return_args[0]) = b;
+}

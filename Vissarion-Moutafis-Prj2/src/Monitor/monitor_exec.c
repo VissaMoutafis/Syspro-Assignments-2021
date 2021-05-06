@@ -62,6 +62,7 @@ static bool check_arguments(int argc, char *argv[], char *values[], char * allow
 
 // call as: ./monitor -i inputFifo -o outputFifo
 int main(int argc, char * argv[]) {
+    printf("child %d\n", getpid());
     // First check arguments 
     char *values[2]={NULL, NULL};                        // the values of the arguments
     char *allowed_args[2] = {"-i", "-o"};               // argument flags (input -i, output -o) 
@@ -82,18 +83,15 @@ int main(int argc, char * argv[]) {
     ret_args[0] = &buffer_size;
     ret_args[1] = &bloom_size;
     // we will read the stats as fast as we can
-    get_response(100, NULL, get_init_stats, 0, in_fd, ret_args);
-    printf("buffer_size = %u\nbloom size = %lu\n", buffer_size, bloom_size);
+    get_response(100, NULL, get_init_stats, in_fd, ret_args);
 
     // now we have to get the dirs array
     char **dirs = NULL;
     int dir_num = 0;
     ret_args[0] = &dirs;
     ret_args[1] = &dir_num;
-    get_response(buffer_size, NULL, get_dirs, 0, in_fd, ret_args);
+    get_response(buffer_size, NULL, get_dirs, in_fd, ret_args);
     
-    printf("dirnum: %d\n", dir_num);
-    for (int i = 0; i < dir_num; i++) puts(dirs[i]);
     FM fm = fm_create(dirs, dir_num);
 
     // we no longer need dirs array
@@ -118,18 +116,18 @@ int main(int argc, char * argv[]) {
     // from parent in which case we must clear the memory and terminate
 
     // main work-flow    
-    // while (!is_end) {
+    while (!is_end) {
         char *value = NULL;
         int expr_index = -1;
         void *ret_args2[] = {&expr_index, &value};
         // wait for a response from the parent travel monitor
-        get_response(buffer_size, monitor, get_query, 0, in_fd, ret_args2);
+        get_response(buffer_size, monitor, get_query, in_fd, ret_args2);
         if (expr_index >= 0) {
             monitor_act(monitor, expr_index, value);
             free(value);
         }
     
-    // }
+    }
 
     // final cleaning function (adjust in the appropriate place of code)
     monitor_destroy(monitor);

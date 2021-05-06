@@ -43,38 +43,30 @@ bool person_equal(Person p1, Person p2);
 // Country Index Manipulation methods
 
 void *country_index_create(char *country);
-
 int country_index_cmp(void *c1, void *c2);
-
 u_int32_t country_index_hash(void *c);
-
 void country_index_destroy(void *c);
 
 
 // Virus Info Manipulation methods
 
 void *virus_info_create(char *virusName, int bloom_size, int sl_height, float sl_factor);
-
 int virus_info_cmp(void *v1, void *v2);
-
 u_int32_t virus_info_hash(void *v);
-
 void virus_info_destroy(void *_v);
 
 
 // Vaccination Records Manipulation
 
 void *vacc_rec_create(Person p, char *date, bool deep);
-
 void vacc_rec_destroy(Pointer _vr);
-
 int vacc_rec_cmp(Pointer v1, Pointer v2);
 
 
 // Travel Monitor Extension: structs and manipulators
 
 // RequestRec manipulators
-Pointer request_record_create(char *date);
+Pointer request_record_create(char *date, BFTuple country_bft);
 int request_record_compare(Pointer _r1, Pointer _r2);
 void request_record_destroy(Pointer _r);
 

@@ -1,9 +1,11 @@
 #include "TravelMonitor.h"
 
-static void intialize_fds(void *_monitor, int nfd, struct pollfd fds[], int process_id) {
+static void intialize_fds(void *_monitor, int nfd, struct pollfd fds[], int fd) {
     TravelMonitor monitor = (TravelMonitor)_monitor;
-    
-    if (process_id < 0) {
+    // initalize the fds 
+    memset(fds, 0, nfd*sizeof(struct pollfd));
+
+    if (fd < 0) {
         // we set all the fd's in the manager monitor
         for (int i = 0; i < nfd; i++) {
             MonitorTrace t;
@@ -18,13 +20,7 @@ static void intialize_fds(void *_monitor, int nfd, struct pollfd fds[], int proc
         }
     } else {
         // check for a specific process id so just 1 slot in <fds> array
-        MonitorTrace t;
-        memset(&t, 0, sizeof(Trace));
-        if (!monitor_manager_get_at(monitor->manager, process_id, &t)) {
-            fprintf(stderr, "monitor_manager_get_at: Cannot get child at %d\n", process_id);
-            exit(1);
-        }
-        fds[0].fd = t.in_fifo;
+        fds[0].fd = fd;
         fds[0].events = POLL_IN;
     }
 }
@@ -39,12 +35,15 @@ static void check_fds(int bufsiz, void *_monitor, struct pollfd fds[], int nfd, 
             char *msg = NULL;
             int len = 0;
             int opcode = -1;
-            read_msg(fds[0].fd, bufsiz, &msg, &len, &opcode);
+            read_msg(fds[i].fd, bufsiz, &msg, &len, &opcode);
 
             // check if the process has stoped transmitting
             if (opcode == MSGEND_OP) {
                 if (len && msg) free(msg);
                 // process do not write anymore so just leave
+                fds[i].fd = -1;
+                fds[i].events = 0;
+                fds[i].revents = 0;
                 (*active)--;
                 continue;
             }
@@ -58,17 +57,17 @@ static void check_fds(int bufsiz, void *_monitor, struct pollfd fds[], int nfd, 
     }
 }
 
-int travel_monitor_get_response(int bufsiz, void *_monitor, MessageHandler handler, int process_id, int fd, void *return_args[]) {
+int travel_monitor_get_response(int bufsiz, void *_monitor, MessageHandler handler, int fd, void *return_args[]) {
     // in travel monitor we don't care about <fd>
 
     // we will use poll to monitor the fifos
     // first set up the fds
     TravelMonitor monitor = (TravelMonitor)_monitor;
-    int nfd = process_id >= 0 ? 1 : monitor->num_monitors;
+    int nfd = fd >= 0 ? 1 : monitor->num_monitors;
     struct pollfd fds[nfd];
 
     // initialize the fds array
-    intialize_fds(monitor, nfd, fds, process_id);
+    intialize_fds(monitor, nfd, fds, fd);
     // initialize the #monitors that are expected to send messages
     int active = nfd;
     while (active) {

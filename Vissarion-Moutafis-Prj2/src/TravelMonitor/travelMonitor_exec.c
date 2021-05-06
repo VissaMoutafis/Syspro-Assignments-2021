@@ -59,6 +59,7 @@ static bool check_arguments(int argc, char *argv[], char *values[], char * allow
 }
 
 int main(int argc, char ** argv) {
+    printf("parent %d\n", getpid());
     char *values[4] = {NULL, NULL, NULL, NULL};
     char *allowed_args[] = {"-m", "-b", "-s", "-i"};
     if (!check_arguments(argc, argv, values, allowed_args)) {
@@ -84,14 +85,50 @@ int main(int argc, char ** argv) {
     else
         fprintf(stderr, "The sizeOfBloom arg is non-positive. Falling back to default: %u", DEF_BLOOM_SIZE);
 
+    char *input_dir = values[3];
+    if (access(input_dir, F_OK) != 0 || !is_dir(input_dir)) {
+        fprintf(stderr, "'%s' cannot be opened as a dir\n", input_dir);
+        exit(1);
+    }
+
+
+    travel_monitor_initialize();
     // Create a monitor
-    TravelMonitor m = travel_monitor_create("testdir", 20, 1, 7);
+    TravelMonitor monitor = travel_monitor_create(input_dir, sizeOfBloom, numMonitors, bufferSize);
 
-    // WRITE MAIN FLOW CODE BELOW
+    while (!is_end) {
+        // first get the input expression from the tty
+        char *expr = get_input();
+        // now parse it to the expression part and the value part
+        char **parsed_expr =
+            parse_expression(expr);  // format: /command value(s)
 
-    // WRITE MAIN FLOW CODE ABOVE
+        // clarify the input with proper assignments
+        char *command = parsed_expr[0];
+        char *value = parsed_expr[1];
+        int expr_index;
 
-    travel_monitor_act(m, 0, "2262 3-6-1963 New-Guinea Small-Pox");
+        // CREATE THE VACCINE MONITOR
 
-    travel_monitor_destroy(m);
+        // now we have to check if the expression was ok based on the array of
+        // allowed formats
+        if (check_format(command, &expr_index) &&
+            check_value_list(value, expr_index)) {
+            // we will try to execute the command. If vaccine monitor fails then
+            // we will print the error message to stderr
+            if (!travel_monitor_act(monitor, expr_index, value)) {
+                fprintf(stderr, "%s\n", error_msg);
+            }
+        } else
+            help();
+
+        if (expr) free(expr);
+        if (parsed_expr[0]) free(parsed_expr[0]);
+        if (parsed_expr[1]) free(parsed_expr[1]);
+        if (parsed_expr) free(parsed_expr);
+    }
+
+    
+
+    travel_monitor_destroy(monitor);
 }

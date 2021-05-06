@@ -23,7 +23,7 @@ static void check_fds(int bufsiz, void *monitor, struct pollfd fds[], int nfd, i
     }
 }
 
-int monitor_get_response(int bufsiz, void *_monitor, MessageHandler handler, int process_id, int fd, void *return_args[]) {
+int monitor_get_response(int bufsiz, void *_monitor, MessageHandler handler, int fd, void *return_args[]) {
     // in the monitor struct, the fd is the input 
     // fd where the travel monitor writes to.
     Monitor monitor = _monitor ? (Monitor)_monitor : NULL;

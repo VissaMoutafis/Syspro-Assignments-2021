@@ -55,21 +55,20 @@ int my_read(int fd, char *buffer, int bytes_to_read, int bufsize);
 
 ////////////////////////////////////////////////////////////////////
 
-// Basic non-blocking ipc for different parts of the program
+// Basic non-blocking polling of fd's
 // bufsiz is the max length we can read (given by the user) 
-// pass the monitor struct
-// the process numerical id given from the monitor manager.
-// If <the process_id> is -1 then we wait for a response from all processes.
+// pass the monitor struct (either TravelMonitor or Monitor)
 // Also pass the msg handler defined at IPC.h
-// and an fd that is specificly used to determine the in_fd of monitors (children). 
+// If <fd> is -1 then we wait for a response from all processes, TravelMonitor specific.
+// fd is specificly used to determine the input fd, if it's greater than 0. 
 // return > 0 in success else 0
 // type
-typedef int (*GetResponse)(int bufsiz, void *monitor, MessageHandler handler, int process_id, int fd, void *return_args[]);
+typedef int (*GetResponse)(int bufsiz, void *monitor, MessageHandler handler, int fd, void *return_args[]);
 
 // actual response system
 
 // for travel monitor (parent process)
-int travel_monitor_get_response(int bufsiz, void *monitor, MessageHandler handler, int process_id, int fd, void *return_args[]);
+int travel_monitor_get_response(int bufsiz, void *monitor, MessageHandler handler, int fd, void *return_args[]);
 
 // for monitors (child process)
-int monitor_get_response(int bufsiz, void *monitor, MessageHandler handler, int process_id, int fd, void *return_args[]);
+int monitor_get_response(int bufsiz, void *monitor, MessageHandler handler, int fd, void *return_args[]);

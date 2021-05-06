@@ -6,7 +6,7 @@
 
 void print_tty(void) {
     // NOTE: Maybe later add some color
-    printf("\n<vaccineMonitor> /");
+    printf("\n<vaccineMonitor> :");
 }
 
 void help(void) {

@@ -1,7 +1,7 @@
 #include "Setup.h"
 
 //routine to create fifos
-void create_unique_fifo_pair(bool init, int unique_id, char *from, char *to) {
+void create_unique_fifo_pair(bool init, char *from, char *to) {
     if (init) {
         // check if the fifo dir exists. create it. return;
         if (access(FIFO_DIR, F_OK) == 0) delete_dir(FIFO_DIR);
@@ -12,11 +12,14 @@ void create_unique_fifo_pair(bool init, int unique_id, char *from, char *to) {
         }
         return;
     }
+    static int unique_id = 0;
 
     sprintf(to, "%s/to-monitor-%d.fifo", FIFO_DIR, unique_id);
     if (mkfifo(to, 0777) == -1) {perror("mkfifo"); exit(1);}
     sprintf(from, "%s/from-monitor-%d.fifo", FIFO_DIR, unique_id);
     if (mkfifo(from, 0777) == -1) {perror("mkfifo"); exit(1);}
+
+    unique_id++;
 }
 
 void clean_fifos(void) {
@@ -112,7 +115,7 @@ bool create_monitor(TravelMonitor monitor, int i) {
     memset(to_fifo_path, 0, BUFSIZ);
     memset(from_fifo_path, 0, BUFSIZ);
     // create the communication fifos
-    create_unique_fifo_pair(false, i, from_fifo_path, to_fifo_path);
+    create_unique_fifo_pair(false, from_fifo_path, to_fifo_path);
     int in_fifo, out_fifo;
 
     // fork the child
@@ -149,7 +152,7 @@ bool create_monitor(TravelMonitor monitor, int i) {
 bool create_n_monitors(TravelMonitor monitor) {
     bool all_ok = true;
     // create the fifo dir
-    create_unique_fifo_pair(true, -1, NULL, NULL);
+    create_unique_fifo_pair(true, NULL, NULL);
     for (int i = 0; i < monitor->num_monitors; i++) {
         if (!create_monitor(monitor, i)) 
             all_ok = false;
@@ -200,5 +203,5 @@ bool initialization(TravelMonitor monitor, char *input_dir) {
         && send_init_stats(monitor)
         && assign_dirs(monitor, input_dir)
         && send_dirs(monitor)
-        && travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, -1, -1, NULL); 
+        && travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, -1, NULL); 
 }

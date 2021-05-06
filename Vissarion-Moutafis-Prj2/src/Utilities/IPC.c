@@ -103,7 +103,10 @@ int my_read(int fd, char *buffer, int bytes_to_read, int bufsize) {
         int to_read = bytes_left < bufsize ? bytes_left : bufsize;
 
         // while we haven't read the whole message
-        if ((bytes_read = read(fd, buf, to_read)) == -1) {perror("my_read"); exit(1);}
+        if ((bytes_read = read(fd, buf, to_read)) == -1) {
+            char buf[100];
+            sprintf(buf, "my_read %d", getpid());
+            perror(buf); exit(1);}
         if (bytes_read == 0) return 0;
         // insert the buf into the buffer, at proper place
         memcpy(buffer+total_bytes_read, buf, bytes_read);
