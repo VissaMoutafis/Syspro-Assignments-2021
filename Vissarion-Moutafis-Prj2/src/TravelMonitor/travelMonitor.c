@@ -294,8 +294,12 @@ void search_vaccination_status(TravelMonitor monitor, char *value) {
     delegate_to_children(monitor, 3, args, NULL);
 
     char *vaccination_recs=NULL;
-    void *ret_args[] = {vaccination_recs};
+    void *ret_args[] = {&vaccination_recs};
     travel_monitor_get_response(monitor->buffer_size, monitor, get_vaccination_status, -1, ret_args);
+    if (vaccination_recs) {
+        strcpy(ans_buffer, vaccination_recs);
+        free(vaccination_recs);
+    }
 }
 
 
