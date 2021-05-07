@@ -1,5 +1,5 @@
 #include "TravelMonitor.h"
-
+#include "Setup.h"
 #include "TTY.h"
 
 static char *usage = "Usage: \n    ~$ ./travelMonitor –m numMonitors -b bufferSize -s sizeOfBloom -i input_dir";
@@ -59,6 +59,7 @@ static bool check_arguments(int argc, char *argv[], char *values[], char * allow
 }
 
 int main(int argc, char ** argv) {
+    travel_monitor_signal_handlers();
     printf("parent %d\n", getpid());
     char *values[4] = {NULL, NULL, NULL, NULL};
     char *allowed_args[] = {"-m", "-b", "-s", "-i"};
@@ -96,36 +97,54 @@ int main(int argc, char ** argv) {
     // Create a monitor
     TravelMonitor monitor = travel_monitor_create(input_dir, sizeOfBloom, numMonitors, bufferSize);
 
+    // send a syn packet to all monitors and after that wait for a ack
+    for (int i = 0; i < monitor->manager->num_monitors; i++) {
+        bool ack_received = false;
+        void *ret_args[] = {&ack_received};
+        MonitorTrace *m_trace = &(monitor->manager->monitors[i]);
+        send_msg(m_trace->out_fifo, NULL, 0, SYN_OP);
+        
+        travel_monitor_get_response(bufferSize, monitor, accept_ack, m_trace->in_fifo, ret_args);
+        if (!ack_received) {
+            printf("process %d is not ready.\n", m_trace->pid);
+        }
+    }
+
     while (!is_end) {
         // first get the input expression from the tty
         char *expr = get_input();
         // now parse it to the expression part and the value part
-        char **parsed_expr =
-            parse_expression(expr);  // format: /command value(s)
+        char **parsed_expr = expr ?
+            parse_expression(expr)
+            : NULL;  // format: /command value(s)
 
         // clarify the input with proper assignments
-        char *command = parsed_expr[0];
-        char *value = parsed_expr[1];
+        char *command = parsed_expr ? parsed_expr[0] : NULL;
+        char *value = parsed_expr ? parsed_expr[1] : NULL;
         int expr_index;
 
         // CREATE THE VACCINE MONITOR
 
         // now we have to check if the expression was ok based on the array of
         // allowed formats
-        if (check_format(command, &expr_index) &&
-            check_value_list(value, expr_index)) {
-            // we will try to execute the command. If vaccine monitor fails then
-            // we will print the error message to stderr
-            if (!travel_monitor_act(monitor, expr_index, value)) {
-                fprintf(stderr, "%s\n", error_msg);
-            }
-        } else
-            help();
+        
+        if (command) {    if (check_format(command, &expr_index) &&
+                check_value_list(value, expr_index)) {
+                // we will try to execute the command. If vaccine monitor fails then
+                // we will print the error message to stderr
+                if (!travel_monitor_act(monitor, expr_index, value)) {
+                    fprintf(stderr, "%s\n", error_msg);
+                }
+            } else
+                help();
+        }
 
         if (expr) free(expr);
         if (parsed_expr[0]) free(parsed_expr[0]);
         if (parsed_expr[1]) free(parsed_expr[1]);
         if (parsed_expr) free(parsed_expr);
+        
+        
     }
 
     

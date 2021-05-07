@@ -5,21 +5,25 @@ static void check_fds(int bufsiz, void *monitor, struct pollfd fds[], int nfd, i
         char *msg = NULL;
         int len = 0;
         int opcode = -1;
-        read_msg(fds[0].fd, bufsiz, &msg, &len, &opcode);
+        read_msg(fds[0].fd, bufsiz, &msg, &len, &opcode, true);
 
-        // check if the process has stoped transmitting
-        if (opcode == MSGEND_OP) {
+        // check if the process has stoped transmitting or if we just read a symbolic packet
+        if (opcode == MSGEND_OP || opcode == SYN_OP || opcode == ACK_OP) {
+            if (handler && (opcode == SYN_OP || opcode == ACK_OP))
+                handler(monitor, opcode, msg, len, return_args);
             // process do not write anymore so just leave
             (*active)--;
             return;
         }
         // some handling
-        handler(monitor, msg, len, return_args);
+        if (handler)
+            handler(monitor, opcode, msg, len, return_args);
         
         // end of handling
 
         // free the memory of msg
-        free(msg);
+        if (msg && len > 0)
+            free(msg);
     }
 }
 
@@ -35,14 +39,16 @@ int monitor_get_response(int bufsiz, void *_monitor, MessageHandler handler, int
 
     // number of active monitors
     int active = 1;
-    while (active) {
+    while (active > 0) {
         int ret = poll(fds, 1, 1);
+        if (ret < 0) {
+            // ignore signals 
+            if (errno == EINTR) continue;
+            perror("poll in monitor");
+            exit(1);
+        }
         if (ret > 0) {
             check_fds(bufsiz, monitor, fds, 1, &active, handler, return_args);
-        }
-        if (ret < 0) {
-            perror("poll");
-            exit(1);
         }
     }
 

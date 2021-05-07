@@ -23,3 +23,13 @@ bool create_logs(void);
 // for init functionality: we call it at the creation of the monitor (inside the
 // function) WARNING : DO NOT use outside of monitor module routines
 bool initialization(TravelMonitor monitor, char *input_dir);
+
+
+// Signal Handling configurations
+int sigint_set;
+int sigquit_set;
+int sigchld_set;
+int sigusr1_set;
+int sigkill_set;
+
+void travel_monitor_signal_handlers(void);

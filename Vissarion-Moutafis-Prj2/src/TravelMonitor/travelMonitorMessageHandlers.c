@@ -1,7 +1,7 @@
 #include "TravelMonitor.h"
 #include "StructManipulation.h"
 
-void get_bf_from_child(void *_monitor, char *msg, int msg_len, void *return_args[]) {
+void get_bf_from_child(void *_monitor, int opcode, char *msg, int msg_len, void *return_args[]) {
     // just print it to see it works
     // printf("Len: %d -- ", msg_len);
     // for (int i = 0; i < msg_len; i++)
@@ -60,7 +60,7 @@ void get_bf_from_child(void *_monitor, char *msg, int msg_len, void *return_args
     free(parsed_header);
 }
 
-void travel_request_handler(void *monitor, char *msg, int msg_len, void *return_args[]) {
+void travel_request_handler(void *monitor, int opcode, char *msg, int msg_len, void *return_args[]) {
     // ret args = {char *response, char *date}
     // msg: <YES/NO><1 space character><date of vaccination if answer is YES>
     char *ans = calloc(msg_len+1, sizeof(char));
@@ -85,7 +85,7 @@ void travel_request_handler(void *monitor, char *msg, int msg_len, void *return_
     }
 }
 
-void get_vaccination_status(void *monitor, char *msg, int msg_len, void *return_args[]) {
+void get_vaccination_status(void *monitor, int opcode, char *msg, int msg_len, void *return_args[]) {
     // return_args = {char *vaccination_records}
     // msg = vaccinations record without a '\0'
     *((char **)return_args[0]) = NULL;

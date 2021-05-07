@@ -55,14 +55,15 @@ static void parse_header(char *buffer, int *body_len, int *opcode) {
 }
 
 // read the header
-static void read_header(int fd, int bufsize, int *body_len, int *opcode) {
+static void read_header(int fd, int bufsize, int *body_len, int *opcode, bool ignore_signals) {
     char header[HDR_LEN];
     memset(header, 0, HDR_LEN);
+    *body_len = 0;
+    *opcode = -1;
+
     // first read the header
-    if (my_read(fd, header, HDR_LEN, bufsize) == 0) {
-        *body_len = 0;
-        *opcode = -1;
-    }
+    my_read(fd, header, HDR_LEN, bufsize, ignore_signals);
+
     // parse the header and assign values
     parse_header(header, body_len, opcode);
 }
@@ -70,27 +71,41 @@ static void read_header(int fd, int bufsize, int *body_len, int *opcode) {
 // function to read a message from fd
 // We allocate memory for the body variable. User must free it. 
 // NOTE THAT *body is exactly *body_len characters long, there is NO terminator
-void read_msg(int fd, int bufsize, char **body, int *body_len, int *opcode) {
+void read_msg(int fd, int bufsize, char **body, int *body_len, int *opcode, bool ignore_signals) {
     // basic init of the returned variables
     *body = NULL;
     *body_len = 0;
     *opcode = -1;
 
     // first read the header from fd
-    read_header(fd, bufsize, body_len, opcode);
+    read_header(fd, bufsize, body_len, opcode, ignore_signals);
     
     // check if the message has a body
     if (*body_len > 0) {
         // Now we have to read the actual body of the message
         *body = calloc(*body_len, sizeof(char));
         // read the body
-        my_read(fd, *body, *body_len, bufsize);
+        my_read(fd, *body, *body_len, bufsize, ignore_signals);
     }
+}
+
+int special_read(int fd, char *buf, int to_read, bool ignore_signals) {
+    int bytes_read = read(fd, buf, to_read);
+    if (bytes_read == -1) {
+        // ignore EAGAIN and EWOULDBLOCK
+        if (errno == EAGAIN || errno == EWOULDBLOCK) return 0;
+        // signal interruption: check if we want to ignore signals or not
+        if (errno == EINTR && ignore_signals) return 0;
+
+        return -1;
+    }
+
+    return bytes_read;
 }
 
 // Note that buffer must be assigned at least bytes_to_read bytes of memory
 // classic read, wrapper, return 0 if EOF, else return 1
-int my_read(int fd, char *buffer, int bytes_to_read, int bufsize) {
+void my_read(int fd, char *buffer, int bytes_to_read, int bufsize, bool ignore_signals) {
     if (bufsize > bytes_to_read)
         bufsize = bytes_to_read;
 
@@ -101,13 +116,16 @@ int my_read(int fd, char *buffer, int bytes_to_read, int bufsize) {
     while (total_bytes_read < bytes_to_read) {
         int bytes_left = bytes_to_read - total_bytes_read;
         int to_read = bytes_left < bufsize ? bytes_left : bufsize;
-
+        
         // while we haven't read the whole message
-        if ((bytes_read = read(fd, buf, to_read)) == -1) {
+        if ((bytes_read = special_read(fd, buf, to_read, ignore_signals)) == -1) {
             char buf[100];
-            sprintf(buf, "my_read %d", getpid());
-            perror(buf); exit(1);}
-        if (bytes_read == 0) return 0;
+            sprintf(buf, "my_read %d, %d", getpid(), errno);
+            perror(buf); exit(1);
+        }
+        
+        if (bytes_read == 0) continue;
+
         // insert the buf into the buffer, at proper place
         memcpy(buffer+total_bytes_read, buf, bytes_read);
 
@@ -117,5 +135,15 @@ int my_read(int fd, char *buffer, int bytes_to_read, int bufsize) {
         // re-initialize the buf
         memset(buf, 0, bufsize);
     }
-    return 1;
+}
+
+// Some Handlers of general purpose
+// general handlers
+void accept_syn(void *monitor, int opcode, char *msg, int msg_len, void *return_args[]) {
+    // return_args[] = {bool is_syn}
+    *((bool*)return_args[0]) = (opcode == SYN_OP);
+}
+void accept_ack(void *monitor, int opcode, char *msg, int msg_len, void *return_args[]) {
+    // return_args[] = {bool is_ack}
+    *((bool *)return_args[0]) = (opcode == ACK_OP);
 }

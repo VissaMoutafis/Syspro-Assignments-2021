@@ -104,7 +104,18 @@ int main(int argc, char * argv[]) {
     Monitor monitor = monitor_create(fm, bloom_size, SL_HEIGHT, SL_FACTOR);
     // send the bloom filters to the parent process
     monitor_send_blooms(monitor, out_fd);
-    
+    puts("Sent Blooms");
+    // Now we have to wait for a syn-packet and then return an ack
+    bool is_syn = false;
+    ret_args[0] = &is_syn;
+    ret_args[1] = NULL;
+    get_response(buffer_size, monitor, accept_syn, in_fd, ret_args);
+    if (is_syn) {
+        send_msg(out_fd, NULL, 0, ACK_OP);
+    } else {
+        puts("FAILED");
+    }
+
     // HERE WE START THE LOOP FOR THE ACTUAL FUNCTIONALITIES OF THE MONITOR
     // BASIC LOGIC
     // 1. wait for pipe input

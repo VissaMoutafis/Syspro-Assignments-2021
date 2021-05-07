@@ -5,7 +5,7 @@ static void init_msg(char dest[], char *msg, int msg_len) {
     memcpy(dest, msg, msg_len);
 }
 
-void get_dirs(void *monitor, char *msg, int msg_len, void *return_args[]) {
+void get_dirs(void *monitor, int opcode, char *msg, int msg_len, void *return_args[]) {
     // monitor is irrelevant, 
     // return_args = {char *** dirs, int *len}
     // msg : <country>$<country>$...etc
@@ -17,7 +17,7 @@ void get_dirs(void *monitor, char *msg, int msg_len, void *return_args[]) {
     *((char ***)return_args[0]) = dirs;
 }
 
-void get_init_stats(void *monitor, char *msg, int msg_len, void *return_args[]) {
+void get_init_stats(void *monitor, int opcode, char *msg, int msg_len, void *return_args[]) {
     // monitor is irrelevant,
     // return_args = {u_int32_t *buffer_size, size_t *bloom_size}
     // msg : <buffer size (10 digs long)><bloom size (10 digs long)>
@@ -32,7 +32,7 @@ void get_init_stats(void *monitor, char *msg, int msg_len, void *return_args[]) 
     *(size_t*)return_args[1] = strtoul(bloomsiz, NULL, 10);
 }
 
-void get_query(void *monitor, char *msg, int msg_len, void *return_args[]) {
+void get_query(void *monitor, int opcode, char *msg, int msg_len, void *return_args[]) {
     // ret_args: {int expr_index, char *value}
     // msg: <10digs of expr_index><value>
     // first 10 bytes is the expr_index
