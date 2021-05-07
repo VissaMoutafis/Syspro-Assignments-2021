@@ -30,7 +30,14 @@ void send_msg(int fd, char *body, int body_len, int opcode) {
         memcpy(body_part, body, body_len);
     }
     // send the packet into the fd
-    if (write(fd, msg, HDR_LEN+body_len) == -1){perror("send_msg"); exit(1);}
+    while (write(fd, msg, HDR_LEN+body_len) == -1) {
+        // ignore signals
+        // retry to send stuff
+        if (errno == EINTR)
+            continue;
+        perror("send_msg"); 
+        exit(1);
+    }
 }
 
 
