@@ -66,7 +66,7 @@ int vacc_rec_cmp(Pointer v1, Pointer v2);
 // Travel Monitor Extension: structs and manipulators
 
 // RequestRec manipulators
-Pointer request_record_create(char *date, BFTuple country_bft);
+Pointer request_record_create(char *date, char *countryTo);
 int request_record_compare(Pointer _r1, Pointer _r2);
 void request_record_destroy(Pointer _r);
 

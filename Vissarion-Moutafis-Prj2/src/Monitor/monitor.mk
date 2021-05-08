@@ -1,6 +1,10 @@
 PROGRAM := monitor
 
-CUR_OBJS += $(BUILD)/monitor.o $(BUILD)/monitor_exec.o $(BUILD)/monitorIPC.o $(BUILD)/monitorMessageHandlers.o
+CUR_OBJS += $(BUILD)/monitor.o \
+		$(BUILD)/monitor_exec.o \
+		$(BUILD)/monitorIPC.o \
+		$(BUILD)/monitorMessageHandlers.o \
+		$(BUILD)/monitor_sigactions.o
 
 ARGS := 
 

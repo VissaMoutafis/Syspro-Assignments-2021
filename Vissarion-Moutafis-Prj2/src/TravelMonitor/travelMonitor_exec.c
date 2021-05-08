@@ -110,7 +110,7 @@ int main(int argc, char ** argv) {
         }
     }
 
-    while (!is_end) {
+    while (!is_end && !sigint_set && !sigquit_set) {
         // first get the input expression from the tty
         char *expr = get_input();
         // now parse it to the expression part and the value part
@@ -128,7 +128,8 @@ int main(int argc, char ** argv) {
         // now we have to check if the expression was ok based on the array of
         // allowed formats
         
-        if (command) {    if (check_format(command, &expr_index) &&
+        if (command) {    
+            if (check_format(command, &expr_index) &&
                 check_value_list(value, expr_index)) {
                 // we will try to execute the command. If vaccine monitor fails then
                 // we will print the error message to stderr
@@ -144,10 +145,15 @@ int main(int argc, char ** argv) {
         if (parsed_expr[1]) free(parsed_expr[1]);
         if (parsed_expr) free(parsed_expr);
         
-        
+        if (sigchld_set) {
+            puts("SIGCHLD arrived");
+            // SIGCHLD handler
+            sigchld_set = false;
+        }
     }
 
+    if (!is_end)
+        travel_monitor_finalize(monitor);
     
-
     travel_monitor_destroy(monitor);
 }

@@ -44,12 +44,15 @@ typedef struct bf_tuple {
 
 typedef struct request_record {
     char *date;
-    BFTuple country_tuple;
+    char *countryTo;
 } *RequestRec;
 
 
 // init function
 void travel_monitor_initialize(void);
+
+// finalize func
+void travel_monitor_finalize(TravelMonitor monitor);
 
 // create a travel monitor
 TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_monitors, u_int32_t buffer_size);

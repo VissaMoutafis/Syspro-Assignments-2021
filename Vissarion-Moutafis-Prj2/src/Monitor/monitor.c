@@ -13,12 +13,12 @@ char ans_buffer[BUFSIZ];
 int out_fd = -1;
 
 
-static void print_error(bool exit_fail) {
-    fprintf(stderr, "%s\n", error_msg);
-    error_flag = false;
-    memset(error_msg, 0, BUFSIZ);
-    if (exit_fail) exit(EXIT_FAILURE);
-}
+// static void print_error(bool exit_fail) {
+//     fprintf(stderr, "%s\n", error_msg);
+//     error_flag = false;
+//     memset(error_msg, 0, BUFSIZ);
+//     if (exit_fail) exit(EXIT_FAILURE);
+// }
 
 // all the possible commands for the tty API of the app
 int pos_cmds_len = 5;
@@ -305,12 +305,16 @@ static void travel_request(Monitor monitor, char *value) {
 
 // function to search for added requests in the user-defined directory
 static void add_vaccination_records(Monitor monitor, char *value) {
-    // value = country-dir path
+    // value = NULL
 
     // first we use the File Manager Utility to check for new files in the already assigned directories
     char **new_files = NULL;
     int num_new_files = 0;
     fm_check_for_updates(monitor->fm, &new_files, &num_new_files);
+    
+    // remove
+    printf("Found %d new file/paths.\n", num_new_files);
+
     // now iterate through the new files and add their records in the monitor
     for (int i = 0; i < num_new_files; i++) {
         // get the records of the file

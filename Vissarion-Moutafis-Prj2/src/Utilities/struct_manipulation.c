@@ -250,11 +250,13 @@ Person str_to_person(char *record) {
 
 // Extension for Travel Monitor structs
 
-Pointer request_record_create(char *date, BFTuple country_bft){
+Pointer request_record_create(char *date, char * countryTo){
     RequestRec r = calloc(1, sizeof(*r));
     r->date = calloc(strlen(date)+1, sizeof(char));
     strcpy(r->date, date);
-    r->country_tuple = country_bft;
+    r->countryTo = calloc(strlen(countryTo)+1, sizeof(char));
+    strcpy(r->countryTo, countryTo);
+
     return (Pointer)r;
 }
 
@@ -267,6 +269,7 @@ int request_record_compare(Pointer _r1, Pointer _r2) {
 
 void request_record_destroy(Pointer _r) {
     free(((RequestRec)_r)->date);
+    free(((RequestRec)_r)->countryTo);
     free(_r);
 }
 

@@ -42,8 +42,8 @@ int monitor_get_response(int bufsiz, void *_monitor, MessageHandler handler, int
     while (active > 0) {
         int ret = poll(fds, 1, 1);
         if (ret < 0) {
-            // ignore signals 
-            if (errno == EINTR) continue;
+            // break on signal 
+            if (errno == EINTR) return 0;
             perror("poll in monitor");
             exit(1);
         }

@@ -3,6 +3,7 @@
 #include "Utilities.h"
 #include "Monitor.h"
 #include "IPC.h"
+#include "Setup.h"
 
 GetResponse get_response = monitor_get_response;
 
@@ -62,6 +63,7 @@ static bool check_arguments(int argc, char *argv[], char *values[], char * allow
 
 // call as: ./monitor -i inputFifo -o outputFifo
 int main(int argc, char * argv[]) {
+    monitor_signal_handlers();
     printf("child %d\n", getpid());
     // First check arguments 
     char *values[2]={NULL, NULL};                        // the values of the arguments
@@ -127,18 +129,24 @@ int main(int argc, char * argv[]) {
     // from parent in which case we must clear the memory and terminate
 
     // main work-flow    
-    while (!is_end) {
+    while (!is_end && !sigint_set && !sigquit_set) {
         char *value = NULL;
         int expr_index = -1;
         void *ret_args2[] = {&expr_index, &value};
         // wait for a response from the parent travel monitor
-        get_response(buffer_size, monitor, get_query, in_fd, ret_args2);
-        if (expr_index >= 0) {
+        int ret = get_response(buffer_size, monitor, get_query, in_fd, ret_args2);
+        if (ret > 0 && expr_index >= 0) {
             monitor_act(monitor, expr_index, value);
             free(value);
         }
-    
+        if (sigusr1_set) {
+            // there are new directories go check them
+            sigusr1_set = false;
+            monitor_act(monitor, 2, NULL);
+        }
     }
+    if (!is_end)
+        monitor_finalize(monitor);
 
     // final cleaning function (adjust in the appropriate place of code)
     monitor_destroy(monitor);

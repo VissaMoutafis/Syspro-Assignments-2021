@@ -30,6 +30,6 @@ int sigint_set;
 int sigquit_set;
 int sigchld_set;
 int sigusr1_set;
-int sigkill_set;
 
 void travel_monitor_signal_handlers(void);
+void monitor_signal_handlers(void);
