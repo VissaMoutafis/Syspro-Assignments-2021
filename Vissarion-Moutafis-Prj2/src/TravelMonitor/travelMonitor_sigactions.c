@@ -29,12 +29,10 @@ void travel_monitor_signal_handlers(void) {
     // set the sigaction for sigint
     sigint_act.sa_mask = set;
     sigint_act.sa_handler=travel_monitor_sigint_handle;
-    sigint_act.sa_flags = SA_RESTART;
     if (sigaction(SIGINT, &sigint_act, NULL) == -1) {perror("sigint sigaction travel monitor"); exit(1);}
 
     sigquit_act.sa_mask = set;
     sigquit_act.sa_handler = travel_monitor_sigquit_handle;
-    sigquit_act.sa_flags = SA_RESTART;
     if (sigaction(SIGQUIT, &sigquit_act, NULL) == -1) {
         perror("siquit sigaction travel monitor");
         exit(1);
@@ -42,7 +40,6 @@ void travel_monitor_signal_handlers(void) {
 
     sigchld_act.sa_mask = set;
     sigchld_act.sa_handler = travel_monitor_sigchld_handle;
-    sigchld_act.sa_flags = SA_RESTART;
     if (sigaction(SIGCHLD, &sigchld_act, NULL) == -1) {
         perror("sigchld sigaction travel monitor");
         exit(1);

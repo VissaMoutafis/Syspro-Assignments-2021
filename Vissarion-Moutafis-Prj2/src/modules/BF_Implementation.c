@@ -142,8 +142,14 @@ void bf_to_file(BF bf, int fd, char sep) {
     }
 }
 
-
-
+void bf_union(BF bf, BF to_unite) {
+    assert(bf);
+    assert(to_unite);
+    assert(bf->size == to_unite->size);
+    for (int i = 0; i < bf->size; i ++) {
+        bf->bit_string[i] = bf->bit_string[i] | to_unite->bit_string[i];
+    }
+}
 
 /////////////////////////////////
 // #include <stdio.h>

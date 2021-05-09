@@ -27,7 +27,6 @@ void monitor_signal_handlers(void) {
     // set the sigaction for sigint
     sigint_act.sa_mask = set;
     sigint_act.sa_handler = monitor_sigint_handle;
-    sigint_act.sa_flags = SA_RESTART;
     if (sigaction(SIGINT, &sigint_act, NULL) == -1) {
         perror("sigint sigaction travel monitor");
         exit(1);
@@ -35,7 +34,6 @@ void monitor_signal_handlers(void) {
 
     sigquit_act.sa_mask = set;
     sigquit_act.sa_handler = monitor_sigquit_handle;
-    sigquit_act.sa_flags = SA_RESTART;
     if (sigaction(SIGQUIT, &sigquit_act, NULL) == -1) {
         perror("siquit sigaction travel monitor");
         exit(1);
@@ -43,7 +41,6 @@ void monitor_signal_handlers(void) {
 
     sigusr1_act.sa_mask = set;
     sigusr1_act.sa_handler = monitor_sigusr1_handle;
-    sigusr1_act.sa_flags = SA_RESTART;
     if (sigaction(SIGUSR1, &sigusr1_act, NULL) == -1) {
         perror("sigusr1 sigaction travel monitor");
         exit(1);

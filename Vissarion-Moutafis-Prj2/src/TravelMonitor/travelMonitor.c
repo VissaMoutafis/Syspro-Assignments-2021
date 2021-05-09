@@ -323,6 +323,54 @@ void search_vaccination_status(TravelMonitor monitor, char *value) {
 
 // Travel Monitor Routines
 
+void travel_monitor_restore_children(TravelMonitor monitor) {
+    // Need to check all monitors for there might be more than one that failed
+    for (int i = 0; i < monitor->manager->num_monitors; i++) {
+        int status = -1;
+        MonitorTrace m_trace;
+        memset(&m_trace, 0, sizeof(m_trace));
+        monitor_manager_get_at(monitor->manager, i, &m_trace);
+        int pid = m_trace.pid;
+        int options = WNOHANG;
+        int ret;
+        // get the waitpid of the child
+        // ignore signal interruptions except sigint and sigquit
+        while ((ret = waitpid(pid, &status, options)) == EINTR && !sigint_set && !sigquit_set);   
+    
+        // if the waitpid failed go to the next child
+        if (ret != pid) continue;
+
+        // printf("Found: pid: %d, status: %d\n", pid, status);
+        
+        // first we have to clean the monitor fifos and set pid to -1
+        monitor->manager->monitors[i].pid = -1;
+        monitor->manager->monitors[i].in_fifo = -1;
+        monitor->manager->monitors[i].out_fifo = -1;
+        // now we create a new monitor
+        create_monitor(monitor, true, i);
+        puts("Done with creating.");
+        monitor_manager_get_at(monitor->manager, i, &m_trace);
+
+        // send init stats
+        send_init_stats_to_monitor(monitor, &m_trace);
+        puts("Done with send init");
+        // and we send the countries and wait for the BFs
+        send_dirs_to_monitor(&m_trace);
+        puts("waiting response");
+        // wait for the new BFS
+        travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, m_trace.in_fifo, NULL);
+
+        // send an syn and wait for ack (confirm child initialization)
+        bool ack_received = false;
+        void *ret_args[] = {&ack_received};
+        send_msg(m_trace.out_fifo, NULL, 0, SYN_OP);
+        travel_monitor_get_response(monitor->buffer_size, monitor, accept_ack, m_trace.in_fifo, ret_args);
+        if (!ack_received) {
+            printf("process %d is not ready.\n", m_trace.pid);
+        }
+    }
+}
+
 void travel_monitor_initialize(void) {
     error_flag = false;
     memset(error_msg, 0, BUFSIZ);

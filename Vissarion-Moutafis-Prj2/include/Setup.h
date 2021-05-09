@@ -24,6 +24,16 @@ bool create_logs(void);
 // function) WARNING : DO NOT use outside of monitor module routines
 bool initialization(TravelMonitor monitor, char *input_dir);
 
+// create a new monitor for the travel monitor
+// or update the i-th monitor (for when the previous process holding it is dead)
+bool create_monitor(TravelMonitor monitor, bool update, int i);
+
+// send init stats to monitor, given the monitor trace
+void send_init_stats_to_monitor(TravelMonitor monitor, MonitorTrace *t);
+
+// send the already assigned dirs to monitor (just pass its monitor trace)
+void send_dirs_to_monitor(MonitorTrace *t);
+
 
 // Signal Handling configurations
 int sigint_set;

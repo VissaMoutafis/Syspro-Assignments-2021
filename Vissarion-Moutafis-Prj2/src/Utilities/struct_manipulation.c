@@ -345,6 +345,7 @@ void virus_stats_add_bf(VirusStats vs, char *country, BF bf) {
     Pointer old = NULL;
     sl_insert(vs->bf_per_countries, bftuple_create(country, bf), false, &old);
 
+
     #ifdef DEBUG
     assert(old == NULL);
     struct bf_tuple bft = {.country = country};

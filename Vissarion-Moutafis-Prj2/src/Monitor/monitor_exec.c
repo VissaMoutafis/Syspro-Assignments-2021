@@ -87,6 +87,10 @@ int main(int argc, char * argv[]) {
     // we will read the stats as fast as we can
     get_response(100, NULL, get_init_stats, in_fd, ret_args);
 
+    #ifdef DEBUG
+    printf("(%d) - buffsiz: %u, bf_size: %lu\n", getpid(), buffer_size, bloom_size);
+    #endif
+
     // now we have to get the dirs array
     char **dirs = NULL;
     int dir_num = 0;

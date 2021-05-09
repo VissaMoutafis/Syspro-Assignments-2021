@@ -35,3 +35,6 @@ void bf_to_buffer(BF bf, char **dest_buf, int *buf_len, char sep);
 // write data to a file (given file descriptor) from the given BF, separated by a user provided sep
 void bf_to_file(BF bf, int fd, char sep);
 
+
+// perfom union of bf and to_unite and save result in the <bf> BloomFilter
+void bf_union(BF bf, BF to_unite);

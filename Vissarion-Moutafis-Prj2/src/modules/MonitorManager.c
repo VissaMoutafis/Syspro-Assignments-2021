@@ -52,10 +52,6 @@ MonitorManager monitor_manager_create(int num_monitors) {
 // return the index
 int monitor_manager_add(MonitorManager manager, pid_t pid, int in_fifo, int out_fifo) {
     assert(manager);
-    if (manager->active_monitors >= manager->num_monitors) {
-        fprintf(stderr, "Cannot add more monitors. Max capacity reached.\n");
-        return -1;
-    }
     
     // first find an empty position
     int i = 0;
@@ -69,15 +65,6 @@ int monitor_manager_add(MonitorManager manager, pid_t pid, int in_fifo, int out_
     }
 
     MonitorTrace *trace_p = &manager->monitors[i];
-    if (trace_p->num_countries && trace_p->countries_paths) {
-        // free the memory
-        for (int j = 0; j < trace_p->num_countries; j++)
-            free(trace_p->countries_paths[j]);
-        free(trace_p->countries_paths);
-    }
-    //re-initialize the slot
-    memset(trace_p, 0, sizeof(*trace_p));
-
 
     trace_p->pid = pid;
     trace_p->in_fifo = in_fifo;

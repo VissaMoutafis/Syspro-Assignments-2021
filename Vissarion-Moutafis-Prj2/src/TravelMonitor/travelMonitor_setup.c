@@ -28,6 +28,38 @@ void clean_fifos(void) {
     else {perror("clean fifos"); exit(1);}
 }
 
+void send_dirs_to_monitor(MonitorTrace *t) {
+    char **countries = t->countries_paths;
+    int num_countries = t->num_countries;
+    char *buffer = NULL;  // the buffer we will send to child
+    int bufsiz = 0;       // the buffer size
+    for (int j = 0; j < num_countries; j++) {
+        // reconstruct the buffer
+
+        // get the country length
+        int country_len = strlen(countries[j]);
+
+        // set-up new buffer (prev_size + country_len + length for
+        // separator)
+        char *new_buf = calloc(bufsiz + country_len + 1, sizeof(char));
+        if (bufsiz) {
+            memcpy(new_buf, buffer, bufsiz);
+            free(buffer);
+        }
+        memcpy(new_buf + bufsiz, countries[j], country_len);
+        memcpy(new_buf + bufsiz + country_len, SEP, 1);
+        // re-set the original <buffer> and <bufsiz>
+        buffer = new_buf;
+        bufsiz += country_len + 1;
+    }
+    // send the country to the child
+    send_msg(t->out_fifo, buffer, bufsiz, INIT_CHLD);
+    // send end message code (<msg> set to NULL)
+    send_msg(t->out_fifo, NULL, 0, MSGEND_OP);
+    // delete the monitor
+    free(buffer);
+}
+
 bool send_dirs(TravelMonitor monitor) {
     // sent the assigned countries paths to monitors
     for (int i = 0; i < monitor->num_monitors; i++) {
@@ -40,35 +72,7 @@ bool send_dirs(TravelMonitor monitor) {
                     i);
             exit(1);
         }
-        char **countries = t.countries_paths;
-        int num_countries = t.num_countries;
-        char *buffer = NULL;  // the buffer we will send to child
-        int bufsiz = 0;       // the buffer size
-        for (int j = 0; j < num_countries; j++) {
-            // reconstruct the buffer
-
-            // get the country length
-            int country_len = strlen(countries[j]);
-
-            // set-up new buffer (prev_size + country_len + length for
-            // separator)
-            char *new_buf = calloc(bufsiz + country_len + 1, sizeof(char));
-            if (bufsiz) {
-                memcpy(new_buf, buffer, bufsiz);
-                free(buffer);
-            }
-            memcpy(new_buf + bufsiz, countries[j], country_len);
-            memcpy(new_buf + bufsiz + country_len, SEP, 1);
-            // re-set the original <buffer> and <bufsiz>
-            buffer = new_buf;
-            bufsiz += country_len + 1;
-        }
-        // send the country to the child
-        send_msg(t.out_fifo, buffer, bufsiz, INIT_CHLD);
-        // send end message code (<msg> set to NULL)
-        send_msg(t.out_fifo, NULL, 0, MSGEND_OP);
-        // delete the monitor
-        free(buffer);
+        send_dirs_to_monitor(&t);
     }
     return true;
 }
@@ -110,7 +114,7 @@ bool assign_dirs(TravelMonitor monitor, char *input_dir) {
 }
 
 // routine to fork a monitor process
-bool create_monitor(TravelMonitor monitor, int i) {
+bool create_monitor(TravelMonitor monitor, bool update, int i) {
     char to_fifo_path[BUFSIZ], from_fifo_path[BUFSIZ];
     memset(to_fifo_path, 0, BUFSIZ);
     memset(from_fifo_path, 0, BUFSIZ);
@@ -130,18 +134,28 @@ bool create_monitor(TravelMonitor monitor, int i) {
 
         case 0:  // child behaviour
             // set the args for current child-process and call exec
-            execl("./monitor", "./monitor", "-i", to_fifo_path, "-o", from_fifo_path, NULL);
+            if (execl("./monitor", "./monitor", "-i", to_fifo_path, "-o", from_fifo_path, NULL) == -1) {
+                perror("execl"); exit(1);
+            }
         break;
 
         default:  // parent behaviour
             // add the monitor into the manager
             in_fifo = open(from_fifo_path, O_RDONLY | O_NONBLOCK);
             out_fifo = open(to_fifo_path, O_WRONLY);
-            monitor_manager_add(monitor->manager, pid, in_fifo, out_fifo);
+            if (in_fifo < 0 || out_fifo < 0) {
+                perror("open"); exit(1);
+            }
+            if (!update) 
+                monitor_manager_add(monitor->manager, pid, in_fifo, out_fifo);
+            else {
+                monitor->manager->monitors[i].pid = pid;
+                monitor->manager->monitors[i].in_fifo = in_fifo;
+                monitor->manager->monitors[i].out_fifo = out_fifo;
+            }
 
             #ifdef DEBUG
-            MonitorTrace t;
-            assert(monitor_manager_search_pid(monitor->manager, pid, &t) >= 0);
+            printf("infifo: %s - %d\noutfifo: %s - %d\n", from_fifo_path, in_fifo, to_fifo_path, out_fifo);
             #endif
         break;
     }
@@ -154,18 +168,28 @@ bool create_n_monitors(TravelMonitor monitor) {
     // create the fifo dir
     create_unique_fifo_pair(true, NULL, NULL);
     for (int i = 0; i < monitor->num_monitors; i++) {
-        if (!create_monitor(monitor, i)) 
+        if (!create_monitor(monitor, false, -1)) 
             all_ok = false;
     }
     return all_ok;
 }
 
+void send_init_stats_to_monitor(TravelMonitor monitor, MonitorTrace *t) {
+    char buf[10 + 1 + 10];
+    memset(buf, 0, 21);
+    snprintf(buf, 21, "%0*u%0*lu", 10, monitor->buffer_size, 10,
+             monitor->bloom_size);
+    printf("sending stuff to %d\n", t->out_fifo);
+    // send the init elements
+    send_msg(t->out_fifo, buf, 20, INIT_CHLD);
+    // communicate transmision termination
+    send_msg(t->out_fifo, NULL, 0, MSGEND_OP);
+}
+
 bool send_init_stats(TravelMonitor monitor) {
     // we will pass the msg:
     // <buffer size>$<bloom size> : max length = 10 + 10 (INT MAX length is 10)
-    char buf[10+1+10];
-    memset(buf, 0, 21);
-    snprintf(buf, 21, "%0*u%0*lu", 10, monitor->buffer_size, 10, monitor->bloom_size);
+    
 
     for (int i = 0; i < monitor->num_monitors; i++) {
         MonitorTrace t;
@@ -173,10 +197,7 @@ bool send_init_stats(TravelMonitor monitor) {
             fprintf(stderr, "send_init_stats: Cannot get monitor stats of %d-th monitor\n", i);
             exit(1);
         }
-        // send the init elements
-        send_msg(t.out_fifo, buf, 20, INIT_CHLD);
-        // communicate transmision termination
-        send_msg(t.out_fifo, NULL, 0, MSGEND_OP);
+        send_init_stats_to_monitor(monitor, &t);
     }
     return true;
 }

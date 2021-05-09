@@ -112,7 +112,22 @@ int main(int argc, char ** argv) {
 
     while (!is_end && !sigint_set && !sigquit_set) {
         // first get the input expression from the tty
-        char *expr = get_input();
+        char *expr = NULL;
+        if (sigchld_set) {
+            // SIGCHLD handler
+            travel_monitor_restore_children(monitor);
+            sigchld_set = false;
+        } else {
+            expr = get_input();
+        }
+
+        if (errno == EINTR) {
+            // clean errno
+            errno = 0;
+            if (expr) free(expr);
+            continue;
+        }
+
         // now parse it to the expression part and the value part
         char **parsed_expr = expr ?
             parse_expression(expr)
@@ -138,17 +153,10 @@ int main(int argc, char ** argv) {
                 }
             } else
                 help();
-        }
-
-        if (expr) free(expr);
-        if (parsed_expr[0]) free(parsed_expr[0]);
-        if (parsed_expr[1]) free(parsed_expr[1]);
-        if (parsed_expr) free(parsed_expr);
-        
-        if (sigchld_set) {
-            puts("SIGCHLD arrived");
-            // SIGCHLD handler
-            sigchld_set = false;
+            if (expr) free(expr);
+            if (parsed_expr[0]) free(parsed_expr[0]);
+            if (parsed_expr[1]) free(parsed_expr[1]);
+            if (parsed_expr) free(parsed_expr);
         }
     }
 

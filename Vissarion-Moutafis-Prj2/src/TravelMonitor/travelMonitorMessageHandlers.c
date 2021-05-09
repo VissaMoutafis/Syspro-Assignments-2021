@@ -49,12 +49,22 @@ void get_bf_from_child(void *_monitor, int opcode, char *msg, int msg_len, void 
     }
 
     // at this point <entry> pointer points to the appropriate virus stats entry
-    // so just add the new bf tuple to, one for every 
-    for (int i = 0; i < cols-1; i++)
-        virus_stats_add_bf((VirusStats)entry, countries[i], bf);
-
+    // either update the existent or add the new bf tuple to the respective countries
+    VirusStats vs = (VirusStats)entry;
+    Pointer old = NULL;
+    struct bf_tuple dummy_bft = {.country = countries[0]}; // try for the first country (all countries point to the same bf)
+    if ((old=sl_search(vs->bf_per_countries, &dummy_bft))) {
+        // the BF already exists so we must update the previous one
+        BFTuple bft = (BFTuple)old;
+        bf_union(bft->bf, bf);
+    } else {
+        // the bf does not exist, so just insert it to every country
+        for (int i = 0; i < cols-1; i++)
+            virus_stats_add_bf(vs, countries[i], bf); // either add or update the bloom filter
+    }
+    
     // NOW WE HAVE TO ADD BF IN A LIST OF UNIQUE BF STRUCTS SO THAT WE CAN FREE LATER
-    list_insert(((VirusStats)entry)->unique_bfs, bf, true);
+    list_insert((vs)->unique_bfs, bf, true);
 
     for (int i = 0; i < cols; i++) free(parsed_header[i]);
     free(parsed_header);

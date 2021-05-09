@@ -68,7 +68,10 @@ char *make_str(FILE **_stream_) {
         free(str);
         return NULL;
     }
-
+    if (errno == EINTR) {
+        free(str);
+        str = NULL;
+    }
     return str; // return the str
 }
 
