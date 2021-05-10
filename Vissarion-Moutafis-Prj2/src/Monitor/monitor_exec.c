@@ -98,6 +98,11 @@ int main(int argc, char * argv[]) {
     ret_args[1] = &dir_num;
     get_response(buffer_size, NULL, get_dirs, in_fd, ret_args);
     
+    #ifdef DEBUG
+    printf("(%d) - countries: %d:\n", getpid(), dir_num);
+    for (int i = 0; i < dir_num; i++) puts(dirs[i]);
+    #endif
+
     FM fm = fm_create(dirs, dir_num);
 
     // we no longer need dirs array
@@ -110,7 +115,7 @@ int main(int argc, char * argv[]) {
     Monitor monitor = monitor_create(fm, bloom_size, SL_HEIGHT, SL_FACTOR);
     // send the bloom filters to the parent process
     monitor_send_blooms(monitor, out_fd);
-    puts("Sent Blooms");
+
     // Now we have to wait for a syn-packet and then return an ack
     bool is_syn = false;
     ret_args[0] = &is_syn;
@@ -142,11 +147,13 @@ int main(int argc, char * argv[]) {
         if (ret > 0 && expr_index >= 0) {
             monitor_act(monitor, expr_index, value);
             free(value);
-        }
+        } 
+
         if (sigusr1_set) {
             // there are new directories go check them
-            sigusr1_set = false;
             monitor_act(monitor, 2, NULL);
+            sigusr1_set = false;
+            errno = 0;
         }
     }
     if (!is_end)

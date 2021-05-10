@@ -300,11 +300,12 @@ void add_vaccination_records(TravelMonitor monitor, char *value) {
         // send the USR1
         MonitorTrace *m_trace = ((Trace)entry)->m_trace;
         kill(m_trace->pid, SIGUSR1);
+        travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, m_trace->in_fifo, NULL);
+
     } else {
         error_flag = true;
         sprintf(error_msg, "ERROR: '%s' is not a recorded country\n", country);
     }
-    
 }
 
 void search_vaccination_status(TravelMonitor monitor, char *value) {
@@ -348,15 +349,12 @@ void travel_monitor_restore_children(TravelMonitor monitor) {
         monitor->manager->monitors[i].out_fifo = -1;
         // now we create a new monitor
         create_monitor(monitor, true, i);
-        puts("Done with creating.");
         monitor_manager_get_at(monitor->manager, i, &m_trace);
 
         // send init stats
         send_init_stats_to_monitor(monitor, &m_trace);
-        puts("Done with send init");
         // and we send the countries and wait for the BFs
         send_dirs_to_monitor(&m_trace);
-        puts("waiting response");
         // wait for the new BFS
         travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, m_trace.in_fifo, NULL);
 

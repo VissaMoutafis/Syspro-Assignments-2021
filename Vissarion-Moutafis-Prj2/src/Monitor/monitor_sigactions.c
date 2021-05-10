@@ -2,7 +2,6 @@
 
 int sigint_set = false;
 int sigquit_set = false;
-int sigkill_set = false;
 int sigusr1_set = false;
 
 void monitor_sigint_handle(int s) { sigint_set = true; }
@@ -12,11 +11,10 @@ void monitor_sigquit_handle(int s) { sigquit_set = true; }
 void monitor_sigusr1_handle(int s) { sigusr1_set = true; }
 
 void monitor_signal_handlers(void) {
-    struct sigaction sigint_act, sigquit_act, sigkill_act, sigusr1_act;
+    struct sigaction sigint_act, sigquit_act, sigusr1_act;
     sigset_t set;
     memset(&sigint_act, 0, sizeof(struct sigaction));
     memset(&sigquit_act, 0, sizeof(struct sigaction));
-    memset(&sigkill_act, 0, sizeof(struct sigaction));
     memset(&sigusr1_act, 0, sizeof(struct sigaction));
     memset(&set, 0, sizeof(sigset_t));
 

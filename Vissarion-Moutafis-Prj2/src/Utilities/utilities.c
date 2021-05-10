@@ -68,10 +68,7 @@ char *make_str(FILE **_stream_) {
         free(str);
         return NULL;
     }
-    if (errno == EINTR) {
-        free(str);
-        str = NULL;
-    }
+
     return str; // return the str
 }
 
@@ -167,8 +164,8 @@ int dates_cmp(char *_date1, char *_date2) {
 
     return date1 > date2 ? 1 : date1 == date2 ? 0 : -1;
 }
-    // test main
-    // int main(int argc, char **argv) {
-    //     printf("%s\n", check_date_in_range(argv[1], argv[2], argv[3]) ? "YES"
-    //     :"NO"); exit(0);
-    // }
+
+// clean any garbage in a stream
+void clean_stream(FILE **_stream) {
+    fflush(*_stream);
+}

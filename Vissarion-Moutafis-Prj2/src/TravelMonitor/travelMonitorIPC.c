@@ -29,6 +29,16 @@ static void intialize_fds(void *_monitor, int nfd, struct pollfd fds[], int fd) 
 static void check_fds(int bufsiz, void *_monitor, struct pollfd fds[], int nfd, int *active, MessageHandler handler, void *return_args[]) {
     TravelMonitor monitor = (TravelMonitor)_monitor;
     for (int i = 0; i < nfd; i++) {
+        if (fds[i].fd == -1)continue;
+        // the process closed the file
+        if ((fds[i].revents & POLL_HUP) == POLL_HUP) {
+            // process do not write anymore so just leave
+            fds[i].fd = -1;
+            fds[i].events = 0;
+            fds[i].revents = 0;
+            (*active)--;
+            continue;
+        }
         // we can read
         if ((fds[i].revents & POLL_IN) == POLL_IN) {
             // there's something to read

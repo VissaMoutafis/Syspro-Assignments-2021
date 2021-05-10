@@ -124,7 +124,11 @@ int main(int argc, char ** argv) {
         if (errno == EINTR) {
             // clean errno
             errno = 0;
+            // clean the buffer
             if (expr) free(expr);
+            // clean stdin
+            clean_stream(&stdin);
+            // check the signals again
             continue;
         }
 

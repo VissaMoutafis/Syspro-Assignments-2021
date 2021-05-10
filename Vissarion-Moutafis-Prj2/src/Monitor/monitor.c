@@ -303,6 +303,7 @@ static void travel_request(Monitor monitor, char *value) {
     free(values);
 }
 
+void monitor_send_blooms(Monitor monitor, int out_fd);
 // function to search for added requests in the user-defined directory
 static void add_vaccination_records(Monitor monitor, char *value) {
     // value = NULL
@@ -312,8 +313,9 @@ static void add_vaccination_records(Monitor monitor, char *value) {
     int num_new_files = 0;
     fm_check_for_updates(monitor->fm, &new_files, &num_new_files);
     
-    // remove
+    #ifdef DEBUG
     printf("Found %d new file/paths.\n", num_new_files);
+    #endif
 
     // now iterate through the new files and add their records in the monitor
     for (int i = 0; i < num_new_files; i++) {
@@ -339,6 +341,9 @@ static void add_vaccination_records(Monitor monitor, char *value) {
     #ifdef DEBUG
         ht_print_keys(monitor->citizens, visit);
     #endif
+    
+    // Now we have to send the monitors
+    monitor_send_blooms(monitor, out_fd);
 }
 
 // utility to check whether a citizen is vacc's or not for a specific virus
