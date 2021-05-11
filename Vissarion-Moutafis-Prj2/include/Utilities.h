@@ -30,3 +30,14 @@ int dates_cmp(char *date1, char *date2);
 
 // clean any garbage in a stream
 void clean_stream(FILE **_stream);
+
+// argument parsing/checking utilities
+
+// print error along with a usage message
+void print_arg_error(char *usage);
+
+// <argc>, <argv> are the classic variables passed by main.
+// <values> is the static array that the corresponding argument values are
+// returned (malloc'd) <allowed_args> is the array of allowed argument flags
+// return true in success, otherwise return false
+bool parse_args(int argc, char *argv[], char *values[], char *allowed_args[], int num_allowed_args);

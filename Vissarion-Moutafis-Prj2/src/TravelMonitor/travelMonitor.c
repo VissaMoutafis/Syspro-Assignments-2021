@@ -447,14 +447,21 @@ void travel_monitor_finalize(TravelMonitor monitor) {
     // send sigkill to all monitors
 
     for (int i = 0; i < monitor->manager->num_monitors; i++) {
-        int status;
         int pid = monitor->manager->monitors[i].pid;
         kill(pid, SIGKILL);
-        if (pid != wait(&status)) {perror("wait");}
-        else {printf("Monitor %d exit with status '%d'\n", pid, status);}
     }
 
-    // write logs
+    // wait for all children
+    int status;
+    int ret;
+    errno = 0;
+    while ((ret=wait(&status)) != -1)
+        ;
+    
+    // if the error is anything else but "no child processes" then print it
+    if (errno && errno != 10) {perror("wait");}
+
+    // write logs for travel monitor
     travel_monitor_print_logs(monitor, TRAVEL_MONITOR_LOG_PATH);
 }
 

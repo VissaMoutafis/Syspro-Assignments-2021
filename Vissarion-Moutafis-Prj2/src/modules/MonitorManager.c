@@ -138,8 +138,6 @@ void monitor_manager_add_country(MonitorManager manager, int i, char *country_pa
         // first make a deep copy of the input trace entry
         Trace trace = create_trace(&manager->monitors[i], get_elem_name(country_path), true);
 
-        puts(get_elem_name(country_path));  // remove
-
         Pointer old = NULL;
         ht_insert(manager->countries_index, trace, false, &old);
 
