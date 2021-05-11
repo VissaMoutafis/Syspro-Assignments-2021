@@ -30,3 +30,9 @@ bool is_end;
 
 char error_msg[BUFSIZ];
 bool error_flag;
+
+// signal Specific variables
+int sigint_set;
+int sigquit_set;
+int sigchld_set;
+int sigusr1_set;

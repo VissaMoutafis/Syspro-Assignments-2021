@@ -1,7 +1,7 @@
 #include "IPC.h"
+#include "Config.h"
 
 // Fifo I/O routines
-
 
 // Protocol:
 // msg = header|body
@@ -101,8 +101,8 @@ int special_read(int fd, char *buf, int to_read, bool ignore_signals) {
     if (bytes_read == -1) {
         // ignore EAGAIN and EWOULDBLOCK
         if (errno == EAGAIN || errno == EWOULDBLOCK) return 0;
-        // signal interruption: check if we want to ignore signals or not
-        if (errno == EINTR && ignore_signals) return 0;
+        // signal interruption: check if we want to ignore signals or not (cannot escape SIGINT, SIGQUIT)
+        if (errno == EINTR && ignore_signals && !sigint_set && !sigquit_set) return 0;
 
         return -1;
     }

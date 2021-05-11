@@ -71,6 +71,10 @@ clean:
 	@$(MAKE) -C $(TRAVEL_MONITOR) -f travel_monitor.mk clean
 	@$(RM) -f $(OBJS)
 
+.PHONY : clean-logs
+clean-logs:
+	@$(RM) -rf logs
+
 .PHONY : print-msg
 print-msg:
 	@echo "DEBUG MODE: $(DEBUG_MSG)"

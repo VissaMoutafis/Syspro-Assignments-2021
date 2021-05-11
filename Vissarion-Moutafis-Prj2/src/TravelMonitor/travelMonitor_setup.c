@@ -140,9 +140,9 @@ bool create_monitor(TravelMonitor monitor, bool update, int i) {
         break;
 
         default:  // parent behaviour
-            // add the monitor into the manager
-            in_fifo = open(from_fifo_path, O_RDONLY | O_NONBLOCK);
-            out_fifo = open(to_fifo_path, O_WRONLY);
+            // add the monitor into the manager (ignore signal interruptions)
+            while ((in_fifo = open(from_fifo_path, O_RDONLY | O_NONBLOCK)) < 0 && errno == EINTR) errno = 0;
+            while ((out_fifo = open(to_fifo_path, O_WRONLY)) < 0 && errno == EINTR) errno =0;
             if (in_fifo < 0 || out_fifo < 0) {
                 perror("open"); exit(1);
             }

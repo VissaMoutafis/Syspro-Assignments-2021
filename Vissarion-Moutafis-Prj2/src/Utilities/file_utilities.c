@@ -33,6 +33,14 @@ char * get_parent_dir(char *path) {
     return str;
 }
 
+char *get_elem_name(char *path){
+    int i = strlen(path)-1;
+    while (i > 0 && path[i-1] != '/') i--;
+
+    return path + i;
+}
+
+
 void delete_dir(char *path) {
     DIR *dp;
     struct dirent *dir;

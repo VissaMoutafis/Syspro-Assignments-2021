@@ -74,9 +74,10 @@ int main(int argc, char * argv[]) {
         exit(1);
     }
     // open the fifos
-    int in_fd = open(values[0], O_RDONLY | O_NONBLOCK);
-    int out_fd = open(values[1], O_WRONLY);
-
+    int in_fd;
+    int out_fd;
+    while ((in_fd = open(values[0], O_RDONLY | O_NONBLOCK)) < 0 && errno == EINTR) errno = 0;
+    while ((out_fd = open(values[1], O_WRONLY)) < 0 && errno == EINTR) errno = 0;
     // set a return array
     void *ret_args[2] = {NULL, NULL};
     // get the buffer size and the bloom size from the parent process
@@ -161,4 +162,6 @@ int main(int argc, char * argv[]) {
 
     // final cleaning function (adjust in the appropriate place of code)
     monitor_destroy(monitor);
+
+    exit(0);
 }

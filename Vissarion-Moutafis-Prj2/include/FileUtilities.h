@@ -9,6 +9,9 @@ int is_dir(char *path);
 // get the parent directory path of the current path
 char *get_parent_dir(char *path);
 
+// get the part of the <path> that resembles the file/dir name
+char *get_elem_name(char *path);
+
 void delete_dir(char *path);
 
 void delete_file(char *path);

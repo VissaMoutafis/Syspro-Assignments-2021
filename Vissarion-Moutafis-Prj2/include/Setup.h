@@ -36,10 +36,7 @@ void send_dirs_to_monitor(MonitorTrace *t);
 
 
 // Signal Handling configurations
-int sigint_set;
-int sigquit_set;
-int sigchld_set;
-int sigusr1_set;
+
 
 void travel_monitor_signal_handlers(void);
 void monitor_signal_handlers(void);

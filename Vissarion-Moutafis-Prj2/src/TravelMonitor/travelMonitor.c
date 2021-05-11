@@ -60,14 +60,14 @@ static bool try_answer_travel_request(TravelMonitor monitor, void *args[], void 
     char *citizenID = (char *)args[2];
     char *date = (char *)args[3];
     char *countryTo = (char *)args[4];
-    if (!bf_contains(bft->bf, citizenID)) {
+    if (check_date(date) && !bf_contains(bft->bf, citizenID)) {
         // set up the answer
         memset(ans_buffer, 0, BUFSIZ);
         sprintf(ans_buffer, "REQUEST REJECTED - YOU ARE NOT VACCINATED");
-
         // add a rejection record
         RequestRec new_rec = request_record_create(date, countryTo);
         list_insert(vs->rejected, new_rec, true);
+        monitor->rejected++;
         return true;
     }
 
@@ -95,7 +95,7 @@ static bool delegate_travel_request(TravelMonitor monitor, void *args[], void *r
     // first find the respective monitor
     struct trace t = {.country = countryFrom};
     Pointer entry = NULL;
-    if (ht_contains(monitor->manager->countries_index, &t, &entry)) {
+    if (check_date(req_date) && ht_contains(monitor->manager->countries_index, &t, &entry)) {
         MonitorTrace *m_trace = ((Trace)entry)->m_trace;
 
         // send a message and w8 for response
@@ -113,15 +113,17 @@ static bool delegate_travel_request(TravelMonitor monitor, void *args[], void *r
         if (strcmp(response, "NO") == 0) {
             memset(ans_buffer, 0, BUFSIZ);
             sprintf(ans_buffer, "REQUEST REJECTED - YOU ARE NOT VACCINATED");
+            monitor->rejected++;
         } else if (!check_vacc_date(date, req_date)) {
             memset(ans_buffer, 0, BUFSIZ);
-            sprintf(
-                ans_buffer,
-                "REQUEST REJECTED - YOU WILL NEED ANOTHER VACCINATION BEFORE");
+            sprintf(ans_buffer, "REQUEST REJECTED - YOU WILL NEED ANOTHER VACCINATION BEFORE");
+            monitor->rejected++;
+
         } else {
             accepted = true;
             memset(ans_buffer, 0, BUFSIZ);
             sprintf(ans_buffer, "REQUEST ACCEPTED - HAPPY TRAVELS");
+            monitor->accepted++;
         }
         // add the request into the appropriate l
         List l = accepted ? vs->accepted : vs->rejected;
@@ -224,6 +226,8 @@ void travel_request(TravelMonitor monitor, char *value) {
     }
 }
 
+// if you don't care about the country then just pass null 
+// and every record regardless the country will be included
 static int count_recs(List recs, char *date1, char *date2, char *country) {
     ListNode node = list_get_head(recs);
     int cnt = 0;
@@ -322,7 +326,6 @@ void search_vaccination_status(TravelMonitor monitor, char *value) {
 }
 
 
-// Travel Monitor Routines
 
 void travel_monitor_restore_children(TravelMonitor monitor) {
     // Need to check all monitors for there might be more than one that failed
@@ -369,6 +372,46 @@ void travel_monitor_restore_children(TravelMonitor monitor) {
     }
 }
 
+// utility to print the logs
+static void travel_monitor_print_logs(TravelMonitor monitor, char *logs_path) {
+    // first we have to create the file
+    char logfile_path[BUFSIZ];
+    memset(logfile_path, 0, BUFSIZ);
+    sprintf(logfile_path, "%s/log_file.%d", logs_path, getpid());
+
+    int log_fd = open(logfile_path, O_WRONLY | O_APPEND | O_CREAT, 0644);
+    // first we have to write the countries
+    // that exist in every monitor trace
+    for (int m_id = 0; m_id < monitor->manager->num_monitors; m_id++) {
+        // get the country paths table
+        char **countries_paths = monitor->manager->monitors[m_id].countries_paths;
+        // get the countries num
+        int num_countries = monitor->manager->monitors[m_id].num_countries;
+        for (int i = 0; i < num_countries; i++) {
+            // take care that this returns a pointer not malloc'd string
+            char *country = get_elem_name(countries_paths[i]);
+            // write and dont get interrupted by a signal
+            while(write(log_fd, country, strlen(country)) == -1 && errno == EINTR)errno = 0;
+            while(write(log_fd, "\n", 1) == -1 && errno == EINTR)errno = 0;
+        }
+    }   
+
+    // Now we have to print the Stats
+    char stats[BUFSIZ];
+    memset(stats, 0, BUFSIZ);
+    sprintf(stats, "TOTAL TRAVEL REQUESTS %d\nACCEPTED %d\nREJECTED %d\n", 
+            monitor->accepted+monitor->rejected,
+            monitor->accepted,
+            monitor->rejected);
+        
+    // write the buffer into the logfile
+    write(log_fd, stats, strlen(stats)); 
+
+    close(log_fd);
+}
+
+// Travel Monitor Routines
+
 void travel_monitor_initialize(void) {
     error_flag = false;
     memset(error_msg, 0, BUFSIZ);
@@ -404,11 +447,15 @@ void travel_monitor_finalize(TravelMonitor monitor) {
     // send sigkill to all monitors
 
     for (int i = 0; i < monitor->manager->num_monitors; i++) {
+        int status;
         int pid = monitor->manager->monitors[i].pid;
         kill(pid, SIGKILL);
+        if (pid != wait(&status)) {perror("wait");}
+        else {printf("Monitor %d exit with status '%d'\n", pid, status);}
     }
 
-    // write logs TODO
+    // write logs
+    travel_monitor_print_logs(monitor, TRAVEL_MONITOR_LOG_PATH);
 }
 
 bool travel_monitor_act(TravelMonitor monitor, int expr_index, char *value) {

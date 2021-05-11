@@ -1,4 +1,5 @@
 #include "MonitorManager.h"
+#include "FileUtilities.h"
 
 // Basic Utilities for monitor trace hashtable
 int cmp_trace(Pointer _t1, Pointer _t2) {
@@ -111,16 +112,6 @@ bool monitor_manager_get_at(MonitorManager manager, int i, MonitorTrace *trace) 
     return found;
 }
 
-// return the last part of path. DOES NOT ALLOCATE MEMORY
-static char *extract_country(char *path) {
-    int path_len = strlen(path);
-    int i;
-    for (i = path_len-1; i > 0; i--) {
-        if (path[i] == '/')
-            break;
-    }
-    return path+i+1;
-}
 
 // add a copy of 'country' to i-th monitor
 void monitor_manager_add_country(MonitorManager manager, int i, char *country_path) {
@@ -145,7 +136,10 @@ void monitor_manager_add_country(MonitorManager manager, int i, char *country_pa
         // add a records of that in the hashtable
 
         // first make a deep copy of the input trace entry
-        Trace trace = create_trace(&manager->monitors[i], extract_country(country_path), true);
+        Trace trace = create_trace(&manager->monitors[i], get_elem_name(country_path), true);
+
+        puts(get_elem_name(country_path));  // remove
+
         Pointer old = NULL;
         ht_insert(manager->countries_index, trace, false, &old);
 

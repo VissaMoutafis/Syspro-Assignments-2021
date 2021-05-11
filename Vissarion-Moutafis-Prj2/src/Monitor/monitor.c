@@ -326,7 +326,7 @@ static void add_vaccination_records(Monitor monitor, char *value) {
         // add all the records in the monitor
         for (int rec_id = 0; rec_id < num_records; rec_id++) {
             // insert the new records
-            insert_record(monitor, records[rec_id], false);
+            insert_record(monitor, records[rec_id], true);
             // delete the records entry since it's not useful no more
             free(records[rec_id]);
         }
