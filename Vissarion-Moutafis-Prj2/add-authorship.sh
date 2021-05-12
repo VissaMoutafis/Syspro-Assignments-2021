@@ -1,10 +1,10 @@
 #!/bin/bash 
 
-
 add-authorship-file() {
 	# file is $1
 	# msg is $2
-	printf  "$(printf "$2")\n\n$(cat "$1")" > "$1"
+	## CHANGE THIS LINE ONLY
+	sed -i '1s/^/\/**\n*\tSyspro Project 2\n*\t Written By Vissarion Moutafis sdi1800119\n**\/\n \n/' "$1"
 }
 
 add-authorship-dir() {
@@ -17,7 +17,7 @@ add-authorship-dir() {
 	# take care of files
 	for file in $files; do
 		echo "Adding Author's Message in $1/$file"
-		add-authorsip-file $file $msg
+		add-authorship-file "$1/$file" "$msg"
 	done
 
 	# take care of directories
@@ -34,9 +34,6 @@ add-authorship() {
 	# usage message (DO NOT CHANGE)
 	usage="Usage:  ~\$ add-authorship project-dir|file [regex to choose files if $1 is a dir]"
 	
-	## CHANGE THIS LINE ONLY
-	author_msg="/**\n*\tSyspro Project 2*\t Written By Vissarion Moutafis sdi1800119\n**/"
-	##
 
 	elem="$1"
 
@@ -58,10 +55,10 @@ add-authorship() {
 			regex="$2"
 		fi
 
-		add-authorship-dir "$elem" "$author_msg" "$regex"
+		add-authorship-dir "$elem" "" "$regex"
 	else
 		# case the element is a file
-		add-authorsip-file "$elem" "$author_msg"
+		add-authorsip-file "$elem" ""
 	fi
 }
 
