@@ -65,7 +65,7 @@ run : all
 	$(BIN)/$(PROGRAM) $(ARGS)
 
 .PHONY : re-run
-re-run: clean $(BIN)/$(PROGRAM)
+re-run: clean run
 
 .PHONY : valgrind-run 
 valgrind-run : $(BIN)/$(PROGRAM)
