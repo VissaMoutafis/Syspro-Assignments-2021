@@ -11,8 +11,10 @@ static char *usage = "Usage : \n ~$./ monitor - i inputFifo - o outputFifo";
 
 // call as: ./monitor -i inputFifo -o outputFifo
 int main(int argc, char * argv[]) {
-    monitor_signal_handlers();
+    #ifdef DEBUG
     printf("child %d\n", getpid());
+    #endif
+    
     // First check arguments 
     char *values[2]={NULL, NULL};                        // the values of the arguments
     char *allowed_args[2] = {"-i", "-o"};               // argument flags (input -i, output -o) 
@@ -21,6 +23,10 @@ int main(int argc, char * argv[]) {
         print_arg_error(usage);
         exit(1);
     }
+
+    // set up signal handlers
+    monitor_signal_handlers();
+
     // open the fifos
     int in_fd;
     int out_fd;

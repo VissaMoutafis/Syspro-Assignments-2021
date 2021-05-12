@@ -247,7 +247,6 @@ static int count_recs(List recs, char *date1, char *date2, char *country) {
 }
 
 void travel_stats(TravelMonitor monitor, char *value) {
-    puts(value);
     // values: virusName date1 date2 [country]
     int cols = 0;
     char **parsed_value = parse_line(value, &cols, FIELD_SEPARATOR);

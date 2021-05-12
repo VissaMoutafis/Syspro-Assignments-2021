@@ -33,8 +33,14 @@ ifeq ($(DEBUG), 1)
 	DEBUG_MSG = ON
 endif
 
+
+# program name
+PROGRAM := travelMonitor
+# args for <run>
+ARGS := -m 3 -b 7 -s 100000 -i testdir
+
 .PHONY : all
-all : print-msg
+all : print-msg 
 	@echo "Building Monitor module..."
 	@$(MAKE) -C $(MONITOR) -f monitor.mk 
 	@echo "Done"
@@ -52,18 +58,22 @@ monitor :
 travel_monitor :	
 	@echo "Building Travel Monitor module..."	
 	@$(MAKE) -C $(TRAVEL_MONITOR) -f travel_monitor.mk
-	@echo Done.
+	@echo Done!
 
 .PHONY : run
 run : all
-	./$(BUILD)/$(PROGRAM) $(ARGS)
+	$(BIN)/$(PROGRAM) $(ARGS)
 
 .PHONY : re-run
-re-run: clean $(BUILD)/$(PROGRAM)
+re-run: clean $(BIN)/$(PROGRAM)
 
 .PHONY : valgrind-run 
-valgrind-run : $(BUILD)/$(PROGRAM)
-	valgrind --leak-check=full --show-leak-kinds=all ./$(BUILD)/$(PROGRAM) $(ARGS)
+valgrind-run : $(BIN)/$(PROGRAM)
+	valgrind \
+	--leak-check=full \
+	--show-leak-kinds=all \
+	--trace-children=yes \
+	$(BIN)/$(PROGRAM) $(ARGS)
 
 .PHONY : clean
 clean:
@@ -73,7 +83,9 @@ clean:
 
 .PHONY : clean-logs
 clean-logs:
+	@echo "Cleaning logs..."
 	@$(RM) -rf logs
+	@echo "Done!"
 
 .PHONY : print-msg
 print-msg:

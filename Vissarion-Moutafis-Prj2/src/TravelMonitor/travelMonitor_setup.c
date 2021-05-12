@@ -179,7 +179,7 @@ void send_init_stats_to_monitor(TravelMonitor monitor, MonitorTrace *t) {
     memset(buf, 0, 21);
     snprintf(buf, 21, "%0*u%0*lu", 10, monitor->buffer_size, 10,
              monitor->bloom_size);
-    printf("sending stuff to %d\n", t->out_fifo);
+
     // send the init elements
     send_msg(t->out_fifo, buf, 20, INIT_CHLD);
     // communicate transmision termination

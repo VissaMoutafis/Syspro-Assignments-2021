@@ -5,7 +5,10 @@
 static char *usage = "Usage: \n    ~$ ./travelMonitor –m numMonitors -b bufferSize -s sizeOfBloom -i input_dir";
 
 int main(int argc, char ** argv) {
+    #ifdef DEBUG
     printf("parent %d\n", getpid());
+    #endif
+
     char *values[4] = {NULL, NULL, NULL, NULL};
     char *allowed_args[] = {"-m", "-b", "-s", "-i"};
     if (!parse_args(argc, argv, values, allowed_args, 4)
@@ -120,4 +123,6 @@ int main(int argc, char ** argv) {
         travel_monitor_finalize(monitor);
     
     travel_monitor_destroy(monitor);
+
+    exit(0);
 }
