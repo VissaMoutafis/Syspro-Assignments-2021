@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 2
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+ 
 #include "Setup.h"
 
 //routine to create fifos
@@ -28,7 +33,7 @@ void clean_fifos(void) {
     else {perror("clean fifos"); exit(1);}
 }
 
-void send_dirs_to_monitor(MonitorTrace *t) {
+void send_dirs_to_monitor(TravelMonitor monitor, MonitorTrace *t) {
     char **countries = t->countries_paths;
     int num_countries = t->num_countries;
     char *buffer = NULL;  // the buffer we will send to child
@@ -53,9 +58,9 @@ void send_dirs_to_monitor(MonitorTrace *t) {
         bufsiz += country_len + 1;
     }
     // send the country to the child
-    send_msg(t->out_fifo, buffer, bufsiz, INIT_CHLD);
+    send_msg(t->out_fifo, monitor->buffer_size, buffer, bufsiz, INIT_CHLD);
     // send end message code (<msg> set to NULL)
-    send_msg(t->out_fifo, NULL, 0, MSGEND_OP);
+    send_msg(t->out_fifo, monitor->buffer_size, NULL, 0, MSGEND_OP);
     // delete the monitor
     free(buffer);
 }
@@ -72,7 +77,7 @@ bool send_dirs(TravelMonitor monitor) {
                     i);
             exit(1);
         }
-        send_dirs_to_monitor(&t);
+        send_dirs_to_monitor(monitor, &t);
     }
     return true;
 }
@@ -181,9 +186,9 @@ void send_init_stats_to_monitor(TravelMonitor monitor, MonitorTrace *t) {
              monitor->bloom_size);
 
     // send the init elements
-    send_msg(t->out_fifo, buf, 20, INIT_CHLD);
+    send_msg(t->out_fifo, monitor->buffer_size, buf, 20, INIT_CHLD);
     // communicate transmision termination
-    send_msg(t->out_fifo, NULL, 0, MSGEND_OP);
+    send_msg(t->out_fifo, monitor->buffer_size, NULL, 0, MSGEND_OP);
 }
 
 bool send_init_stats(TravelMonitor monitor) {

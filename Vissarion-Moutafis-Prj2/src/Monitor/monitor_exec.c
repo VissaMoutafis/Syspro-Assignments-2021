@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 2
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+ 
 #include "TTY.h"
 #include "Types.h"
 #include "Utilities.h"
@@ -67,7 +72,7 @@ int main(int argc, char * argv[]) {
     // initialize the monitor globals
     monitor_initialize(out_fd);
     // create a monitor 
-    Monitor monitor = monitor_create(fm, bloom_size, SL_HEIGHT, SL_FACTOR);
+    Monitor monitor = monitor_create(fm, bloom_size, buffer_size, SL_HEIGHT, SL_FACTOR);
     // send the bloom filters to the parent process
     monitor_send_blooms(monitor, out_fd);
 
@@ -77,7 +82,7 @@ int main(int argc, char * argv[]) {
     ret_args[1] = NULL;
     get_response(buffer_size, monitor, accept_syn, in_fd, ret_args);
     if (is_syn) {
-        send_msg(out_fd, NULL, 0, ACK_OP);
+        send_msg(out_fd, buffer_size, NULL, 0, ACK_OP);
     } else {
         puts("FAILED");
     }

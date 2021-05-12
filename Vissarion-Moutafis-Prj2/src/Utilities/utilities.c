@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 2
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+ 
 /*
 ** Usefull utilities like string parsers and file lines to string converters
 **  Implemented by Vissarion Moutafis sdi1800119

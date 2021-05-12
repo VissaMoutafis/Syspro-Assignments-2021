@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 2
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+ 
 #include "IPC.h"
 #include "Config.h"
 
@@ -15,8 +20,42 @@ static void set_header(char *msg, int body_len, int opcode) {
     snprintf(msg + HDR_OP_LEN, HDR_MSGSIZE_LEN+1, "%0*d", HDR_MSGSIZE_LEN, body_len);
 }
 
+static int special_write(int fd, char *buf, int bufsiz) {
+    int bytes_wrote = write(fd, buf, bufsiz);
+    if (bytes_wrote == -1) {
+        if (errno == EINTR) return 0;
+        return -1;
+    }
+    return bytes_wrote;
+}
+
+void my_write(int fd, char *msg, int bytes_to_write, u_int32_t bufsiz) {
+    int total_written_bytes = 0;
+    
+    bufsiz = bufsiz > bytes_to_write ? bytes_to_write : bufsiz;
+    char buffer[bufsiz];
+    memset(buffer, 0, bufsiz);
+    while (total_written_bytes < bytes_to_write) {
+        // how many bytes left to write
+        int diff = bytes_to_write - total_written_bytes;
+        // how many bytes we will write in current iteration
+        int to_write = bufsiz > diff ? diff : bufsiz;
+        // copy them in the buffer
+        memcpy(buffer, msg+total_written_bytes, to_write);
+        // write the buffer
+        int bytes_wrote = special_write(fd, buffer, to_write);
+        if (bytes_wrote == 0)
+            continue;
+        else if (bytes_wrote == -1) {
+            perror("send_msg");
+            exit(1);
+        }
+        // update total_written_bytes
+        total_written_bytes += to_write;
+    }
+}
 // function to send a message to fd
-void send_msg(int fd, char *body, int body_len, int opcode) {
+void send_msg(int fd, u_int32_t bufsize, char *body, int body_len, int opcode) {
     // initialize a message buffer for the packet
     char msg[HDR_LEN + body_len];
     memset(msg, 0, HDR_LEN+body_len);
@@ -29,15 +68,9 @@ void send_msg(int fd, char *body, int body_len, int opcode) {
         char *body_part = msg+HDR_LEN;
         memcpy(body_part, body, body_len);
     }
+
     // send the packet into the fd
-    while (write(fd, msg, HDR_LEN+body_len) == -1) {
-        // ignore signals
-        // retry to send stuff
-        if (errno == EINTR)
-            continue;
-        perror("send_msg"); 
-        exit(1);
-    }
+    my_write(fd, msg, HDR_LEN + body_len, bufsize);
 }
 
 
@@ -62,7 +95,7 @@ static void parse_header(char *buffer, int *body_len, int *opcode) {
 }
 
 // read the header
-static void read_header(int fd, int bufsize, int *body_len, int *opcode, bool ignore_signals) {
+static void read_header(int fd, u_int32_t bufsize, int *body_len, int *opcode, bool ignore_signals) {
     char header[HDR_LEN];
     memset(header, 0, HDR_LEN);
     *body_len = 0;
@@ -78,7 +111,7 @@ static void read_header(int fd, int bufsize, int *body_len, int *opcode, bool ig
 // function to read a message from fd
 // We allocate memory for the body variable. User must free it. 
 // NOTE THAT *body is exactly *body_len characters long, there is NO terminator
-void read_msg(int fd, int bufsize, char **body, int *body_len, int *opcode, bool ignore_signals) {
+void read_msg(int fd, u_int32_t bufsize, char **body, int *body_len, int *opcode, bool ignore_signals) {
     // basic init of the returned variables
     *body = NULL;
     *body_len = 0;
@@ -112,7 +145,7 @@ int special_read(int fd, char *buf, int to_read, bool ignore_signals) {
 
 // Note that buffer must be assigned at least bytes_to_read bytes of memory
 // classic read, wrapper, return 0 if EOF, else return 1
-void my_read(int fd, char *buffer, int bytes_to_read, int bufsize, bool ignore_signals) {
+void my_read(int fd, char *buffer, int bytes_to_read, u_int32_t bufsize, bool ignore_signals) {
     if (bufsize > bytes_to_read)
         bufsize = bytes_to_read;
 

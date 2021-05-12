@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 2
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+ 
 #include "TravelMonitor.h"
 #include "Setup.h"
 #include "TTY.h"
@@ -57,7 +62,7 @@ int main(int argc, char ** argv) {
         bool ack_received = false;
         void *ret_args[] = {&ack_received};
         MonitorTrace *m_trace = &(monitor->manager->monitors[i]);
-        send_msg(m_trace->out_fifo, NULL, 0, SYN_OP);
+        send_msg(m_trace->out_fifo, monitor->buffer_size, NULL, 0, SYN_OP);
         
         travel_monitor_get_response(bufferSize, monitor, accept_ack, m_trace->in_fifo, ret_args);
         if (!ack_received) {

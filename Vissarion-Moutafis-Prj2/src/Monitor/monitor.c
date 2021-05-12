@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 2
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+ 
 #include "Monitor.h"
 #include "StructManipulation.h"
 
@@ -42,14 +47,14 @@ char *possible_commands[] = {
 int max_values[5] = {5, 4, 1, 1, 0};
 int min_values[5] = {4, 1, 1, 1, 0};
 
-void answer(int opcode) {
+void answer(Monitor monitor, int opcode) {
     int buf_len = strlen(ans_buffer);
     if (buf_len) {    char buf[buf_len];
         memset(buf, 0, buf_len);
         memcpy(buf, ans_buffer, buf_len);
-        send_msg(out_fd, buf, buf_len, opcode);
+        send_msg(out_fd, monitor->buffer_size, buf, buf_len, opcode);
     }
-    send_msg(out_fd, NULL, 0, MSGEND_OP);
+    send_msg(out_fd, monitor->buffer_size, NULL, 0, MSGEND_OP);
 
     // puts(ans_buffer); //remove
 
@@ -518,8 +523,9 @@ void monitor_finalize(Monitor monitor) {
     is_end = true;
 }
 
-Monitor monitor_create(FM fm, int bloom_size, int sl_height, float sl_factor) {
+Monitor monitor_create(FM fm, int bloom_size, int buffer_size, int sl_height, float sl_factor) {
     Monitor m = calloc(1, sizeof(*m));
+    m->buffer_size = buffer_size;
     m->accepted = 0;
     m->rejected = 0;
     m->bloom_size = bloom_size;
@@ -552,7 +558,7 @@ bool monitor_act(Monitor monitor, int expr_index, char *value) {
     switch (expr_index) {
     case 0: // command: /travelRequest, value: citizenID date, countryFrom countryTo virusName
             travel_request(monitor, value);
-            answer(Q1_PAR); // response to parent for Q1
+            answer(monitor, Q1_PAR); // response to parent for Q1
         break;
     case 2: // command: /addVaccinationRecords, value: country-dir path
             add_vaccination_records(monitor, value);
@@ -560,7 +566,7 @@ bool monitor_act(Monitor monitor, int expr_index, char *value) {
 
     case 3: // command: /searchVaccinationStatus, value: citizenID
             search_vaccination_status(monitor, value);
-            answer(Q4_PAR); // response to parent for Q4
+            answer(monitor, Q4_PAR); // response to parent for Q4
         break;
 
     case 4: // command: /exit, value: -
@@ -593,14 +599,14 @@ void monitor_send_blooms(Monitor monitor, int out_fd) {
         int bufsiz = 0;
         set_bf_buf(header, header_len, virus_info, &buf, &bufsiz);
         // send the buffer
-        send_msg(out_fd, buf, bufsiz, INIT_PAR);
+        send_msg(out_fd, monitor->buffer_size, buf, bufsiz, INIT_PAR);
         // free the memory
         free(buf);
         node = list_get_next(monitor->virus_info, node);
     }
 
     // notify that you done sending bfs
-    send_msg(out_fd, NULL, 0, MSGEND_OP);
+    send_msg(out_fd, monitor->buffer_size, NULL, 0, MSGEND_OP);
 
     // free the buffers used
     free(header);

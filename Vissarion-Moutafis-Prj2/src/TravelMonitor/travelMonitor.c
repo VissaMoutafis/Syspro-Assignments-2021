@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 2
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+ 
 #include "TravelMonitor.h"
 #include "StructManipulation.h"
 #include "Setup.h"
@@ -74,13 +79,13 @@ static bool try_answer_travel_request(TravelMonitor monitor, void *args[], void 
     return false;
 }
 
-static void send_query_to_child(int opcode, int expr_id, char *value, int out_fd) {
+static void send_query_to_child(int opcode, int expr_id, char *value, int out_fd, u_int32_t bufsiz) {
     int buf_len = strlen(value) + 10;  // value + 10 digs for expr index
     char buf[buf_len];
     sprintf(buf, "%0*d", 10, expr_id);
     memcpy(buf + 10, value, buf_len - 10);
-    send_msg(out_fd, buf, buf_len, Q1_CHLD);
-    send_msg(out_fd, NULL, 0, MSGEND_OP);
+    send_msg(out_fd, bufsiz, buf, buf_len, Q1_CHLD);
+    send_msg(out_fd, bufsiz, NULL, 0, MSGEND_OP);
 }
 
 static bool delegate_travel_request(TravelMonitor monitor, void *args[], void *ret_args[]) {
@@ -99,7 +104,7 @@ static bool delegate_travel_request(TravelMonitor monitor, void *args[], void *r
         MonitorTrace *m_trace = ((Trace)entry)->m_trace;
 
         // send a message and w8 for response
-        send_query_to_child(Q1_CHLD, 0, value, m_trace->out_fifo);
+        send_query_to_child(Q1_CHLD, 0, value, m_trace->out_fifo, monitor->buffer_size);
 
         // responses format: YES$<date> or NO
         char *response = NULL;
@@ -143,7 +148,7 @@ static bool delegate_vacc_status_search(TravelMonitor monitor, void *args[], voi
     // now we have to send it to all of the monitors
     for (int i = 0; i < monitor->manager->num_monitors; i++) {
         MonitorTrace *m_trace = &(monitor->manager->monitors[i]);
-        send_query_to_child(Q4_CHLD, 3, value, m_trace->out_fifo);
+        send_query_to_child(Q4_CHLD, 3, value, m_trace->out_fifo, monitor->buffer_size);
     }
     return true;
 }
@@ -356,14 +361,14 @@ void travel_monitor_restore_children(TravelMonitor monitor) {
         // send init stats
         send_init_stats_to_monitor(monitor, &m_trace);
         // and we send the countries and wait for the BFs
-        send_dirs_to_monitor(&m_trace);
+        send_dirs_to_monitor(monitor, &m_trace);
         // wait for the new BFS
         travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, m_trace.in_fifo, NULL);
 
         // send an syn and wait for ack (confirm child initialization)
         bool ack_received = false;
         void *ret_args[] = {&ack_received};
-        send_msg(m_trace.out_fifo, NULL, 0, SYN_OP);
+        send_msg(m_trace.out_fifo, monitor->buffer_size, NULL, 0, SYN_OP);
         travel_monitor_get_response(monitor->buffer_size, monitor, accept_ack, m_trace.in_fifo, ret_args);
         if (!ack_received) {
             printf("process %d is not ready.\n", m_trace.pid);

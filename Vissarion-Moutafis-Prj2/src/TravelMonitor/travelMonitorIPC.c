@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 2
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+ 
 #include "TravelMonitor.h"
 
 static void intialize_fds(void *_monitor, int nfd, struct pollfd fds[], int fd) {

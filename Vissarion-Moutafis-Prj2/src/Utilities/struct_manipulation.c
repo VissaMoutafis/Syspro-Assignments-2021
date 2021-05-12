@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 2
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+ 
 /*
 ** Basic Struct manipulation functions
 ** Implemented by Vissarion Moutafis sdi1800119

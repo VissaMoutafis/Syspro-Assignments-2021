@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 2
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+ 
 #include "Monitor.h"
 
 static void check_fds(int bufsiz, void *monitor, struct pollfd fds[], int nfd, int *active, MessageHandler handler, void *return_args[]) {

@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 2
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+ 
 #include "Monitor.h"
 
 static void init_msg(char dest[], char *msg, int msg_len) {

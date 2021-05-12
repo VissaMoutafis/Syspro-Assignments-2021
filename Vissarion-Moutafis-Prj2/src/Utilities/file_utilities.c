@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 2
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+ 
 #include "FileUtilities.h"
 
 // return 1 if the path is a directory, else 0
