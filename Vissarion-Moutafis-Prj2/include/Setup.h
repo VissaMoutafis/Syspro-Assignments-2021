@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 2
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+ 
 #pragma once
 #include "Config.h"
 #include "Types.h"
@@ -32,7 +37,7 @@ bool create_monitor(TravelMonitor monitor, bool update, int i);
 void send_init_stats_to_monitor(TravelMonitor monitor, MonitorTrace *t);
 
 // send the already assigned dirs to monitor (just pass its monitor trace)
-void send_dirs_to_monitor(MonitorTrace *t);
+void send_dirs_to_monitor(TravelMonitor monitor, MonitorTrace *t);
 
 
 // Signal Handling configurations

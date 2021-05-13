@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 2
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+ 
 #pragma once
 
 #include "Types.h"
@@ -43,15 +48,18 @@
 // I/O Routines
 
 // function to send messages in fifos 
-void send_msg(int fd, char *body, int body_len, int opcode);
+void send_msg(int fd, u_int32_t bufsize, char *body, int body_len, int opcode);
+
+// function to write a msg of len <bytes_to_write> in fd, with a buffer of size <bufsiz>
+void my_write(int fd, char *msg, int bytes_to_write, u_int32_t bufsiz);
 
 // function to read messages in fifos
 // We allocate memory for the body variable. User must free it.
 // NOTE THAT *body is exactly *body_len characters long, there is NO terminator
-void read_msg(int fd, int bufsize, char **body, int *body_len, int *opcode, bool ignore_signals);
+void read_msg(int fd, u_int32_t bufsize, char **body, int *body_len, int *opcode, bool ignore_signals);
 
 // classic read wrapper.
-void my_read(int fd, char *buffer, int bytes_to_read, int bufsize, bool ignore_signals);
+void my_read(int fd, char *buffer, int bytes_to_read, u_int32_t bufsize, bool ignore_signals);
 
 ////////////////////////////////////////////////////////////////////
 

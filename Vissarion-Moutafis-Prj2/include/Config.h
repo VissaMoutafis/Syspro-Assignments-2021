@@ -1,6 +1,13 @@
+/**
+*	Syspro Project 2
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+ 
 #pragma once
 #include "Types.h"
 
+// def bufsiz
+#define DEF_BUFSIZ 32
 
 // for fifos 
 #define FIFO_DIR "fifos"

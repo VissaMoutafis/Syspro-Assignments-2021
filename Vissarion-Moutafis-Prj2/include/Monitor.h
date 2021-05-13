@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 2
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+ 
 #pragma once
 
 #include "Types.h"
@@ -26,6 +31,7 @@ typedef struct monitor {
     // hash table {key: virusName, items:[bf, vacc_sl, non_vacc_sl]}
     List virus_info;
     int bloom_size;
+    int buffer_size;
     int sl_height;
     float sl_factor;
 } * Monitor;
@@ -57,7 +63,7 @@ void monitor_initialize(int out_fd);
 void monitor_finalize(Monitor monitor);
 
 // Function to create a vaccine monitor 
-Monitor monitor_create(FM fm, int bloom_size, int sl_height, float sl_factor);
+Monitor monitor_create(FM fm, int bloom_size, int buffer_size, int sl_height, float sl_factor);
 
 // function to destroy and deallocate the memory of a vaccine monitor
 void monitor_destroy(Monitor m);
