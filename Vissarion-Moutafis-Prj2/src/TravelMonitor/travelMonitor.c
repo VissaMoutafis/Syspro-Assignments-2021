@@ -65,6 +65,7 @@ static bool try_answer_travel_request(TravelMonitor monitor, void *args[], void 
     char *citizenID = (char *)args[2];
     char *date = (char *)args[3];
     char *countryTo = (char *)args[4];
+    puts(citizenID);
     if (check_date(date) && !bf_contains(bft->bf, citizenID)) {
         // set up the answer
         memset(ans_buffer, 0, BUFSIZ);
@@ -196,7 +197,8 @@ void travel_request(TravelMonitor monitor, char *value) {
     int cols = 0;
     char **parsed_value = parse_line(value, &cols, FIELD_SEPARATOR);
     char *virusName = parsed_value[cols-1];
-    char *citizenID = parsed_value[0];
+    char citizenID[5]; memset(citizenID, 0, 5);
+    sprintf(citizenID, "%04d",atoi(parsed_value[0]));
     char *date = parsed_value[1];
     char *countryFrom = parsed_value[2];
     char *countryTo = parsed_value[3];

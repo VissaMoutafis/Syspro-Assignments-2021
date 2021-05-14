@@ -28,6 +28,9 @@ We used 1 general makefile and 2 .mk files for better organized compilation.
 ~$ make re-run # re-compile and run
 ~$ make clean-logs # clean the log-files and the log dir
 
+IMPORTANT NOTES:
+> CITIZEN ID MUST BE A 4 DIGIT NUMBER, ELSE IT WILL NO BE PROPERLY HASHED IN BLOOMS 
+> Nevertheless in other struct we 
 
 
 ## Travel Monitor Details:

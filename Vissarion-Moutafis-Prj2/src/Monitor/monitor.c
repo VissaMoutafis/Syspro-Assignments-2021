@@ -123,8 +123,6 @@ static void virus_info_insert(Monitor monitor, Person p, bool update, char *viru
                 bf_insert(v->bf, p->citizenID);
 
             #ifdef DEBUG
-            if (is_vaccinated)
-                assert(bf_contains(v->bf, p->citizenID));
             assert(sl_search(sl, vr));
             #endif
         } else {
