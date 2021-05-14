@@ -32,6 +32,29 @@ We used 1 general makefile and 2 .mk files for better organized compilation.
 
 ## Travel Monitor Details:
 
+The travel Monitor is the basic module that encloses the children-process generation the creation of fifos and logs
+and the user query satisfaction. It is implemented as a wrapper that contains a hash table of <virusStats> that keep the blooms 
+of each country group, lists of accepted/rejected requests with dates and a <MonitorManager> object that keeps the children 
+monitoring easy and modular. 
+
+Also we implement all the message handlers and IPC-related polling as described in later sections. 
+
+The API is consisted of an init, a create, an act, a destroy and a finalize routines, that keep the modularity of the struct, 
+while we also provide a generic handler for SIGCHLD that will check for dead-children and will restore them by generating 
+new ones (check in the respective section of signal handling).
+
+The main functions starts with init routines (send init stats, init and create travelMonitor object, wait for bloom filters)
+and then moves to a loop that will end only if the user give the command or a SIGINT/SIGQUIT occurs.
+
+The loop uses the TTY API to print and get the message and by setting some globals, we inform the TTY what the accepted commands are, 
+what the number of their args are and other superficial error checking details.
+
+After the travel monitor get the parsed command it proceeds in a switch that will decide what function to choose.
+
+All of the queries are implemented based on the assignment's reading.
+
+At exit we print logs, kill children and proceed to wait all children finish and finally free memory and exit.
+
 
 ## Monitor Details ##
 
@@ -146,4 +169,5 @@ a dead monitor and hang forever.
 
 Inside the utilities module we contain all the utility functions of the previous assignment + functions for argument parsing 
 that is commonly used ammong the parent and children processes. Also we added IPC.c that contains the generic wrappers and some 
-standardized packet handlers (SYN/ACK handlers).
+standardized packet handlers (SYN/ACK handlers). Rest of code inside the utilities consists the sigaction set up 
+and the struct manipulation functions that were extended to accomodate the second assignment's structs. 
