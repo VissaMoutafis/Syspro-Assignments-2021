@@ -343,20 +343,29 @@ void travel_monitor_restore_children(TravelMonitor monitor) {
         int ret;
         // get the waitpid of the child
         // ignore signal interruptions except sigint and sigquit
-        while ((ret = waitpid(pid, &status, options)) == EINTR && !sigint_set && !sigquit_set);   
+        while ((ret = waitpid(pid, &status, options)) == -1 
+            && errno == EINTR 
+            && !sigint_set 
+            && !sigquit_set);
+
+        int m_i = i;
+        if (sigchld_set) {
+            puts("restarting check");
+            // if we got a sigchild we gotta restart the check   
+            i = 0;
+            sigchld_set = false;
+        }
     
         // if the waitpid failed go to the next child
         if (ret != pid) continue;
-
-        // printf("Found: pid: %d, status: %d\n", pid, status);
         
         // first we have to clean the monitor fifos and set pid to -1
-        monitor->manager->monitors[i].pid = -1;
-        monitor->manager->monitors[i].in_fifo = -1;
-        monitor->manager->monitors[i].out_fifo = -1;
+        monitor->manager->monitors[m_i].pid = -1;
+        monitor->manager->monitors[m_i].in_fifo = -1;
+        monitor->manager->monitors[m_i].out_fifo = -1;
         // now we create a new monitor
-        create_monitor(monitor, true, i);
-        monitor_manager_get_at(monitor->manager, i, &m_trace);
+        create_monitor(monitor, true, m_i);
+        monitor_manager_get_at(monitor->manager, m_i, &m_trace);
 
         // send init stats
         send_init_stats_to_monitor(monitor, &m_trace);

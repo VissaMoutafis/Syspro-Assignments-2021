@@ -75,8 +75,8 @@ int main(int argc, char ** argv) {
         char *expr = NULL;
         if (sigchld_set) {
             // SIGCHLD handler
-            travel_monitor_restore_children(monitor);
             sigchld_set = false;
+            travel_monitor_restore_children(monitor);
         } else {
             expr = get_input();
         }
