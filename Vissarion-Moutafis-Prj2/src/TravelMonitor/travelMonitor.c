@@ -332,6 +332,8 @@ void search_vaccination_status(TravelMonitor monitor, char *value) {
 
 
 void travel_monitor_restore_children(TravelMonitor monitor) {
+    sigchld_set = false; // sanity check <3
+    
     // Need to check all monitors for there might be more than one that failed
     for (int i = 0; i < monitor->manager->num_monitors; i++) {
         int status = -1;
