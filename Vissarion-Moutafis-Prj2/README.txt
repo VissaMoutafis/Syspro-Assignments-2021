@@ -73,7 +73,7 @@ The init routine is the first part of the main function:
 - wait for a SYN packet and send back an ACK in order to check availability.
 
 After that we enter a loop that ends only if the parent process sends a kill signal, or a SIGINT\SIGQUIT signal is send to the process. 
-In each iteration we wait for a query from the server and we answer based on the same <monitor_act> routine we manifested in the first assignment. 
+In each iteration we block waiting for a query from the parent and we answer based on the same <monitor_act> routine we manifested in the first assignment. 
 
 The only special case is when a SIGUSR1 is handled where the monitor breaks from poll (check signal handling and IPC sections),
 detects that the expr_index and value are NULL and checks for sigusr1, that whether it is set true, we use <monitor_act> in a 
