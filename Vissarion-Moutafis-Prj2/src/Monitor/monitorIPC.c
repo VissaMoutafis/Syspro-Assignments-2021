@@ -45,7 +45,7 @@ int monitor_get_response(int bufsiz, void *_monitor, MessageHandler handler, int
     // number of active monitors
     int active = 1;
     while (active > 0) {
-        int ret = poll(fds, 1, 1);
+        int ret = poll(fds, 1, -1); // block till you have something to read or a signal occurs
         if (ret < 0) {
             // break on signal 
             if (errno == EINTR) return 0;

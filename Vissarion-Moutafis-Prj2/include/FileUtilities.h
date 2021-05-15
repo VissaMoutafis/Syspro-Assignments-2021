@@ -22,3 +22,5 @@ void delete_dir(char *path);
 void delete_file(char *path);
 
 void delete_element(char *path);
+
+int count_dir_containings(char *input_dir);

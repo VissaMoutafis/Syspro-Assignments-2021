@@ -45,6 +45,20 @@ char *get_elem_name(char *path){
     return path + i;
 }
 
+int count_dir_containings(char *input_dir) {
+    assert(input_dir);
+    assert(is_dir(input_dir));
+    int n = 0;
+    DIR *dirp = opendir(input_dir);
+    struct dirent *dirent;
+
+    while ((dirent = readdir(dirp)) != NULL) {
+        if (strcmp(".", dirent->d_name) && strcmp("..", dirent->d_name))
+            n ++;
+    }
+
+    return n;
+}
 
 void delete_dir(char *path) {
     DIR *dp;

@@ -448,6 +448,8 @@ void travel_monitor_initialize(void) {
 
 TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_monitors, u_int32_t buffer_size) {
     TravelMonitor monitor = calloc(1, sizeof(*monitor));
+    int num_dirs = count_dir_containings(input_dir);
+    num_monitors = num_monitors > num_dirs ? num_dirs : num_monitors;
 
     monitor->buffer_size = buffer_size;
     monitor->num_monitors = num_monitors;
