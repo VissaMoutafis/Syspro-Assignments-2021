@@ -160,10 +160,14 @@ The SIGCHLD signal is async-handled by the travelMonitor as follows:
 - if in the meantime another SIGCHLD has occured then handle the current monitor, reinit the check and start over
 - return to the main loop
 
-
 The SIGCHLD is also ignored since that we will not hang in polling because we keep track of active monitors and this counter
 decreases in case of reading a MSGEND_OP header OR in case fds[i].revents == POLHUP so that we make sure we will not wait for 
 a dead monitor and hang forever.
+
+When a SIGCHLD occurs during reading a packet we check the fd with a poll syscall to check whether the
+process writting on it is still running and connected (otherwise revents == POLL_HUP) and continue.
+if it does not we just fail the query and restore dead children.
+The user will have to retype the query so he get an answer.   
 
 ## Utilities Details:
 

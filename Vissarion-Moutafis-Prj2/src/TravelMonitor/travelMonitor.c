@@ -65,7 +65,7 @@ static bool try_answer_travel_request(TravelMonitor monitor, void *args[], void 
     char *citizenID = (char *)args[2];
     char *date = (char *)args[3];
     char *countryTo = (char *)args[4];
-    puts(citizenID);
+
     if (check_date(date) && !bf_contains(bft->bf, citizenID)) {
         // set up the answer
         memset(ans_buffer, 0, BUFSIZ);
@@ -112,7 +112,11 @@ static bool delegate_travel_request(TravelMonitor monitor, void *args[], void *r
         char *date = NULL;
         void *ret_args[] = {&response, &date};
         // get response
-        travel_monitor_get_response(monitor->buffer_size, monitor, travel_request_handler, m_trace->in_fifo, ret_args);
+        if (travel_monitor_get_response(monitor->buffer_size, monitor, travel_request_handler, m_trace->in_fifo, ret_args)==-1){
+            error_flag = true;
+            sprintf(error_msg, "ERROR:%s", sigchld_set ? "CHILD TERMINATED" : "QUERY FAILED");
+            return -1;
+        }
 
         bool accepted = false;
         // now we need to check response and set up the ans_buffer
@@ -310,7 +314,10 @@ void add_vaccination_records(TravelMonitor monitor, char *value) {
         // send the USR1
         MonitorTrace *m_trace = ((Trace)entry)->m_trace;
         kill(m_trace->pid, SIGUSR1);
-        travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, m_trace->in_fifo, NULL);
+        if (travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, m_trace->in_fifo, NULL)==-1){ 
+            error_flag = true;
+            sprintf(error_msg, "ERROR:%s", sigchld_set ? "CHILD TERMINATED" : "QUERY FAILED");
+        }
 
     } else {
         error_flag = true;
@@ -324,7 +331,11 @@ void search_vaccination_status(TravelMonitor monitor, char *value) {
 
     char *vaccination_recs=NULL;
     void *ret_args[] = {&vaccination_recs};
-    travel_monitor_get_response(monitor->buffer_size, monitor, get_vaccination_status, -1, ret_args);
+    if (travel_monitor_get_response(monitor->buffer_size, monitor, get_vaccination_status, -1, ret_args)==-1){
+        error_flag = true;
+        sprintf(error_msg, "ERROR:%s", sigchld_set ? "CHILD TERMINATED" : "QUERY FAILED");
+        return;
+    }
     if (vaccination_recs) {
         strcpy(ans_buffer, vaccination_recs);
         free(vaccination_recs);
@@ -354,7 +365,6 @@ void travel_monitor_restore_children(TravelMonitor monitor) {
 
         int m_i = i;
         if (sigchld_set) {
-            puts("restarting check");
             // if we got a sigchild we gotta restart the check   
             i = 0;
             sigchld_set = false;

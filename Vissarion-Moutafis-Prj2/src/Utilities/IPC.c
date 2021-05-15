@@ -95,47 +95,68 @@ static void parse_header(char *buffer, int *body_len, int *opcode) {
 }
 
 // read the header
-static void read_header(int fd, u_int32_t bufsize, int *body_len, int *opcode, bool ignore_signals) {
+static int read_header(int fd, u_int32_t bufsize, int *body_len, int *opcode) {
     char header[HDR_LEN];
     memset(header, 0, HDR_LEN);
     *body_len = 0;
     *opcode = -1;
 
     // first read the header
-    my_read(fd, header, HDR_LEN, bufsize, ignore_signals);
+    if (my_read(fd, header, HDR_LEN, bufsize)==-1) return -1;
 
     // parse the header and assign values
     parse_header(header, body_len, opcode);
+
+    return 0;
 }
 
 // function to read a message from fd
 // We allocate memory for the body variable. User must free it. 
 // NOTE THAT *body is exactly *body_len characters long, there is NO terminator
-void read_msg(int fd, u_int32_t bufsize, char **body, int *body_len, int *opcode, bool ignore_signals) {
+int read_msg(int fd, u_int32_t bufsize, char **body, int *body_len, int *opcode) {
     // basic init of the returned variables
     *body = NULL;
     *body_len = 0;
     *opcode = -1;
 
     // first read the header from fd
-    read_header(fd, bufsize, body_len, opcode, ignore_signals);
+    if (read_header(fd, bufsize, body_len, opcode) == -1) return -1;
     
     // check if the message has a body
     if (*body_len > 0) {
         // Now we have to read the actual body of the message
         *body = calloc(*body_len, sizeof(char));
         // read the body
-        my_read(fd, *body, *body_len, bufsize, ignore_signals);
+        if (my_read(fd, *body, *body_len, bufsize)==-1) return -1;
     }
+
+    return 0;
 }
 
-int special_read(int fd, char *buf, int to_read, bool ignore_signals) {
+// check if fd for read/write is open
+// return 0 in success and -1 if fd has closed
+int check_fd(int fd) {
+    int all_ok = 0;
+    struct pollfd fds[1];
+    memset(fds, 0, sizeof(struct pollfd));
+    fds[0].fd = fd;
+    fds[0].events = POLL_IN | POLL_OUT;
+
+    while (poll(fds, 1, 0) == -1 && errno == EINTR);
+    if ((fds[0].revents & POLL_HUP) == POLL_HUP) all_ok = -1;
+
+    return all_ok;
+}
+
+int special_read(int fd, char *buf, int to_read) {
     int bytes_read = read(fd, buf, to_read);
     if (bytes_read == -1) {
+        // if sigchld occurs fail and go check everything, check your fd
+        if (sigchld_set) return check_fd(fd);
         // ignore EAGAIN and EWOULDBLOCK
         if (errno == EAGAIN || errno == EWOULDBLOCK) return 0;
-        // signal interruption: check if we want to ignore signals or not (cannot escape SIGINT, SIGQUIT)
-        if (errno == EINTR && ignore_signals && !sigint_set && !sigquit_set) return 0;
+        // signal interruption: ignore signals (cannot escape SIGINT, SIGQUIT)
+        if (errno == EINTR && !sigint_set && !sigquit_set) return 0;
 
         return -1;
     }
@@ -145,7 +166,8 @@ int special_read(int fd, char *buf, int to_read, bool ignore_signals) {
 
 // Note that buffer must be assigned at least bytes_to_read bytes of memory
 // classic read, wrapper, return 0 if EOF, else return 1
-void my_read(int fd, char *buffer, int bytes_to_read, u_int32_t bufsize, bool ignore_signals) {
+// return 0 in success and -1 in error
+int my_read(int fd, char *buffer, int bytes_to_read, u_int32_t bufsize) {
     if (bufsize > bytes_to_read)
         bufsize = bytes_to_read;
 
@@ -158,10 +180,11 @@ void my_read(int fd, char *buffer, int bytes_to_read, u_int32_t bufsize, bool ig
         int to_read = bytes_left < bufsize ? bytes_left : bufsize;
         
         // while we haven't read the whole message
-        if ((bytes_read = special_read(fd, buf, to_read, ignore_signals)) == -1) {
+        if ((bytes_read = special_read(fd, buf, to_read)) == -1) {
             char buf[100];
             sprintf(buf, "my_read %d, %d", getpid(), errno);
-            perror(buf); exit(1);
+            perror(buf);
+            return -1;
         }
         
         if (bytes_read == 0) continue;
@@ -175,6 +198,7 @@ void my_read(int fd, char *buffer, int bytes_to_read, u_int32_t bufsize, bool ig
         // re-initialize the buf
         memset(buf, 0, bufsize);
     }
+    return 0;
 }
 
 // Some Handlers of general purpose

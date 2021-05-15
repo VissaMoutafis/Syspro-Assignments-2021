@@ -229,5 +229,5 @@ bool initialization(TravelMonitor monitor, char *input_dir) {
         && send_init_stats(monitor)
         && assign_dirs(monitor, input_dir)
         && send_dirs(monitor)
-        && travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, -1, NULL); 
+        && !travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, -1, NULL); 
 }

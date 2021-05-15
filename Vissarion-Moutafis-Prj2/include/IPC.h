@@ -56,10 +56,11 @@ void my_write(int fd, char *msg, int bytes_to_write, u_int32_t bufsiz);
 // function to read messages in fifos
 // We allocate memory for the body variable. User must free it.
 // NOTE THAT *body is exactly *body_len characters long, there is NO terminator
-void read_msg(int fd, u_int32_t bufsize, char **body, int *body_len, int *opcode, bool ignore_signals);
+int read_msg(int fd, u_int32_t bufsize, char **body, int *body_len, int *opcode);
 
 // classic read wrapper.
-void my_read(int fd, char *buffer, int bytes_to_read, u_int32_t bufsize, bool ignore_signals);
+// return 0 in success and -1 in error (print a perror message in error)
+int my_read(int fd, char *buffer, int bytes_to_read, u_int32_t bufsize);
 
 ////////////////////////////////////////////////////////////////////
 
@@ -69,7 +70,7 @@ void my_read(int fd, char *buffer, int bytes_to_read, u_int32_t bufsize, bool ig
 // Also pass the msg handler defined at IPC.h
 // If <fd> is -1 then we wait for a response from all processes, TravelMonitor specific.
 // fd is specificly used to determine the input fd, if it's greater than 0. 
-// return > 0 in success else 0
+// return 0 in success else -1
 // type
 typedef int (*GetResponse)(int bufsiz, void *monitor, MessageHandler handler, int fd, void *return_args[]);
 

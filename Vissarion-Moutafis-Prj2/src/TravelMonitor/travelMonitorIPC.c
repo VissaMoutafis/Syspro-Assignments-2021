@@ -31,7 +31,7 @@ static void intialize_fds(void *_monitor, int nfd, struct pollfd fds[], int fd) 
 }
 
 // function to check all the fds and handle the messages from each one
-static void check_fds(int bufsiz, void *_monitor, struct pollfd fds[], int nfd, int *active, MessageHandler handler, void *return_args[]) {
+static int check_fds(int bufsiz, void *_monitor, struct pollfd fds[], int nfd, int *active, MessageHandler handler, void *return_args[]) {
     TravelMonitor monitor = (TravelMonitor)_monitor;
     for (int i = 0; i < nfd; i++) {
         if (fds[i].fd == -1)continue;
@@ -50,7 +50,7 @@ static void check_fds(int bufsiz, void *_monitor, struct pollfd fds[], int nfd, 
             char *msg = NULL;
             int len = 0;
             int opcode = -1;
-            read_msg(fds[i].fd, bufsiz, &msg, &len, &opcode, true);
+            if (read_msg(fds[i].fd, bufsiz, &msg, &len, &opcode) == -1) return -1;
 
             // check if the process has stoped transmitting
             if (opcode == MSGEND_OP || opcode == SYN_OP || opcode == ACK_OP) {
@@ -74,6 +74,7 @@ static void check_fds(int bufsiz, void *_monitor, struct pollfd fds[], int nfd, 
                 free(msg);
         }
     }
+    return 0;
 }
 
 int travel_monitor_get_response(int bufsiz, void *_monitor, MessageHandler handler, int fd, void *return_args[]) {
@@ -95,11 +96,11 @@ int travel_monitor_get_response(int bufsiz, void *_monitor, MessageHandler handl
             // ignore signals
             if (errno == EINTR) continue;
             perror("poll in travel monitor");
-            exit(1);
+            return -1;
         }
         if (ret) {
-            check_fds(bufsiz, monitor, fds, nfd, &active, handler, return_args);
+            if (check_fds(bufsiz, monitor, fds, nfd, &active, handler, return_args)==-1) return -1;
         }
     }
-    return 1;
+    return 0;
 }

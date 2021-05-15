@@ -10,7 +10,7 @@ static void check_fds(int bufsiz, void *monitor, struct pollfd fds[], int nfd, i
         char *msg = NULL;
         int len = 0;
         int opcode = -1;
-        read_msg(fds[0].fd, bufsiz, &msg, &len, &opcode, true);
+        read_msg(fds[0].fd, bufsiz, &msg, &len, &opcode);
 
         // check if the process has stoped transmitting or if we just read a symbolic packet
         if (opcode == MSGEND_OP || opcode == SYN_OP || opcode == ACK_OP) {
