@@ -34,10 +34,11 @@ We used 1 general makefile and 2 .mk files for better organized compilation.
 
 The travel Monitor is the basic module that encloses the children-process generation the creation of fifos and logs
 and the user query satisfaction. It is implemented as a wrapper that contains a hash table of <virusStats> that keep the blooms 
-of each country group, lists of accepted/rejected requests with dates and a <MonitorManager> object that keeps the children 
+of each country group in a skip list, lists of accepted/rejected requests with dates and a <MonitorManager> object that keeps the children 
 monitoring easy and modular. 
 
-Also we implement all the message handlers and IPC-related polling as described in later sections. 
+Also we implement all the message handlers and IPC-related polling for the parent process 
+as described in later sections, so that we only call a generic function to achive coordinated IPC. 
 
 The API is consisted of an init, a create, an act, a destroy and a finalize routines, that keep the modularity of the struct, 
 while we also provide a generic handler for SIGCHLD that will check for dead-children and will restore them by generating 
@@ -46,7 +47,7 @@ new ones (check in the respective section of signal handling).
 The main functions starts with init routines (send init stats, init and create travelMonitor object, wait for bloom filters)
 and then moves to a loop that will end only if the user give the command or a SIGINT/SIGQUIT occurs.
 
-The loop uses the TTY API to print and get the message and by setting some globals, we inform the TTY what the accepted commands are, 
+The loop uses the TTY API (implemented in Utilities) to print and get the message and by setting some globals, we inform the TTY what the accepted commands are, 
 what the number of their args are and other superficial error checking details.
 
 After the travel monitor get the parsed command it proceeds in a switch that will decide what function to choose.
