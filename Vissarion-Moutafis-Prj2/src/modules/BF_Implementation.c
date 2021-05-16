@@ -99,7 +99,7 @@ bool bf_contains(BF bf, Pointer entry) {
 // create a Bloom filter from a string buffer with serial data, 
 // based on a separator given by the user.
 BF bf_create_from_buffer(char *buffer, int len, char sep) {
-    // format <10 digs for size><sep><bit_string></bf>
+    // format <10 digs for size><bit_string></bf>
     BF bf = calloc(1, sizeof(*bf));
 
     // get size
@@ -113,7 +113,7 @@ BF bf_create_from_buffer(char *buffer, int len, char sep) {
     
     // get bit_string
     bf->bit_string = calloc(bf->size, sizeof(uint8_t));
-    memcpy(bf->bit_string, &(buffer[10]), bf->size);
+    memcpy(bf->bit_string, &(buffer[10]), bf->size*sizeof(uint8_t));
 
     return bf;
 }

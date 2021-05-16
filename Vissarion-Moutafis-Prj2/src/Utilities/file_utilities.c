@@ -57,6 +57,7 @@ int count_dir_containings(char *input_dir) {
             n ++;
     }
 
+    closedir(dirp);
     return n;
 }
 
