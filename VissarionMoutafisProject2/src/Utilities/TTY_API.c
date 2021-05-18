@@ -11,7 +11,7 @@
 
 void print_tty(void) {
     // NOTE: Maybe later add some color
-    printf("\n<vaccineMonitor> :");
+    printf("<vaccineMonitor> :");
 }
 
 void help(void) {
