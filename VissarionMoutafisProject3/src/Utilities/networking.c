@@ -99,3 +99,28 @@ int wait_connection(int sockfd, struct sockaddr_in *_machine, socklen_t *_machin
 
     return newfd; // return either the new fd (on success) or -1 (on error)
 }
+
+int net_read_msg(int sockfd, u_int32_t bufsize, char **msg, int *msg_len, int *opcode) {
+    // generic wrapper of read_msg
+    
+    return read_msg(sockfd, bufsize, msg, msg_len, opcode);
+}
+
+void net_send_msg(int sockfd, uint32_t bufsize, char *msg, int msg_len, int opcode) {
+    // generic wrapper of send_msg
+    send_msg(sockfd, bufsize, msg, msg_len, opcode);
+}
+
+int get_unique_port(void) {
+    static int port = NET_LOWEST_PORT;
+
+    // if we reach the max system ports just return the same port from now on
+    if (port > NET_HIGHEST_PORT){
+        fprintf(stderr, "No more ports available. Returning the same port from now on.\n");
+        return port;
+    }
+
+    // increase port id.
+    port ++;
+    return port;
+}

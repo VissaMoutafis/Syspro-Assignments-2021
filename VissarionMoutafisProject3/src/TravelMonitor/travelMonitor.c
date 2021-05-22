@@ -446,6 +446,11 @@ void travel_monitor_initialize(void) {
     memset(error_msg, 0, BUFSIZ);
     memset(ans_buffer, 0, BUFSIZ);
     is_end = false;
+    // find ip address of local host since the app is running in the same device
+    struct hostent *mypc = get_ip('localhost');
+    struct in_addr **ips = (struct in_addr **)mypc->h_addr_list;
+    ip_addr = ntohl(ips[0]->s_addr);
+    port = CLIENT_PORT;
 }
 
 TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_monitors, u_int32_t buffer_size) {

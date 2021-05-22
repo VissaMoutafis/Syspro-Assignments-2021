@@ -14,7 +14,7 @@ GetResponse get_response = monitor_get_response;
 
 static char *usage = "Usage : \n ~$./ monitor - i inputFifo - o outputFifo";
 
-// call as: ./monitor -i inputFifo -o outputFifo
+// call as: ./monitor -p port -t numThreads -b socketBufferSize -c cyclicBufferSize -s sizeOfBloom path1 path2 path3...pathn
 int main(int argc, char * argv[]) {
     #ifdef DEBUG
     printf("child %d\n", getpid());

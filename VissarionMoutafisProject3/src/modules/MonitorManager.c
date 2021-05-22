@@ -56,7 +56,7 @@ MonitorManager monitor_manager_create(int num_monitors) {
 
 // add a monitor into the manager
 // return the index
-int monitor_manager_add(MonitorManager manager, pid_t pid, int in_fifo, int out_fifo) {
+int monitor_manager_add(MonitorManager manager, pid_t pid, int port) {
     assert(manager);
     
     // first find an empty position
@@ -73,8 +73,7 @@ int monitor_manager_add(MonitorManager manager, pid_t pid, int in_fifo, int out_
     MonitorTrace *trace_p = &manager->monitors[i];
 
     trace_p->pid = pid;
-    trace_p->in_fifo = in_fifo;
-    trace_p->out_fifo = out_fifo;
+    trace_p->port = port;
     return i;
 }
 

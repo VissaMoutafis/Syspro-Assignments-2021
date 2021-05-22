@@ -5,7 +5,6 @@
  
 #include "Setup.h"
 
-
 void send_dirs_to_monitor(TravelMonitor monitor, MonitorTrace *t) {
     char **countries = t->countries_paths;
     int num_countries = t->num_countries;
@@ -91,19 +90,20 @@ bool assign_dirs(TravelMonitor monitor, char *input_dir) {
     return true;
 }
 
+void call_server(TravelMonitor monitor, int i) {
+    // first we have to assign dirs so that we know what dirs this process will get
+    char **dirs = get_dirs();
+    int bufsize = ;
+    int circlebuffersize = ;
+    int bloomsize = ;
+    execl("./monitorServer", "./monitorServer" bla bla ...., NULL);
+}
+
+
 // routine to fork a monitor process
 bool create_monitor(TravelMonitor monitor, bool update, int i) {
-    char to_fifo_path[BUFSIZ], from_fifo_path[BUFSIZ];
-    memset(to_fifo_path, 0, BUFSIZ);
-    memset(from_fifo_path, 0, BUFSIZ);
-    // create the communication sockets
-    create_unique_fifo_pair(false, from_fifo_path, to_fifo_path);
-    int in_fifo, out_fifo;
-
     // fork the child
     pid_t pid = fork();
-
-    // insert it in the monitor manager and assign it fifos
     switch (pid) {
         case -1:  // error behaviour
             fprintf(stderr, "Cannot fork child\n");
@@ -111,29 +111,16 @@ bool create_monitor(TravelMonitor monitor, bool update, int i) {
         break;
 
         case 0:  // child behaviour
-            // set the args for current child-process and call exec
-            if (execl("./monitor", "./monitor", "-i", to_fifo_path, "-o", from_fifo_path, NULL) == -1) {
-                perror("execl"); exit(1);
-            }
+            call_server(monitor, i); // server set up and actual exec-call
         break;
 
         default:  // parent behaviour
-            // add the monitor into the manager (ignore signal interruptions)
-            while ((in_fifo = open(from_fifo_path, O_RDONLY | O_NONBLOCK)) < 0 && errno == EINTR) errno = 0;
-            while ((out_fifo = open(to_fifo_path, O_WRONLY)) < 0 && errno == EINTR) errno =0;
-            if (in_fifo < 0 || out_fifo < 0) {
-                perror("open"); exit(1);
-            }
-            if (!update) 
-                monitor_manager_add(monitor->manager, pid, in_fifo, out_fifo);
-            else {
-                monitor->manager->monitors[i].pid = pid;
-                monitor->manager->monitors[i].in_fifo = in_fifo;
-                monitor->manager->monitors[i].out_fifo = out_fifo;
-            }
+            // add the monitor into the manager 
+            // and add a specific unique port that you know it is listening
+            monitor_manager_add(monitor->manager, pid, get_unique_port());
 
             #ifdef DEBUG
-            printf("infifo: %s - %d\noutfifo: %s - %d\n", from_fifo_path, in_fifo, to_fifo_path, out_fifo);
+            printf("Added server at port (%d), PID: %d \n", port, pid);
             #endif
         break;
     }
@@ -143,41 +130,11 @@ bool create_monitor(TravelMonitor monitor, bool update, int i) {
 
 bool create_n_monitors(TravelMonitor monitor) {
     bool all_ok = true;
-    // create the fifo dir
-    create_unique_fifo_pair(true, NULL, NULL);
     for (int i = 0; i < monitor->num_monitors; i++) {
         if (!create_monitor(monitor, false, -1)) 
             all_ok = false;
     }
     return all_ok;
-}
-
-void send_init_stats_to_monitor(TravelMonitor monitor, MonitorTrace *t) {
-    char buf[10 + 1 + 10];
-    memset(buf, 0, 21);
-    snprintf(buf, 21, "%0*u%0*lu", 10, monitor->buffer_size, 10,
-             monitor->bloom_size);
-
-    // send the init elements
-    send_msg(t->out_fifo, monitor->buffer_size, buf, 20, INIT_CHLD);
-    // communicate transmision termination
-    send_msg(t->out_fifo, monitor->buffer_size, NULL, 0, MSGEND_OP);
-}
-
-bool send_init_stats(TravelMonitor monitor) {
-    // we will pass the msg:
-    // <buffer size>$<bloom size> : max length = 10 + 10 (INT MAX length is 10)
-    
-
-    for (int i = 0; i < monitor->num_monitors; i++) {
-        MonitorTrace t;
-        if (!monitor_manager_get_at(monitor->manager, i, &t)) {
-            fprintf(stderr, "send_init_stats: Cannot get monitor stats of %d-th monitor\n", i);
-            exit(1);
-        }
-        send_init_stats_to_monitor(monitor, &t);
-    }
-    return true;
 }
 
 bool create_logs(void) {
@@ -192,15 +149,12 @@ bool create_logs(void) {
 
 bool initialization(TravelMonitor monitor, char *input_dir) {
     // create the log files
-    // fork monitors
-    // send them init stats
-    // assign them directories
-    // send them the assigned dirs
+    // fork monitors and:
+    //      send them init stats
+    //      assign them directories
+    //      send them the assigned dirs
     // wait for the response to initialize the travel monitor
-    return create_logs()
+    return create_logs()                
         && create_n_monitors(monitor) 
-        && send_init_stats(monitor)
-        && assign_dirs(monitor, input_dir)
-        && send_dirs(monitor)
         && !travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, -1, NULL); 
 }

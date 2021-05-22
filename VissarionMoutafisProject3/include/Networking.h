@@ -43,10 +43,17 @@ void listener_set_up(int sockfd, int backlog);
 // <machine> and <machine_size> are staticaly allocated passed by address
 // If you want to ignore them then just pass machine=NULL, machine_size=NULL.
 int wait_connection(int sockfd, struct sockaddr_in *machine, socklen_t *machine_size);
+// send a <msg> of <msg_len> and <opcode> into <sockfd> socket by <bufsize> bytes per I/O
 
+// Read a <msg> of <msg_len> and <opcode> from <sockfd> socket by <bufsize>
+// bytes per I/O
+int net_read_msg(int sockfd, u_int32_t bufsize, char **msg, int *msg_len, int *opcode);
 
+// Send a <msg> of <msg_len> and <opcode> into <sockfd> socket by <bufsize> bytes per I/O
+void net_send_msg(int sockfd, uint32_t bufsize, char *msg, int msg_len, int opcode);
 
-
+// Get a unique port number of all available ports defined in this header
+int get_unique_port(void);
 
 // DEFINE CONFIGURATION CONSTANTS //
 

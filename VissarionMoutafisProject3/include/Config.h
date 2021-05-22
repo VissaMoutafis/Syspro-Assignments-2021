@@ -5,12 +5,14 @@
  
 #pragma once
 #include "Types.h"
+#include "Networking.h"
 
 // def bufsiz
 #define DEF_BUFSIZ 32
 
-// for fifos 
-#define FIFO_DIR "fifos"
+// NETWORKING CONFIG for app
+#define CLIENT_PORT NET_LOWEST_PORT
+#define SERVER_LOWEST_PORT (CLIENT_PORT+1)
 
 // for logging
 #define ROOT_LOG_PATH "./logs"
@@ -21,6 +23,7 @@
 #define DEF_NUM_MONITORS 1
 #define DEF_BLOOM_SIZE 100
 #define DEF_BUFFER_SIZE 100
+#define DEF_CBUF_SIZE 3
 
 // defaults, monitor specific
 #define SL_HEIGHT 10
@@ -37,3 +40,10 @@ bool is_end;
 
 char error_msg[BUFSIZ];
 bool error_flag;
+
+// these are specific variables that we will set for use in server and client apps
+
+in_addr_t ip_addr; // ip address that we will send/receive messages
+int port;   // port that the app will be listening
+int listener_sockfd;
+int sockfd;

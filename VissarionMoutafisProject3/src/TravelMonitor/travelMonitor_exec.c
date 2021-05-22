@@ -1,30 +1,39 @@
 /**
-*	Syspro Project 3
-*	 Written By Vissarion Moutafis sdi1800119
-**/
- 
-#include "TravelMonitor.h"
+ *	Syspro Project 3
+ *	 Written By Vissarion Moutafis sdi1800119
+ **/
+
 #include "Setup.h"
 #include "TTY.h"
+#include "TravelMonitor.h"
 
-static char *usage = "Usage: \n    ~$ ./travelMonitor –m numMonitors -b bufferSize -s sizeOfBloom -i input_dir";
+static char *usage =
+    "Usage: \n    ~$ ./travelMonitorClient -m numMonitors "
+    "-b socketBufferSize "
+    "-c cyclicBufferSize "
+    "-s sizeOfBloom "
+    "-i input_dir "
+    "-t numThreads ";
 
-int main(int argc, char ** argv) {
+// call as ./travelMonitorClient –m numMonitors -b socketBufferSize -c
+// cyclicBufferSize -s
+// sizeOfBloom -i input_dir -t numThreads
+int main(int argc, char **argv) {
     #ifdef DEBUG
-    printf("parent %d\n", getpid());
+    printf("parent-client %d\n", getpid());
     #endif
 
     char *values[4] = {NULL, NULL, NULL, NULL};
-    char *allowed_args[] = {"-m", "-b", "-s", "-i"};
-    if (!parse_args(argc, argv, values, allowed_args, 4)
-        || !is_numeric(values[0])                            
-        || !is_numeric(values[1]) 
-        || !is_numeric(values[2])) 
-    {
+    char *allowed_args[] = {"-m", "-b", "-s", "-i", "-c"};
+    if (!parse_args(argc, argv, values, allowed_args, 5) ||
+        !is_numeric(values[0]) || !is_numeric(values[1]) ||
+        !is_numeric(values[2]) || !is_numeric(values[4])) {
         print_arg_error(usage);
         exit(1);
     }
-    
+
+    // some variable checking
+
     // if the checks are ok then go set the appropriate variables
     int numMonitors = DEF_NUM_MONITORS;
     if (atoi(values[0]) > 0)
@@ -50,9 +59,15 @@ int main(int argc, char ** argv) {
         exit(1);
     }
 
-    
+    int cyclicBufferSize = DEF_CBUF_SIZE;
+    if (atoi(values[0]) > 0)
+        cyclicBufferSize = atoi(values[0]);
+    else
+        fprintf(stderr, "The cyclicBufferSize arg is non-positive. Falling back to default: %d", DEF_NUM_MONITORS);
+
     // intialize monitor structs
     travel_monitor_initialize();
+    
     // Create a monitor
     TravelMonitor monitor = travel_monitor_create(input_dir, sizeOfBloom, numMonitors, bufferSize);
 
@@ -62,7 +77,7 @@ int main(int argc, char ** argv) {
         void *ret_args[] = {&ack_received};
         MonitorTrace *m_trace = &(monitor->manager->monitors[i]);
         send_msg(m_trace->out_fifo, monitor->buffer_size, NULL, 0, SYN_OP);
-        
+
         travel_monitor_get_response(bufferSize, monitor, accept_ack, m_trace->in_fifo, ret_args);
         if (!ack_received) {
             printf("process %d is not ready.\n", m_trace->pid);
@@ -86,9 +101,8 @@ int main(int argc, char ** argv) {
         }
 
         // now parse it to the expression part and the value part
-        char **parsed_expr = expr ?
-            parse_expression(expr)
-            : NULL;  // format: /command value(s)
+        char **parsed_expr =
+            expr ? parse_expression(expr) : NULL;  // format: /command value(s)
 
         // clarify the input with proper assignments
         char *command = parsed_expr ? parsed_expr[0] : NULL;
@@ -99,12 +113,12 @@ int main(int argc, char ** argv) {
 
         // now we have to check if the expression was ok based on the array of
         // allowed formats
-        
-        if (command) {    
+
+        if (command) {
             if (check_format(command, &expr_index) &&
                 check_value_list(value, expr_index)) {
-                // we will try to execute the command. If vaccine monitor fails then
-                // we will print the error message to stderr
+                // we will try to execute the command. If vaccine monitor fails
+                // then we will print the error message to stderr
                 if (!travel_monitor_act(monitor, expr_index, value)) {
                     fprintf(stderr, "%s\n", error_msg);
                 }
@@ -118,7 +132,7 @@ int main(int argc, char ** argv) {
     }
 
     travel_monitor_finalize(monitor);
-    
+
     travel_monitor_destroy(monitor);
 
     exit(0);

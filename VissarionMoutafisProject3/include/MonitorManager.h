@@ -15,8 +15,7 @@
 // Declaration of the MonitorTrace struct.
 typedef struct monitor_trace {
     pid_t pid;                  // PID of the monitor process instance, -1 if inactive
-    int in_fifo;                // fifo file descriptors for input
-    int out_fifo;               // fifo file descriptors for output
+    int port;                   // port that the monitor server is running
     char **countries_paths;     // The paths of the country dirs that are assigned to the monitor process 
     int num_countries;          // #countries assigned to the process
 } MonitorTrace;
@@ -40,7 +39,7 @@ MonitorManager monitor_manager_create(int num_monitors);
 
 // add a monitor into the manager
 // return the index
-int monitor_manager_add(MonitorManager manager, pid_t pid, int in_fifo, int out_fifo);
+int monitor_manager_add(MonitorManager manager, pid_t pid, int port);
 
 // search for monitor with pid='pid'. 'trace' copies that monitor trace if found. 
 // Return index if found else -1
