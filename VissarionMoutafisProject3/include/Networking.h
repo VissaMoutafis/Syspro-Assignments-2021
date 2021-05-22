@@ -27,14 +27,26 @@ struct hostent *get_ip(char *hostname);
 int create_socket(void);
 
 // Bind <sock> to local address <ip_addr> on <port>.
+// <ip_addr> must be in host format (not network)
 void bind_socket_to(int sock, in_addr_t ip_addr, int port);
 
 // Connect to ip:port via <sock>'s interface
 // Return 0 on success and -1 on error
+// <ip_addr> must be in host format (not network)
 int connect_to(int sock, in_addr_t ip_addr, int port);
 
 // wrapper for listen syscall
 void listener_set_up(int sockfd, int backlog);
+
+// Wait for a connection. (accept wrapper)
+// Returns the <newfd> on success, otherwise returns -1
+// <machine> and <machine_size> are staticaly allocated passed by address
+// If you want to ignore them then just pass machine=NULL, machine_size=NULL.
+int wait_connection(int sockfd, struct sockaddr_in *machine, socklen_t *machine_size);
+
+
+
+
 
 // DEFINE CONFIGURATION CONSTANTS //
 

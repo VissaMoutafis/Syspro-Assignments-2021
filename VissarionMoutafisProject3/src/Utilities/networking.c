@@ -5,6 +5,8 @@
 
 #include "Networking.h"
 
+static char error_str[200];
+
 struct hostent *get_ip(char *hostname) {
     struct hostent *machine = NULL;
     if ((machine = gethostbyname(hostname)) == NULL)
@@ -16,24 +18,26 @@ struct hostent *get_ip(char *hostname) {
 // create a socket and return <socket fd> in success and -1 otherwise
 int create_socket(void) {
     int sock_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock_fd < 0)
+    if (sock_fd < 0) // check if we failed
         perror("create_socket");
+    // return the socket fd
+    if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0)
+        perror("setsockopt(SO_REUSEADDR)");
     return sock_fd;
 }
 
 // bind the socket to a local address:port
 void bind_socket_to(int sock, in_addr_t ip_addr, int port) {
-    // first make the socket reusable
-    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0)
+    // make the socket reusable
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) <0)
         perror("setsockopt(SO_REUSEADDR)");
-    
+    // init binder struct
     struct sockaddr_in binder;
     memset(&binder, 0, sizeof(struct sockaddr_in));
     binder.sin_family = AF_INET;                // ipv4
     binder.sin_addr.s_addr = htonl(ip_addr);    // ipaddr into network encoding
     binder.sin_port = htons(port);              // port num into network encoding
     if (bind(sock, (struct sockaddr *)&binder, sizeof(binder)) < 0) {
-        char error_str[100];
         sprintf(error_str, "bind failed for socket: %d on %s:%d", 
                     sock, inet_ntoa(binder.sin_addr), port);
         perror(error_str);
@@ -54,7 +58,7 @@ int connect_to(int sock, in_addr_t ip_addr, int port) {
     int ret = connect(sock, (struct sockaddr *)&machine, sizeof(machine));   
 
     #ifdef DEBUG
-    printf("%s to connect to %s:%p\n", ret < 0 ? "FAILED" : "SUCCEED",
+    printf("%s to connect to %s:%d\n", ret < 0 ? "FAILED" : "SUCCEED",
            inet_ntoa(machine.sin_addr), port);
     #endif
 
@@ -64,15 +68,15 @@ int connect_to(int sock, in_addr_t ip_addr, int port) {
 // wrapper for listen syscall
 void listener_set_up(int sockfd, int backlog) {
     if (listen(sockfd, backlog) < 0) {
-        char b[100];
-        sprintf(b, "Failed to set up listener (%d con's) for socket (%d)", backlog, sockfd);
-        perror(b);
+        char error_str[100];
+        sprintf(error_str, "Failed to set up listener (%d con's) for socket (%d)", backlog, sockfd);
+        perror(error_str);
     }
 }
 
 // wait for a connection in <ip_addr>:<port>
 // return a new sockfd on success and -1 on error
-int wait_connection(int sockfd, struct sockaddr_in *_machine, socklen_t _machine_size) {
+int wait_connection(int sockfd, struct sockaddr_in *_machine, socklen_t *_machine_size) {
     int newfd = -1;
     struct sockaddr_in machine;
     memset(&machine, 0, sizeof(machine));
@@ -84,7 +88,7 @@ int wait_connection(int sockfd, struct sockaddr_in *_machine, socklen_t _machine
     // check if the user actually wants to get the machine
     if (_machine) {
         memcpy(_machine, &machine, machine_size);
-        _machine_size = machine_size;
+        *_machine_size = machine_size;
     }
 
     #ifdef DEBUG
@@ -94,14 +98,4 @@ int wait_connection(int sockfd, struct sockaddr_in *_machine, socklen_t _machine
     #endif
 
     return newfd; // return either the new fd (on success) or -1 (on error)
-}
-
-// test main
-
-int main(int argc, char **argv) {
-    struct hostent *mypc = get_ip(argv[1]);
-    struct in_addr ** ips = (struct in_addr **)mypc->h_addr_list; 
-    for (int i = 0; ips[i]; i++)
-        printf("'%s' -> %s\n", mypc->h_name, inet_ntoa(*ips[i]));
-
 }
