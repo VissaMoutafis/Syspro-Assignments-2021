@@ -32,14 +32,15 @@ static void check_fds(int bufsiz, void *monitor, struct pollfd fds[], int nfd, i
     }
 }
 
-int monitor_get_response(int bufsiz, void *_monitor, MessageHandler handler, int fd, void *return_args[]) {
+int monitor_get_response(int bufsiz, void *_monitor, MessageHandler handler, int sockfd, int *sock_fds, void *return_args[]) {
     // in the monitor struct, the fd is the input 
     // fd where the travel monitor writes to.
+    assert(sockfd >= 0);
     Monitor monitor = _monitor ? (Monitor)_monitor : NULL;
     struct pollfd fds[1];
     memset(fds, 0, sizeof(struct pollfd));
     // initialize fds
-    fds[0].fd = fd;
+    fds[0].fd = sockfd;
     fds[0].events = POLL_IN;
 
     // number of active monitors

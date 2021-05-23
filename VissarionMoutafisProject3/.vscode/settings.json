@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "setup.h": "c"
+        "setup.h": "c",
+        "type_traits": "cpp"
     }
 }

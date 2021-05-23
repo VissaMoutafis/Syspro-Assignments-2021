@@ -114,7 +114,7 @@ static bool delegate_travel_request(TravelMonitor monitor, void *args[], void *r
         char *date = NULL;
         void *ret_args[] = {&response, &date};
         // get response
-        if (travel_monitor_get_response(monitor->buffer_size, monitor, travel_request_handler, m_trace->port, ret_args)==-1){
+        if (travel_monitor_get_response(monitor->buffer_size, monitor, travel_request_handler, connection_sockfd, NULL, ret_args)==-1){
             error_flag = true;
             sprintf(error_msg, "ERROR");
             return -1;
@@ -316,7 +316,7 @@ void add_vaccination_records(TravelMonitor monitor, char *value) {
         // send the USR1
         MonitorTrace *m_trace = ((Trace)entry)->m_trace;
         kill(m_trace->pid, SIGUSR1);
-        if (travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, m_trace->port, NULL)==-1){ 
+        if (travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, connection_sockfd, NULL, NULL)==-1){ 
             error_flag = true;
             sprintf(error_msg, "ERROR");
         }
@@ -333,7 +333,28 @@ void search_vaccination_status(TravelMonitor monitor, char *value) {
 
     char *vaccination_recs=NULL;
     void *ret_args[] = {&vaccination_recs};
-    if (travel_monitor_get_response(monitor->buffer_size, monitor, get_vaccination_status, -1, ret_args)==-1){
+
+    int sockfds[monitor->num_monitors];  // the array of socket file descriptors
+
+    // we will create a connection with all of the monitor servers and save the
+    // socket fds in the <sockfds>
+    for (int i = 0; i < monitor->num_monitors; i++) {
+        // create a socket and get the relative variables for the connection
+        int sockfd = create_socket();
+        sockfds[i] = sockfd;
+        int port = monitor->manager->monitors[i].port;
+
+        // try to connect to a ipaddr:port
+        if (connect_to(sockfd, _ip_addr_, port) < 0) {
+            fprintf(stderr, "Could not connect to server-%d (%s, %d)\n", 
+                    i,
+                    inet_ntoa((struct in_addr){.s_addr = htonl(_ip_addr_)}),
+                    port);
+            exit(1);
+        }
+    }
+
+    if (travel_monitor_get_response(monitor->buffer_size, monitor, get_vaccination_status, -1, sockfds, ret_args)==-1){
         error_flag = true;
         sprintf(error_msg, "ERROR");
         return;
@@ -448,8 +469,8 @@ void travel_monitor_initialize(void) {
     // find ip address of local host since the app is running in the same device
     struct hostent *mypc = get_ip("localhost");
     struct in_addr **ips = (struct in_addr **)mypc->h_addr_list;
-    ip_addr = ntohl(ips[0]->s_addr);
-    port = CLIENT_PORT;
+    _ip_addr_ = ntohl(ips[0]->s_addr);
+    _port_ = CLIENT_PORT;
 }
 
 TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_monitors, u_int32_t buffer_size, int circular_buffer_size, int num_threads) {

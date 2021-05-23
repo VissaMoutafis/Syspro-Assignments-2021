@@ -1,5 +1,5 @@
 /**
-*	Syspro Project 2
+*	Syspro Project 3
 *	 Written By Vissarion Moutafis sdi1800119
 **/
  
@@ -14,7 +14,6 @@
 #include "FM.h"
 #include "IPC.h"
 #include "Config.h"
-
 
 
 // struct typedefs for the app
@@ -57,7 +56,7 @@ typedef struct list_per_country {
 // Basic Vaccine Monitor methods
 
 // initialize some basic variables that the monitor uses
-void monitor_initialize(int out_fd); 
+void monitor_initialize(); 
 
 // final changes to stop the program
 void monitor_finalize(Monitor monitor);

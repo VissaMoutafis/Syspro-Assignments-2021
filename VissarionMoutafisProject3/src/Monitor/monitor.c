@@ -15,7 +15,6 @@ void visit(Pointer _p) {
 bool error_flag = false;
 char error_msg[BUFSIZ];
 char ans_buffer[BUFSIZ];
-int out_fd = -1;
 
 // all the possible commands for the tty API of the app
 int pos_cmds_len = 5;
@@ -44,9 +43,9 @@ void answer(Monitor monitor, int opcode) {
     if (buf_len) {    char buf[buf_len];
         memset(buf, 0, buf_len);
         memcpy(buf, ans_buffer, buf_len);
-        send_msg(out_fd, monitor->buffer_size, buf, buf_len, opcode);
+        send_msg(connection_sockfd, monitor->buffer_size, buf, buf_len, opcode);
     }
-    send_msg(out_fd, monitor->buffer_size, NULL, 0, MSGEND_OP);
+    send_msg(connection_sockfd, monitor->buffer_size, NULL, 0, MSGEND_OP);
 
     // puts(ans_buffer); //remove
 
@@ -338,7 +337,7 @@ static void add_vaccination_records(Monitor monitor, char *value) {
     #endif
     
     // Now we have to send the monitors
-    monitor_send_blooms(monitor, out_fd);
+    monitor_send_blooms(monitor, connection_sockfd);
 }
 
 // utility to check whether a citizen is vacc's or not for a specific virus
@@ -496,9 +495,6 @@ static void set_bf_buf(char *header, int header_len, VirusInfo virus_info, char 
 void monitor_initialize(int _out_fd) { 
     // for basic workflow loop
     is_end = false;
-
-    // for communication
-    out_fd = _out_fd;
 
     // basic I/O globals
     error_flag = false;

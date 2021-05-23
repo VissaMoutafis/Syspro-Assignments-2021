@@ -66,14 +66,14 @@ void call_server(TravelMonitor monitor, int i, int port) {
     memcpy(argv+11, dirs, len*sizeof(char *));
     argv[len+11] = NULL;
 
+    #ifdef DEBUG
     printf("%s\nready to call:\n ", bloomsize);
     for (int i = 0; i < 1+10+len; i++) printf("%s ", argv[i]);
     puts("");
-
-    exit(0);
+    #endif
 
     // execute the call
-    execv("./monitorServer", argv);
+    if (execv("./monitorServer", argv) < 0) {perror("Failed exec'ing child"); exit(1);}
 }
 
 
@@ -129,13 +129,38 @@ bool create_logs(void) {
 
 bool initialization(TravelMonitor monitor, char *input_dir) {
     // create the log files
-    // fork monitors and:
-    //      send them init stats
-    //      assign them directories
-    //      send them the assigned dirs
-    // wait for the response to initialize the travel monitor
-    return create_logs()                
-        && assign_dirs(monitor, input_dir)
-        && create_n_monitors(monitor) 
-        && !travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, -1, NULL); 
+    // assign the dirs
+    // for the monitors 
+    // pass them args and execute the monitorServer binary
+    // wait for the response to initialize the travel monitor client (blooms)
+    bool all_ok = true;
+    all_ok = all_ok && create_logs();
+    all_ok = all_ok && assign_dirs(monitor, input_dir);
+    all_ok = all_ok && create_n_monitors(monitor);
+    // Now we have to get all the bloom filters.
+    int sockfds[monitor->num_monitors]; // the array of socket file descriptors
+    
+    // we will create a connection with all of the monitor servers and save the socket fds in the <sockfds>
+    for (int i = 0; i < monitor->num_monitors; i++) {
+        // create a socket and get the relative variables for the connection
+        int sockfd = create_socket();
+        sockfds[i] = sockfd;
+        int port = monitor->manager->monitors[i].port;
+
+        // try to connect to a ipaddr:port 
+        if (connect_to(sockfd, _ip_addr_, port) < 0) {
+            fprintf(stderr, "Could not connect to server-%d (%s, %d)\n", 
+                i,
+                inet_ntoa((struct in_addr){.s_addr=htonl(_ip_addr_)}), 
+                port);
+            exit(1);
+        }
+    }
+    // wait for the bloom filters
+    all_ok = !travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, -1, sockfds, NULL); 
+
+    // close all of the connections
+    for (int i = 0; i < monitor->num_monitors; i++) shutdown(sockfds[i], SHUT_RDWR);
+
+    return all_ok;
 }

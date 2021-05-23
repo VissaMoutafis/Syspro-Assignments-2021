@@ -1,4 +1,4 @@
-PROGRAM := monitor
+PROGRAM := monitorServer
 
 CUR_OBJS += $(BUILD)/monitor.o \
 		$(BUILD)/monitor_exec.o \

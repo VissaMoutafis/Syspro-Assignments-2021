@@ -64,20 +64,20 @@ int my_read(int fd, char *buffer, int bytes_to_read, u_int32_t bufsize);
 
 ////////////////////////////////////////////////////////////////////
 
-// Basic non-blocking polling of fd's
+// Basic non-blocking polling of socket fd's (alternative of previous <get response> for fifos)
 // bufsiz is the max length we can read (given by the user) 
 // pass the monitor struct (either TravelMonitor or Monitor)
 // Also pass the msg handler defined at IPC.h
-// If <fd> is -1 then we wait for a response from all processes, TravelMonitor specific.
-// fd is specificly used to determine the input fd, if it's greater than 0. 
+// If <sockfd> is -1 then we wait for a response from all processes, TravelMonitorClient specific.
+// <sockfd> is specificly used to determine the input socket fd, if it's greater than 0. 
 // return 0 in success else -1
 // type
-typedef int (*GetResponse)(int bufsiz, void *monitor, MessageHandler handler, int fd, void *return_args[]);
+typedef int (*GetResponse)(int bufsiz, void *monitor, MessageHandler handler, int sockfd, int *sock_fds, void *return_args[]);
 
 // actual response system
 
 // for travel monitor (parent process)
-int travel_monitor_get_response(int bufsiz, void *monitor, MessageHandler handler, int fd, void *return_args[]);
+int travel_monitor_get_response(int bufsiz, void *monitor, MessageHandler handler, int sockfd, int*sock_fds, void *return_args[]);
 
 // for monitors (child process)
-int monitor_get_response(int bufsiz, void *monitor, MessageHandler handler, int fd, void *return_args[]);
+int monitor_get_response(int bufsiz, void *monitor, MessageHandler handler, int sockfd, int *sock_fds, void *return_args[]);

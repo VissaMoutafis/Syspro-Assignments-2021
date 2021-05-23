@@ -1,4 +1,4 @@
-PROGRAM := travelMonitor
+PROGRAM := travelMonitorClient
 
 CUR_OBJS = $(BUILD)/travelMonitor.o \
 		$(BUILD)/travelMonitor_exec.o \

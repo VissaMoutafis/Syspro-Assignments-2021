@@ -8,13 +8,15 @@
 
 void get_bf_from_child(void *_monitor, int opcode, char *msg, int msg_len, void *return_args[]) {
     // just print it to see it works
-    // printf("Len: %d -- ", msg_len);
-    // for (int i = 0; i < msg_len; i++)
-    //     if (msg[i])
-    //         putchar(msg[i]);
-    //     else
-    //         putchar('-');
-    // puts("");
+    #ifdef DEBUG
+    printf("Len: %d -- ", msg_len);
+    for (int i = 0; i < msg_len; i++)
+        if (msg[i])
+            putchar(msg[i]);
+        else
+            putchar('-');
+    puts("");
+    #endif
 
     // we know that the first 10 bytes are the byte-length of fields : <virus name><SEP><country 1><SEP>...<SEP><country n>
     // and after that we have the bf msg that we could use to create a new BF

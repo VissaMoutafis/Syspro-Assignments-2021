@@ -44,7 +44,7 @@ bool error_flag;
 
 // these are specific variables that we will set for use in server and client apps
 
-in_addr_t ip_addr; // ip address that we will send/receive messages
-int port;   // port that the app will be listening
-int listener_sockfd;
-int sockfd;
+in_addr_t _ip_addr_; // ip address that we will send/receive messages
+int _port_;   // port that the app will be listening
+int listener_sockfd;    // socket that the servers will use in order to accept connections
+int connection_sockfd;  // general-use socket for client-server communication 

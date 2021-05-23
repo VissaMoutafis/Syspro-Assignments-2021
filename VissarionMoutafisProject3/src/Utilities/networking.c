@@ -55,13 +55,23 @@ int connect_to(int sock, in_addr_t ip_addr, int port) {
     machine.sin_port = htons(port);             // port num into network encoding
 
     // perform a connection and return the connect's syscall return code
-    int ret = connect(sock, (struct sockaddr *)&machine, sizeof(machine));   
+    
+    int ret = -1;
+    int tries = MAX_CONNECT_TRIES;
+    do {
+        printf("(%d)Trying to connect %s:%d\n", MAX_CONNECT_TRIES-tries, inet_ntoa(machine.sin_addr), port);
+        ret = connect(sock, (struct sockaddr *)&machine, sizeof(machine));   
+        tries --;
+        if (tries % 5 == 0) sleep(1); // every 5 tries sleep for a sec
+    } while (ret != 0 && tries);
 
     #ifdef DEBUG
     printf("%s to connect to %s:%d\n", ret < 0 ? "FAILED" : "SUCCEED",
            inet_ntoa(machine.sin_addr), port);
     #endif
-
+    if (ret == -1) {
+        fprintf(stderr, "Failed to connect to  %s:%d (TIMEOUT OCCURED)\n",inet_ntoa(machine.sin_addr), port);
+    }
     return ret;
 }
 
@@ -93,8 +103,8 @@ int wait_connection(int sockfd, struct sockaddr_in *_machine, socklen_t *_machin
 
     #ifdef DEBUG
     if (newfd)
-        printf("Accepted connection with new-socket %d from %s:%d\n", newfd, 
-            inet_ntoa(machine.sin_addr), machine.sin_port);
+        printf("Accepted connection with new-socket %d from %s\n", newfd, 
+            inet_ntoa(machine.sin_addr));
     #endif
 
     return newfd; // return either the new fd (on success) or -1 (on error)
