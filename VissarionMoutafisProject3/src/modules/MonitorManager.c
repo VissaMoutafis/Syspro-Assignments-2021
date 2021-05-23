@@ -119,7 +119,7 @@ bool monitor_manager_get_at(MonitorManager manager, int i, MonitorTrace *trace) 
 
 // add a copy of 'country' to i-th monitor
 void monitor_manager_add_country(MonitorManager manager, int i, char *country_path) {
-    if (i < manager->num_monitors && manager->monitors[i].pid >= 0) {
+    if (i < manager->num_monitors) {
         char ** country_paths = manager->monitors[i].countries_paths;
         
         // create the new array

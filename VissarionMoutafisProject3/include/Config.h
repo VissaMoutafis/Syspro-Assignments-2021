@@ -24,6 +24,7 @@
 #define DEF_BLOOM_SIZE 100
 #define DEF_BUFFER_SIZE 100
 #define DEF_CBUF_SIZE 3
+#define DEF_NUM_THREADS 2
 
 // defaults, monitor specific
 #define SL_HEIGHT 10

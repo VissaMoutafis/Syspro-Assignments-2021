@@ -4,55 +4,7 @@
 **/
  
 #include "Setup.h"
-
-void send_dirs_to_monitor(TravelMonitor monitor, MonitorTrace *t) {
-    char **countries = t->countries_paths;
-    int num_countries = t->num_countries;
-    char *buffer = NULL;  // the buffer we will send to child
-    int bufsiz = 0;       // the buffer size
-    for (int j = 0; j < num_countries; j++) {
-        // reconstruct the buffer
-
-        // get the country length
-        int country_len = strlen(countries[j]);
-
-        // set-up new buffer (prev_size + country_len + length for
-        // separator)
-        char *new_buf = calloc(bufsiz + country_len + 1, sizeof(char));
-        if (bufsiz) {
-            memcpy(new_buf, buffer, bufsiz);
-            free(buffer);
-        }
-        memcpy(new_buf + bufsiz, countries[j], country_len);
-        memcpy(new_buf + bufsiz + country_len, SEP, 1);
-        // re-set the original <buffer> and <bufsiz>
-        buffer = new_buf;
-        bufsiz += country_len + 1;
-    }
-    // send the country to the child
-    send_msg(t->out_fifo, monitor->buffer_size, buffer, bufsiz, INIT_CHLD);
-    // send end message code (<msg> set to NULL)
-    send_msg(t->out_fifo, monitor->buffer_size, NULL, 0, MSGEND_OP);
-    // delete the monitor
-    free(buffer);
-}
-
-bool send_dirs(TravelMonitor monitor) {
-    // sent the assigned countries paths to monitors
-    for (int i = 0; i < monitor->num_monitors; i++) {
-        MonitorTrace t;
-        memset(&t, 0, sizeof(MonitorTrace));
-        // get the trace at i-th position
-        if (!monitor_manager_get_at(monitor->manager, i, &t)) {
-            fprintf(stderr,
-                    "Error in getting the %d-th monitor, at dir assignment.\n",
-                    i);
-            exit(1);
-        }
-        send_dirs_to_monitor(monitor, &t);
-    }
-    return true;
-}
+#include <math.h>
 
 bool assign_dirs(TravelMonitor monitor, char *input_dir) {
     DIR *dirp = opendir(input_dir);
@@ -90,20 +42,48 @@ bool assign_dirs(TravelMonitor monitor, char *input_dir) {
     return true;
 }
 
-void call_server(TravelMonitor monitor, int i) {
-    // first we have to assign dirs so that we know what dirs this process will get
-    char **dirs = get_dirs();
-    int bufsize = ;
-    int circlebuffersize = ;
-    int bloomsize = ;
-    execl("./monitorServer", "./monitorServer" bla bla ...., NULL);
+void call_server(TravelMonitor monitor, int i, int port) {
+    // first we have to set the standard argv
+    char bufsize[20]; sprintf(bufsize, "%u", monitor->buffer_size);
+    char circularbuffersize[20]; sprintf(circularbuffersize, "%u", monitor->circular_buffer_size);
+    char bloomsize[20]; sprintf(bloomsize, "%lu", monitor->bloom_size);
+    char portnum[20]; sprintf(portnum, "%d", port);
+    char numthreads[20]; sprintf(numthreads, "%d", monitor->num_threads);
+
+    // Now we wait for the assigned dirs from the parent process
+    int len = monitor->manager->monitors[i].num_countries;
+    char **dirs = monitor->manager->monitors[i].countries_paths;
+
+    // Now we have to set up an argument vector for exec
+    char *argv[1+10+len+1];
+    argv[0] = "./monitorServer";
+    argv[1] = "-p"; argv[2] = portnum;
+    argv[3] = "-t"; argv[4] = numthreads;
+    argv[5] = "-b"; argv[6] = bufsize;
+    argv[7] = "-c"; argv[8] = circularbuffersize;
+    argv[9] = "-s"; argv[10] = bloomsize;
+    // copy countries
+    memcpy(argv+11, dirs, len*sizeof(char *));
+    argv[len+11] = NULL;
+
+    printf("%s\nready to call:\n ", bloomsize);
+    for (int i = 0; i < 1+10+len; i++) printf("%s ", argv[i]);
+    puts("");
+
+    exit(0);
+
+    // execute the call
+    execv("./monitorServer", argv);
 }
 
 
 // routine to fork a monitor process
 bool create_monitor(TravelMonitor monitor, bool update, int i) {
+    // get a unique port
+    int port = get_unique_port();
     // fork the child
     pid_t pid = fork();
+    
     switch (pid) {
         case -1:  // error behaviour
             fprintf(stderr, "Cannot fork child\n");
@@ -111,13 +91,13 @@ bool create_monitor(TravelMonitor monitor, bool update, int i) {
         break;
 
         case 0:  // child behaviour
-            call_server(monitor, i); // server set up and actual exec-call
+            call_server(monitor, i, port); // server set up and actual exec-call
         break;
 
         default:  // parent behaviour
             // add the monitor into the manager 
             // and add a specific unique port that you know it is listening
-            monitor_manager_add(monitor->manager, pid, get_unique_port());
+            monitor_manager_add(monitor->manager, pid, port);
 
             #ifdef DEBUG
             printf("Added server at port (%d), PID: %d \n", port, pid);
@@ -131,7 +111,7 @@ bool create_monitor(TravelMonitor monitor, bool update, int i) {
 bool create_n_monitors(TravelMonitor monitor) {
     bool all_ok = true;
     for (int i = 0; i < monitor->num_monitors; i++) {
-        if (!create_monitor(monitor, false, -1)) 
+        if (!create_monitor(monitor, false, i)) 
             all_ok = false;
     }
     return all_ok;
@@ -155,6 +135,7 @@ bool initialization(TravelMonitor monitor, char *input_dir) {
     //      send them the assigned dirs
     // wait for the response to initialize the travel monitor
     return create_logs()                
+        && assign_dirs(monitor, input_dir)
         && create_n_monitors(monitor) 
         && !travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, -1, NULL); 
 }

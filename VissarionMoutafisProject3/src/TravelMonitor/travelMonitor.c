@@ -107,16 +107,16 @@ static bool delegate_travel_request(TravelMonitor monitor, void *args[], void *r
         MonitorTrace *m_trace = ((Trace)entry)->m_trace;
 
         // send a message and w8 for response
-        send_query_to_child(Q1_CHLD, 0, value, m_trace->out_fifo, monitor->buffer_size);
+        send_query_to_child(Q1_CHLD, 0, value, m_trace->port, monitor->buffer_size);
 
         // responses format: YES$<date> or NO
         char *response = NULL;
         char *date = NULL;
         void *ret_args[] = {&response, &date};
         // get response
-        if (travel_monitor_get_response(monitor->buffer_size, monitor, travel_request_handler, m_trace->in_fifo, ret_args)==-1){
+        if (travel_monitor_get_response(monitor->buffer_size, monitor, travel_request_handler, m_trace->port, ret_args)==-1){
             error_flag = true;
-            sprintf(error_msg, "ERROR:%s", sigchld_set ? "CHILD TERMINATED" : "QUERY FAILED");
+            sprintf(error_msg, "ERROR");
             return -1;
         }
 
@@ -155,7 +155,7 @@ static bool delegate_vacc_status_search(TravelMonitor monitor, void *args[], voi
     // now we have to send it to all of the monitors
     for (int i = 0; i < monitor->manager->num_monitors; i++) {
         MonitorTrace *m_trace = &(monitor->manager->monitors[i]);
-        send_query_to_child(Q4_CHLD, 3, value, m_trace->out_fifo, monitor->buffer_size);
+        send_query_to_child(Q4_CHLD, 3, value, m_trace->port, monitor->buffer_size);
     }
     return true;
 }
@@ -316,9 +316,9 @@ void add_vaccination_records(TravelMonitor monitor, char *value) {
         // send the USR1
         MonitorTrace *m_trace = ((Trace)entry)->m_trace;
         kill(m_trace->pid, SIGUSR1);
-        if (travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, m_trace->in_fifo, NULL)==-1){ 
+        if (travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, m_trace->port, NULL)==-1){ 
             error_flag = true;
-            sprintf(error_msg, "ERROR:%s", sigchld_set ? "CHILD TERMINATED" : "QUERY FAILED");
+            sprintf(error_msg, "ERROR");
         }
 
     } else {
@@ -335,7 +335,7 @@ void search_vaccination_status(TravelMonitor monitor, char *value) {
     void *ret_args[] = {&vaccination_recs};
     if (travel_monitor_get_response(monitor->buffer_size, monitor, get_vaccination_status, -1, ret_args)==-1){
         error_flag = true;
-        sprintf(error_msg, "ERROR:%s", sigchld_set ? "CHILD TERMINATED" : "QUERY FAILED");
+        sprintf(error_msg, "ERROR");
         return;
     }
     if (vaccination_recs) {
@@ -346,60 +346,59 @@ void search_vaccination_status(TravelMonitor monitor, char *value) {
 
 
 
-void travel_monitor_restore_children(TravelMonitor monitor) {
-    sigchld_set = false; // sanity check <3
+// void travel_monitor_restore_children(TravelMonitor monitor) {
     
-    // Need to check all monitors for there might be more than one that failed
-    for (int i = 0; i < monitor->manager->num_monitors; i++) {
-        int status = -1;
-        MonitorTrace m_trace;
-        memset(&m_trace, 0, sizeof(m_trace));
-        monitor_manager_get_at(monitor->manager, i, &m_trace);
-        int pid = m_trace.pid;
-        int options = WNOHANG;
-        int ret;
-        // get the waitpid of the child
-        // ignore signal interruptions except sigint and sigquit
-        while ((ret = waitpid(pid, &status, options)) == -1 
-            && errno == EINTR 
-            && !sigint_set 
-            && !sigquit_set);
+//     // Need to check all monitors for there might be more than one that failed
+//     for (int i = 0; i < monitor->manager->num_monitors; i++) {
+//         int status = -1;
+//         MonitorTrace m_trace;
+//         memset(&m_trace, 0, sizeof(m_trace));
+//         monitor_manager_get_at(monitor->manager, i, &m_trace);
+//         int pid = m_trace.pid;
+//         int options = WNOHANG;
+//         int ret;
+//         // get the waitpid of the child
+//         // ignore signal interruptions except sigint and sigquit
+//         while ((ret = waitpid(pid, &status, options)) == -1 
+//             && errno == EINTR 
+//             && !sigint_set 
+//             && !sigquit_set);
 
-        int m_i = i;
-        if (sigchld_set) {
-            // if we got a sigchild we gotta restart the check   
-            i = 0;
-            sigchld_set = false;
-        }
+//         int m_i = i;
+//         if (sigchld_set) {
+//             // if we got a sigchild we gotta restart the check   
+//             i = 0;
+//             sigchld_set = false;
+//         }
     
-        // if the waitpid failed go to the next child
-        if (ret != pid) continue;
+//         // if the waitpid failed go to the next child
+//         if (ret != pid) continue;
         
-        // first we have to clean the monitor fifos and set pid to -1
-        monitor->manager->monitors[m_i].pid = -1;
-        monitor->manager->monitors[m_i].in_fifo = -1;
-        monitor->manager->monitors[m_i].out_fifo = -1;
-        // now we create a new monitor
-        create_monitor(monitor, true, m_i);
-        monitor_manager_get_at(monitor->manager, m_i, &m_trace);
+//         // first we have to clean the monitor fifos and set pid to -1
+//         monitor->manager->monitors[m_i].pid = -1;
+//         monitor->manager->monitors[m_i].in_fifo = -1;
+//         monitor->manager->monitors[m_i].out_fifo = -1;
+//         // now we create a new monitor
+//         create_monitor(monitor, true, m_i);
+//         monitor_manager_get_at(monitor->manager, m_i, &m_trace);
 
-        // send init stats
-        send_init_stats_to_monitor(monitor, &m_trace);
-        // and we send the countries and wait for the BFs
-        send_dirs_to_monitor(monitor, &m_trace);
-        // wait for the new BFS
-        travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, m_trace.in_fifo, NULL);
+//         // send init stats
+//         send_init_stats_to_monitor(monitor, &m_trace);
+//         // and we send the countries and wait for the BFs
+//         send_dirs_to_monitor(monitor, &m_trace);
+//         // wait for the new BFS
+//         travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, m_trace.in_fifo, NULL);
 
-        // send an syn and wait for ack (confirm child initialization)
-        bool ack_received = false;
-        void *ret_args[] = {&ack_received};
-        send_msg(m_trace.out_fifo, monitor->buffer_size, NULL, 0, SYN_OP);
-        travel_monitor_get_response(monitor->buffer_size, monitor, accept_ack, m_trace.in_fifo, ret_args);
-        if (!ack_received) {
-            printf("process %d is not ready.\n", m_trace.pid);
-        }
-    }
-}
+//         // send an syn and wait for ack (confirm child initialization)
+//         bool ack_received = false;
+//         void *ret_args[] = {&ack_received};
+//         send_msg(m_trace.out_fifo, monitor->buffer_size, NULL, 0, SYN_OP);
+//         travel_monitor_get_response(monitor->buffer_size, monitor, accept_ack, m_trace.in_fifo, ret_args);
+//         if (!ack_received) {
+//             printf("process %d is not ready.\n", m_trace.pid);
+//         }
+//     }
+// }
 
 // utility to print the logs
 static void travel_monitor_print_logs(TravelMonitor monitor, char *logs_path) {
@@ -447,17 +446,19 @@ void travel_monitor_initialize(void) {
     memset(ans_buffer, 0, BUFSIZ);
     is_end = false;
     // find ip address of local host since the app is running in the same device
-    struct hostent *mypc = get_ip('localhost');
+    struct hostent *mypc = get_ip("localhost");
     struct in_addr **ips = (struct in_addr **)mypc->h_addr_list;
     ip_addr = ntohl(ips[0]->s_addr);
     port = CLIENT_PORT;
 }
 
-TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_monitors, u_int32_t buffer_size) {
+TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_monitors, u_int32_t buffer_size, int circular_buffer_size, int num_threads) {
     TravelMonitor monitor = calloc(1, sizeof(*monitor));
     int num_dirs = count_dir_containings(input_dir);
     num_monitors = num_monitors > num_dirs ? num_dirs : num_monitors;
 
+    monitor->circular_buffer_size = circular_buffer_size;
+    monitor->num_threads = num_threads;
     monitor->buffer_size = buffer_size;
     monitor->num_monitors = num_monitors;
     monitor->bloom_size = bloom_size;
@@ -479,13 +480,6 @@ TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_
 
 void travel_monitor_finalize(TravelMonitor monitor) {
     is_end = true;
-    clean_fifos();
-    // send sigkill to all monitors
-
-    for (int i = 0; i < monitor->manager->num_monitors; i++) {
-        int pid = monitor->manager->monitors[i].pid;
-        kill(pid, SIGKILL);
-    }
 
     // wait for all children
     int status;

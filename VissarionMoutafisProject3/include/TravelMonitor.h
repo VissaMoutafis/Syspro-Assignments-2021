@@ -22,8 +22,10 @@
 
 // the declaration of the TravelMonitor type
 typedef struct travel_monitor {
+    int num_threads;             // number of threads in each one of the monitorServers
+    int circular_buffer_size;   // size of the circular baffer 
     u_int32_t buffer_size;      // the size of the buffer for parent-child I/O via fifos
-    int num_monitors;           // the number of generated monitors
+    int num_monitors;           // the number of generated monitorServers
     int accepted;               // accepted requests counter
     int rejected;               // rejected requests counter
     HT virus_stats;             // struct that keeps track of all bloom filters for the viruses
@@ -60,7 +62,7 @@ void travel_monitor_initialize(void);
 void travel_monitor_finalize(TravelMonitor monitor);
 
 // create a travel monitor
-TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_monitors, u_int32_t buffer_size);
+TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_monitors, u_int32_t buffer_size, int circular_buffer_size, int num_threads);
 
 // destroy the travel monitor 
 void travel_monitor_destroy(TravelMonitor monitor);

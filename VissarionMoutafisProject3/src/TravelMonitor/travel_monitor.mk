@@ -5,7 +5,6 @@ CUR_OBJS = $(BUILD)/travelMonitor.o \
 		$(BUILD)/travelMonitorIPC.o \
 		$(BUILD)/travelMonitorMessageHandlers.o \
 		$(BUILD)/travelMonitor_setup.o\
-		$(BUILD)/travelMonitor_sigactions.o
 
 ARGS := 
 
