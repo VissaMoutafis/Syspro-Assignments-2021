@@ -67,9 +67,6 @@ int main(int argc, char * argv[]) {
 
     // send the bloom filters to the parent process and close the socket
     monitor_send_blooms(monitor, newsockfd); close(newsockfd);
-    
-    // remove
-    puts("CHild exits at line 74"); exit(1);
 
     // Now we have to wait for a syn-packet and then return an ack
     if ((newsockfd = wait_connection(listener_sock, NULL, NULL)) < 0) {
@@ -87,6 +84,9 @@ int main(int argc, char * argv[]) {
     }
     // close the socket
     close(newsockfd);
+
+    // remove
+    puts("CHild exits at line 89"); exit(1);
 
     // HERE WE START THE LOOP FOR THE ACTUAL FUNCTIONALITIES OF THE MONITOR
     // BASIC LOGIC

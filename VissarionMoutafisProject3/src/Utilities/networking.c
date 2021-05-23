@@ -59,6 +59,7 @@ int connect_to(int sock, in_addr_t ip_addr, int port) {
     int ret = -1;
     int tries = MAX_CONNECT_TRIES;
     do {
+        
         printf("(%d)Trying to connect %s:%d\n", MAX_CONNECT_TRIES-tries, inet_ntoa(machine.sin_addr), port);
         ret = connect(sock, (struct sockaddr *)&machine, sizeof(machine));   
         tries --;

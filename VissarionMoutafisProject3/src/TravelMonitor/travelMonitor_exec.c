@@ -78,18 +78,28 @@ int main(int argc, char **argv) {
     // Create a monitor
     TravelMonitor monitor = travel_monitor_create(input_dir, sizeOfBloom, numMonitors, bufferSize, cyclicBufferSize, numThreads);
 
-    // // send a syn packet to all monitors and after that wait for a ack
-    // for (int i = 0; i < monitor->manager->num_monitors; i++) {
-    //     bool ack_received = false;
-    //     void *ret_args[] = {&ack_received};
-    //     MonitorTrace *m_trace = &(monitor->manager->monitors[i]);
-    //     send_msg(m_trace->out_fifo, monitor->buffer_size, NULL, 0, SYN_OP);
+    // send a syn packet to all monitors and after that wait for a ack
+    for (int i = 0; i < monitor->manager->num_monitors; i++) {
+        // create connection to send SYN and receive ACK
+        connection_sockfd = create_socket();
 
-    //     travel_monitor_get_response(bufferSize, monitor, accept_ack, m_trace->in_fifo, ret_args);
-    //     if (!ack_received) {
-    //         printf("process %d is not ready.\n", m_trace->pid);
-    //     }
-    // }
+        if (connect_to(connection_sockfd, _ip_addr_, monitor->manager->monitors[i].port) < 0) {
+            fprintf(stderr, "Failed to connect to server at port %d\n", _port_);
+            exit(1);
+        }
+
+        bool ack_received = false;
+        void *ret_args[] = {&ack_received};
+        MonitorTrace *m_trace = &(monitor->manager->monitors[i]);
+        send_msg(connection_sockfd, monitor->buffer_size, NULL, 0, SYN_OP);
+
+        travel_monitor_get_response(bufferSize, monitor, accept_ack, connection_sockfd, NULL, ret_args);
+        if (!ack_received) {
+            printf("process %d is not ready.\n", m_trace->pid);
+        }
+
+        if (shutdown(connection_sockfd, SHUT_RDWR) < 0) {perror("PARENT FAILED TO CLOSE SOCK (INIT)."); exit(1);}
+    }
 
     // while (!is_end) {
     //     // first get the input expression from the tty
