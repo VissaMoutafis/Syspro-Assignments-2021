@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
         connection_sockfd = create_socket();
 
         if (connect_to(connection_sockfd, _ip_addr_, monitor->manager->monitors[i].port) < 0) {
-            fprintf(stderr, "Failed to connect to server at port %d\n", _port_);
+            fprintf(stderr, "Failed to connect to server at port %d\n", monitor->manager->monitors[i].port);
             exit(1);
         }
 
@@ -101,54 +101,50 @@ int main(int argc, char **argv) {
         if (shutdown(connection_sockfd, SHUT_RDWR) < 0) {perror("PARENT FAILED TO CLOSE SOCK (INIT)."); exit(1);}
     }
 
-    // while (!is_end) {
-    //     // first get the input expression from the tty
-    //     char *expr = NULL;
-    //     expr = get_input();
+    while (!is_end) {
+        // first get the input expression from the tty
+        char *expr = NULL;
+        expr = get_input();
 
-    //     if (errno == EINTR) {
-    //         // clean errno
-    //         errno = 0;
-    //         // clean the buffer
-    //         if (expr) free(expr);
-    //         // clean stdin
-    //         clean_stream(&stdin);
-    //         // check the signals again
-    //         continue;
-    //     }
+        if (errno == EINTR) {
+            // clean errno
+            errno = 0;
+            // clean the buffer
+            if (expr) free(expr);
+            // clean stdin
+            clean_stream(&stdin);
+            // check the signals again
+            continue;
+        }
 
-    //     // now parse it to the expression part and the value part
-    //     char **parsed_expr =
-    //         expr ? parse_expression(expr) : NULL;  // format: /command value(s)
+        // now parse it to the expression part and the value part
+        char **parsed_expr =
+            expr ? parse_expression(expr) : NULL;  // format: /command value(s)
 
-    //     // clarify the input with proper assignments
-    //     char *command = parsed_expr ? parsed_expr[0] : NULL;
-    //     char *value = parsed_expr ? parsed_expr[1] : NULL;
-    //     int expr_index;
+        // clarify the input with proper assignments
+        char *command = parsed_expr ? parsed_expr[0] : NULL;
+        char *value = parsed_expr ? parsed_expr[1] : NULL;
+        int expr_index;
 
-    //     // CREATE THE VACCINE MONITOR
+        // now we have to check if the expression was ok based on the array of
+        // allowed formats
 
-    //     // now we have to check if the expression was ok based on the array of
-    //     // allowed formats
-
-    //     if (command) {
-    //         if (check_format(command, &expr_index) &&
-    //             check_value_list(value, expr_index)) {
-    //             // we will try to execute the command. If vaccine monitor fails
-    //             // then we will print the error message to stderr
-    //             if (!travel_monitor_act(monitor, expr_index, value)) {
-    //                 fprintf(stderr, "%s\n", error_msg);
-    //             }
-    //         } else
-    //             help();
-    //         if (expr) free(expr);
-    //         if (parsed_expr[0]) free(parsed_expr[0]);
-    //         if (parsed_expr[1]) free(parsed_expr[1]);
-    //         if (parsed_expr) free(parsed_expr);
-    //     }
-    // }
-
-    travel_monitor_finalize(monitor);
+        if (command) {
+            if (check_format(command, &expr_index) &&
+                check_value_list(value, expr_index)) {
+                // we will try to execute the command. If vaccine monitor fails
+                // then we will print the error message to stderr
+                if (!travel_monitor_act(monitor, expr_index, value)) {
+                    fprintf(stderr, "%s\n", error_msg);
+                }
+            } else
+                help();
+            if (expr) free(expr);
+            if (parsed_expr[0]) free(parsed_expr[0]);
+            if (parsed_expr[1]) free(parsed_expr[1]);
+            if (parsed_expr) free(parsed_expr);
+        }
+    }
 
     travel_monitor_destroy(monitor);
 

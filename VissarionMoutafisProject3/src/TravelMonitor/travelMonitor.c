@@ -64,7 +64,7 @@ static bool try_answer_travel_request(TravelMonitor monitor, void *args[], void 
     // ret_args: NULL
     VirusStats vs = (VirusStats)args[0];
     BFTuple bft = (BFTuple)args[1];
-    char *citizenID = (char *)args[2];
+    char citizenID[10]; memset(citizenID, 0, 10); sprintf(citizenID, "%0*d",4,atoi((char *)args[2]));
     char *date = (char *)args[3];
     char *countryTo = (char *)args[4];
 
@@ -106,8 +106,14 @@ static bool delegate_travel_request(TravelMonitor monitor, void *args[], void *r
     if (check_date(req_date) && ht_contains(monitor->manager->countries_index, &t, &entry)) {
         MonitorTrace *m_trace = ((Trace)entry)->m_trace;
 
+        // try to connect to the respective server
+        connection_sockfd = create_socket();
+        if (connect_to(connection_sockfd, _ip_addr_, m_trace->port) < 0) {
+            fprintf(stderr, "Failed to connect to server at port %d\n", m_trace->port);
+            exit(1);
+        }
         // send a message and w8 for response
-        send_query_to_child(Q1_CHLD, 0, value, m_trace->port, monitor->buffer_size);
+        send_query_to_child(Q1_CHLD, 0, value, connection_sockfd, monitor->buffer_size);
 
         // responses format: YES$<date> or NO
         char *response = NULL;
@@ -118,6 +124,12 @@ static bool delegate_travel_request(TravelMonitor monitor, void *args[], void *r
             error_flag = true;
             sprintf(error_msg, "ERROR");
             return -1;
+        }
+
+        // close the connection
+        if (shutdown(connection_sockfd, SHUT_RDWR) < 0) {
+            perror("PARENT FAILED TO CLOSE SOCK (TRAVEL REQUEST).");
+            exit(1);
         }
 
         bool accepted = false;
@@ -149,20 +161,27 @@ static bool delegate_travel_request(TravelMonitor monitor, void *args[], void *r
     return false;
 }
 
+static bool delegate_add_vacc_records(TravelMonitor monitor, void *args[], void *ret_args[]) {
+    char *value = (char *)args[0];
+    int sockfd = *((int *)args[1]);
+    send_query_to_child(Q3_CHLD, 2, value, sockfd, monitor->buffer_size);
+    return true;
+}
 
 static bool delegate_vacc_status_search(TravelMonitor monitor, void *args[], void *ret_args[]) {
     char *value = (char *)args[0];
+    int *sockfds = (int *)args[1];
+
     // now we have to send it to all of the monitors
     for (int i = 0; i < monitor->manager->num_monitors; i++) {
-        MonitorTrace *m_trace = &(monitor->manager->monitors[i]);
-        send_query_to_child(Q4_CHLD, 3, value, m_trace->port, monitor->buffer_size);
+        send_query_to_child(Q4_CHLD, 3, value, sockfds[i], monitor->buffer_size);
     }
     return true;
 }
 
-bool try_answer_request(TravelMonitor monitor, int opcode, void *args[], void *ret_args[]) {
+bool try_answer_request(TravelMonitor monitor, int expr_index, void *args[], void *ret_args[]) {
     // GRAND TODO
-    switch (opcode)
+    switch (expr_index)
     {
     case 0: // command: /travelRequest
         return try_answer_travel_request(monitor, args, ret_args);
@@ -175,16 +194,20 @@ bool try_answer_request(TravelMonitor monitor, int opcode, void *args[], void *r
     return false;
 }
 
-bool delegate_to_children(TravelMonitor monitor, int opcode, void *args[], void *ret_args[]) {
+bool delegate_to_children(TravelMonitor monitor, int expr_index, void *args[], void *ret_args[]) {
     // GRAND TODO
-    switch (opcode)
+    switch (expr_index)
     {
-    case 0:
+    case 0: // travel request pass Q1_CHLD to message
         return delegate_travel_request(monitor, args, ret_args);
     break;
 
-    case 3:
-        delegate_vacc_status_search(monitor, args, ret_args);
+    case 2: // addVaccinationRecords
+        return delegate_add_vacc_records(monitor, args, ret_args);
+    break;
+
+    case 3: // searchVaccinationStatus
+        return delegate_vacc_status_search(monitor, args, ret_args);
     break;
     
     default:
@@ -313,14 +336,29 @@ void add_vaccination_records(TravelMonitor monitor, char *value) {
     struct trace dummy_trace = {.country=country};
     Pointer entry = NULL;
     if (ht_contains(monitor->manager->countries_index, &dummy_trace, &entry)) {
-        // send the USR1
         MonitorTrace *m_trace = ((Trace)entry)->m_trace;
-        kill(m_trace->pid, SIGUSR1);
+
+        // open connection
+        connection_sockfd = create_socket();
+        if (connect_to(connection_sockfd, _ip_addr_, m_trace->port) < 0) {
+            fprintf(stderr, "FAILED TO CONNECT TO SERVER AT PORT %d\n", m_trace->port);
+            exit(1);
+        }
+        // send request
+        void *args[] = {value, &connection_sockfd};
+        delegate_to_children(monitor, 2, args, NULL);
+
+        // wait for a response
         if (travel_monitor_get_response(monitor->buffer_size, monitor, get_bf_from_child, connection_sockfd, NULL, NULL)==-1){ 
             error_flag = true;
             sprintf(error_msg, "ERROR");
         }
 
+        // close connection
+        if (shutdown(connection_sockfd, SHUT_RDWR) < 0) {
+            perror("PARENT FAILED TO CLOSE SOCKET (ADD VACC RECS)");
+            exit(1);
+        }
     } else {
         error_flag = true;
         sprintf(error_msg, "ERROR: '%s' is not a recorded country\n", country);
@@ -328,12 +366,6 @@ void add_vaccination_records(TravelMonitor monitor, char *value) {
 }
 
 void search_vaccination_status(TravelMonitor monitor, char *value) {
-    void *args[] = {value};
-    delegate_to_children(monitor, 3, args, NULL);
-
-    char *vaccination_recs=NULL;
-    void *ret_args[] = {&vaccination_recs};
-
     int sockfds[monitor->num_monitors];  // the array of socket file descriptors
 
     // we will create a connection with all of the monitor servers and save the
@@ -352,8 +384,14 @@ void search_vaccination_status(TravelMonitor monitor, char *value) {
                     port);
             exit(1);
         }
+    
     }
+    
+    void *args[] = {value, sockfds};
+    delegate_to_children(monitor, 3, args, NULL);
 
+    char *vaccination_recs=NULL;
+    void *ret_args[] = {&vaccination_recs};
     if (travel_monitor_get_response(monitor->buffer_size, monitor, get_vaccination_status, -1, sockfds, ret_args)==-1){
         error_flag = true;
         sprintf(error_msg, "ERROR");
@@ -362,6 +400,13 @@ void search_vaccination_status(TravelMonitor monitor, char *value) {
     if (vaccination_recs) {
         strcpy(ans_buffer, vaccination_recs);
         free(vaccination_recs);
+    }
+
+    for (int i = 0; i < monitor->num_monitors; i++) {
+        if (shutdown(sockfds[i], SHUT_RDWR) < 0) {
+            perror("PARENT FAILED TO CLOSE SOCK (TRAVEL REQUEST)");
+            exit(1);
+        }
     }
 }
 
@@ -501,16 +546,37 @@ TravelMonitor travel_monitor_create(char *input_dir, size_t bloom_size, int num_
 
 void travel_monitor_finalize(TravelMonitor monitor) {
     is_end = true;
+    // send termination request to all of the monitors
+    int sockfds[monitor->manager->num_monitors];
+    for (int i = 0; i < monitor->manager->num_monitors; i++) {
+        // save the socket so that you close it later
+        sockfds[i] = create_socket();
+        int port = monitor->manager->monitors[i].port;
+        // connect to the server
+        if (connect_to(sockfds[i], _ip_addr_, port) < 0) {
+            fprintf(stderr, "Failed to close monitor-%d\n", 1);
+            continue;
+        }
+        // ask for termination
+        send_query_to_child(EXIT_OP, 4, "", sockfds[i], monitor->buffer_size);
+    }
 
-    // wait for all children
+    // wait for all children-servers
     int status;
     int ret;
     errno = 0;
     while ((ret=wait(&status)) != -1)
         ;
-    
+
+
     // if the error is anything else but "no child processes" then print it
     if (errno && errno != 10) {perror("wait");}
+
+    // close all communication sockets
+    for (int i = 0; i < monitor->manager->num_monitors; i++) {
+        if (close(sockfds[i]) < 0)
+            fprintf(stderr, "Failed to close socket while exiting (%d)\n", i);
+    }
 
     // write logs for travel monitor
     travel_monitor_print_logs(monitor, TRAVEL_MONITOR_LOG_PATH);
@@ -518,7 +584,7 @@ void travel_monitor_finalize(TravelMonitor monitor) {
 
 bool travel_monitor_act(TravelMonitor monitor, int expr_index, char *value) {
     switch (expr_index) {
-        case 0: // comman: /travelRequest, value: citizenID date countryFrom [countryTo] virusName
+        case 0: // command: /travelRequest, value: citizenID date countryFrom [countryTo] virusName
                 travel_request(monitor, value);
                 if (error_flag)
                     print_error(false);

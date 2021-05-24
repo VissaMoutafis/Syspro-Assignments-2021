@@ -32,7 +32,8 @@
 #define INIT_CHLD 1         // for initialization stuff
 #define COUNTRY_CHLD 3      // for country path sending
 #define Q1_CHLD 5           // for query 1 
-#define Q4_CHLD 7
+#define Q3_CHLD 7
+#define Q4_CHLD 11
 
 // general opcodes
 #define MSGEND_OP 20

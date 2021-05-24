@@ -85,9 +85,6 @@ int main(int argc, char * argv[]) {
     // close the socket
     close(newsockfd);
 
-    // remove
-    puts("CHild exits at line 89"); exit(1);
-
     // HERE WE START THE LOOP FOR THE ACTUAL FUNCTIONALITIES OF THE MONITOR
     // BASIC LOGIC
 
@@ -116,11 +113,8 @@ int main(int argc, char * argv[]) {
 
         //close socket 
     }
-    if (!is_end)
-        monitor_finalize(monitor);
 
     // final cleaning function (adjust in the appropriate place of code)
     monitor_destroy(monitor);
-
     exit(0);
 }

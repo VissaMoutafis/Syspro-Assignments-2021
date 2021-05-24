@@ -65,7 +65,8 @@ static void vaccinate_citizen(VirusInfo v, VaccRec vacc_rec, char *date) {
 
     // insert the person instance into the vaccinated group and
     sl_insert(v->vaccinated, vacc_rec, false, &vacc_rec_dummy);
-    bf_insert(v->bf, vacc_rec->p->citizenID);
+    char cid[10]; memset(cid, 0, 10); sprintf(cid, "%0*d", 4, atoi(vacc_rec->p->citizenID));
+    bf_insert(v->bf, cid);
     // we also have to alter the date in vacc_rec
     vacc_rec->date = calloc(1 + strlen(date), sizeof(char));
     strcpy(vacc_rec->date, date);
@@ -110,9 +111,10 @@ static void virus_info_insert(Monitor monitor, Person p, bool update, char *viru
             // so just add him
             VaccRec vr = vacc_rec_create(p, date, true);
             sl_insert(sl, vr, false, &vacc_rec_dummy);
-            if (is_vaccinated)
-                bf_insert(v->bf, p->citizenID);
-
+            if (is_vaccinated) {
+                char cid[10]; memset(cid, 0, 10); sprintf(cid, "%0*d", 4, atoi(p->citizenID));
+                bf_insert(v->bf, cid);
+            }
             #ifdef DEBUG
             assert(sl_search(sl, vr));
             #endif
@@ -135,10 +137,11 @@ static void virus_info_insert(Monitor monitor, Person p, bool update, char *viru
         // into the appropriate skip list
         VirusInfo new_vi = virus_info_create(virusName, monitor->bloom_size, monitor->sl_height, monitor->sl_factor);
         list_insert(monitor->virus_info, new_vi, true);
-        if (is_vaccinated)
+        if (is_vaccinated) {
+            char cid[10]; memset(cid, 0, 10); sprintf(cid, "%0*d", 4, atoi(p->citizenID));
             // insert into BF
-            bf_insert(new_vi->bf, p->citizenID);
-
+            bf_insert(new_vi->bf, cid);
+        }
         //insert into the appropriate skip list
         SL sl = (is_vaccinated == true) ? new_vi->vaccinated : new_vi->not_vaccinated;
         VaccRec vr = vacc_rec_create(p, date, true);
@@ -386,6 +389,7 @@ static void search_vaccination_status(Monitor monitor, char *value) {
     }
 }
 
+#ifdef DEBUG
 // utility to print the logs
 static void monitor_print_logs(Monitor monitor, char *logs_path) {
     // first we have to create the file
@@ -415,6 +419,7 @@ static void monitor_print_logs(Monitor monitor, char *logs_path) {
 
     close(log_fd);
 }
+#endif
 
 // return the last part of path. DOES NOT ALLOCATE MEMORY
 static char *extract_dir_from_path(char *path) {
@@ -503,8 +508,11 @@ void monitor_initialize(int _out_fd) {
 }
 
 void monitor_finalize(Monitor monitor) {
+    #ifdef DEBUG
     // first we have to print logs
     monitor_print_logs(monitor, MONITOR_LOG_PATH);
+    #endif
+    
     // then we have to exit the main loop
     is_end = true;
 }

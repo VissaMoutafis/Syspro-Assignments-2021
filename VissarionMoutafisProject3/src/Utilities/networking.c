@@ -59,11 +59,13 @@ int connect_to(int sock, in_addr_t ip_addr, int port) {
     int ret = -1;
     int tries = MAX_CONNECT_TRIES;
     do {
-        
+        #ifdef DEBUG
         printf("(%d)Trying to connect %s:%d\n", MAX_CONNECT_TRIES-tries, inet_ntoa(machine.sin_addr), port);
+        #endif
+
         ret = connect(sock, (struct sockaddr *)&machine, sizeof(machine));   
         tries --;
-        if (tries % 5 == 0) sleep(1); // every 5 tries sleep for a sec
+        if (tries % 10 == 0) sleep(1); // every 10 tries sleep for a sec
     } while (ret != 0 && tries);
 
     #ifdef DEBUG
