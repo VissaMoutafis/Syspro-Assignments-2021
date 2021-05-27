@@ -98,6 +98,14 @@ void cb_destroy(CB cb) {
     free(cb);
 }
 
+bool cb_is_full(CB cb) {
+    return cb->write_at == -1;
+}
+
+bool cb_is_empty(CB cb) {
+    return cb->read_at == -1;
+}
+
 // test main
 // #define TESTSIZE 6
 // int main(int argc, char *argv[]) {

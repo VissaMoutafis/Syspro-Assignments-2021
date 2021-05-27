@@ -52,3 +52,7 @@ void fm_destroy(FM fm);
 List fm_get_directory_list(FM fm);
 
 char *fm_get_dir_name(FM fm, DirectoryEntry entry);
+
+// Get files in a malloc'd string array from dir_path or the respective directory entry
+void fm_get_files(FM fm, char *dir_path, char ***files, int *num_files);
+void fm_get_files_dir_entry(FM fm, DirectoryEntry dentry, char ***files, int *num_files);

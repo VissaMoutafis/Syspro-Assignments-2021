@@ -418,3 +418,57 @@ void fm_read_from_file_entry(FM fm, FileEntry file_entry, char ***records, int *
 char * fm_get_dir_name(FM fm, DirectoryEntry entry) {
     return entry ? entry->dir_path : NULL;
 }
+
+// Get files in a malloc'd string array from dir_path or the respective directory entry
+void fm_get_files(FM fm, char *dir_path, char ***_files, int *__num_files) {
+    assert(fm);
+    char **files = NULL;
+    int num_files = 0; 
+    List l = fm->directory_list;
+    struct dentry dummy_dentry = {.dir_path=dir_path};
+    DirectoryEntry dentry = list_node_get_entry(l, list_find(l, &dummy_dentry));
+
+    if (dentry) {
+        // if we found the directory entry then we go to add every file into the <files> array
+        List file_list = dentry->files;
+        assert(file_list);
+        ListNode node = list_get_head(file_list);
+        while (node) {
+            // get the file entry
+            FileEntry fentry = (FileEntry)list_node_get_entry(file_list, node);
+
+            // make a copy of the file path string 
+            char *new_file = calloc(strlen(fentry->file_path)+1, sizeof(char));
+            strcpy(new_file, fentry->file_path);
+
+            // create a new string table
+            char **new_files = calloc(num_files+1, sizeof(char *));
+            
+            // copy the old to the new, larger table
+            if (files && num_files)
+                memcpy(new_files, files, num_files*sizeof(char *));
+            // add the new string to the new array
+            new_files[num_files] = new_file;
+
+            // delete the old array 
+            free(files);
+            // set the old array to point to the new one
+            files = new_files;
+            // increase the length of the string array
+            num_files ++;
+
+            // get the next node
+            node = list_get_next(file_list, node);
+        }
+    }
+
+    *_files = files;
+    *__num_files = num_files;
+}
+
+// easy overload
+void fm_get_files_dir_entry(FM fm, DirectoryEntry dentry, char ***files, int *num_files) {
+    assert(fm);
+    assert(dentry);
+    fm_get_files(fm, dentry->dir_path, files, num_files);
+}

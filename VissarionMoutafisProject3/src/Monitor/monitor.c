@@ -242,6 +242,11 @@ static void insert_from_dir(Monitor monitor, FM fm, DirectoryEntry dentry) {
     
     // get the record lines from all the files in the monitor
     fm_read_from_dir_entry(fm, dentry, &records, &length);
+    
+    char **files=NULL;
+    int flen=0;
+    fm_get_files_dir_entry(fm, dentry, &files, &flen);
+    for(int i = 0; i < flen; i++) puts(files[i]);
 
     // add all the records in the monitor
     for (int rec_id = 0; rec_id < length; rec_id++) {
@@ -389,7 +394,7 @@ static void search_vaccination_status(Monitor monitor, char *value) {
     }
 }
 
-#ifdef DEBUG
+
 // utility to print the logs
 static void monitor_print_logs(Monitor monitor, char *logs_path) {
     // first we have to create the file
@@ -419,7 +424,7 @@ static void monitor_print_logs(Monitor monitor, char *logs_path) {
 
     close(log_fd);
 }
-#endif
+
 
 // return the last part of path. DOES NOT ALLOCATE MEMORY
 static char *extract_dir_from_path(char *path) {
@@ -508,11 +513,8 @@ void monitor_initialize(int _out_fd) {
 }
 
 void monitor_finalize(Monitor monitor) {
-    #ifdef DEBUG
     // first we have to print logs
     monitor_print_logs(monitor, MONITOR_LOG_PATH);
-    #endif
-    
     // then we have to exit the main loop
     is_end = true;
 }
