@@ -63,7 +63,6 @@ pthread_t *threads;
 pthread_mutex_t mtx_cb;         // mutex that locks every time a thread get a file from cycle buffer
 pthread_mutex_t mtx_monitor;    // mutex that locks when we apply a change into the Monitor struct
 pthread_mutex_t mtx_check_end;  // mutex that locks everytime we check for end of execution
-pthread_mutex_t mtx_turn;       // mutex that determines the thread turn
 
 // conditionals and their mutexes
 pthread_cond_t cond_cb_full;

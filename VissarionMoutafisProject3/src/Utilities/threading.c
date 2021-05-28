@@ -35,7 +35,7 @@ void create_n_threads(int num_threads, pthread_t threads[], void *(*__thread_rou
 void join_threads(int num_threads, pthread_t threads[]) {
     int err;
     for (int i = 0; i < num_threads; i++) {
-        printf("(%d) Waiting for (%lu)\n", getpid(), threads[i]);
+        // printf("(%d) Waiting for (%lu)\n", getpid(), threads[i]);
         if ((err = pthread_join(threads[i], NULL))) {
             my_perror("Error in joining thread", err);
             exit(1);

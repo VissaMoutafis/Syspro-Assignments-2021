@@ -59,7 +59,7 @@ int get_unique_port(void);
 
 // these define the port range that the user chooses 
 // in this range the ports of the monitorServers will be chosen
-#define NET_LOWEST_PORT 50500
+#define NET_LOWEST_PORT 5000
 #define NET_HIGHEST_PORT 65535
 
 // max tries to connect to a device

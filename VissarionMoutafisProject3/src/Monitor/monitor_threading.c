@@ -54,11 +54,6 @@ void *monitor_thread_routine(void *_args) {
     // 7. At exit free any necessary memory.
 
     while (!thread_is_end()) {
-        // first we wait our turn
-        pthread_mutex_lock(&mtx_turn);
-        // check if we done
-        if (thread_is_end()) break;
-        
         pthread_mutex_lock(&mtx_cb_empty);
         // check if the circular buffer is not empty
         while (is_empty(monitor->cb) && !thread_is_end())
@@ -93,13 +88,11 @@ void *monitor_thread_routine(void *_args) {
                 free(file_path);
             }
         }
-
-        pthread_mutex_unlock(&mtx_turn);
     }
     pthread_mutex_lock(&mtx_check_end);
     threads_done++;
     pthread_mutex_unlock(&mtx_check_end);
-    printf("%d-%lu EXIT\n", getpid(), pthread_self());
+    // printf("%d-%lu EXIT\n", getpid(), pthread_self());
 
     pthread_exit(NULL);
 }
@@ -117,9 +110,6 @@ void monitor_producer_routine(Monitor monitor, char **files, int flen) {
         // the cb is not full add another record atomically
         cb_add(monitor->cb, files[i]);
         pthread_mutex_unlock(&mtx_cb);
-
-        // wake a consumer up
-        pthread_mutex_unlock(&mtx_turn);
 
         // signal cb_empty condition-var since there is at least one record
         pthread_mutex_lock(&mtx_cb_empty);
@@ -143,9 +133,6 @@ void clean_up_threads(Monitor monitor) {
     pthread_mutex_unlock(&mtx_check_end);
     threads_done = 0;
     while (!check_all_threads_done()) {
-        // unlock any threads that are blocked on the turn mutex
-        pthread_mutex_unlock(&mtx_turn);
-
         // signal all the mutexes waiting on cb_empty 
         pthread_cond_broadcast(&cond_cb_empty);
     }
@@ -157,7 +144,6 @@ void clean_up_threads(Monitor monitor) {
     pthread_mutex_destroy(&mtx_cb_full);
     pthread_mutex_destroy(&mtx_check_end);
     pthread_mutex_destroy(&mtx_monitor);
-    pthread_mutex_destroy(&mtx_turn);
 
     pthread_cond_destroy(&cond_cb_full);
     pthread_cond_destroy(&cond_cb_empty);

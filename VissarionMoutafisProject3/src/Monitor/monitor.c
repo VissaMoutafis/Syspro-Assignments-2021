@@ -310,29 +310,30 @@ static void add_vaccination_records(Monitor monitor, char *value) {
     char **new_files = NULL;
     int num_new_files = 0;
     fm_check_for_updates(monitor->fm, &new_files, &num_new_files);
-    
+    if (new_files && num_new_files)
+        monitor_producer_routine(monitor, new_files, num_new_files);
     #ifdef DEBUG
     printf("Found %d new file/paths.\n", num_new_files);
     #endif
 
-    // now iterate through the new files and add their records in the monitor
-    for (int i = 0; i < num_new_files; i++) {
-        // get the records of the file
-        char **records = NULL;
-        int num_records = 0;
-        fm_read_from_file(monitor->fm, new_files[i], &records, &num_records);
-        // add all the records in the monitor
-        for (int rec_id = 0; rec_id < num_records; rec_id++) {
-            // insert the new records
-            insert_record(monitor, records[rec_id], true);
-            // delete the records entry since it's not useful no more
-            free(records[rec_id]);
-        }
-        // delete the records table since it's no usefull anymore
-        free(records);
-        // delete the new_files[i] path since it's not useful anymore
-        free(new_files[i]);
-    }
+    // // now iterate through the new files and add their records in the monitor
+    // for (int i = 0; i < num_new_files; i++) {
+    //     // get the records of the file
+    //     char **records = NULL;
+    //     int num_records = 0;
+    //     fm_read_from_file(monitor->fm, new_files[i], &records, &num_records);
+    //     // add all the records in the monitor
+    //     for (int rec_id = 0; rec_id < num_records; rec_id++) {
+    //         // insert the new records
+    //         insert_record(monitor, records[rec_id], true);
+    //         // delete the records entry since it's not useful no more
+    //         free(records[rec_id]);
+    //     }
+    //     // delete the records table since it's no usefull anymore
+    //     free(records);
+    //     // delete the new_files[i] path since it's not useful anymore
+    //     free(new_files[i]);
+    // }
     // free the memory hold by the new_files table.
     free(new_files);
     // for debug
