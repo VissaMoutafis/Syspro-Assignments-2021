@@ -1,9 +1,12 @@
 PROGRAM := monitorServer
 
+CFLAGS += -D MONITOR=1
+
 CUR_OBJS += $(BUILD)/monitor.o \
 		$(BUILD)/monitor_exec.o \
 		$(BUILD)/monitorIPC.o \
-		$(BUILD)/monitorMessageHandlers.o
+		$(BUILD)/monitorMessageHandlers.o \
+		$(BUILD)/monitor_threading.o
 
 ARGS := 
 

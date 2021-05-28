@@ -28,13 +28,13 @@ int main(int argc, char * argv[]) {
 
     // set up the basic networking vars
     // find ip address of local host since the app is running in the same device
-    struct hostent *mypc = get_ip("localhost");
+    struct hostent *mypc = get_ip();
     struct in_addr **ips = (struct in_addr **)mypc->h_addr_list;
     _ip_addr_ = ntohl(ips[0]->s_addr);
     _port_ = atoi(values[0]);
     
     // number of active threads
-    int num_threads = atoi(values[1]);
+    num_threads = atoi(values[1]);
 
     u_int32_t buffer_size = strtoul(values[2], NULL, 10);
     int cyclic_buffer_size = atoi(values[3]);
@@ -53,8 +53,10 @@ int main(int argc, char * argv[]) {
 
     // initialize the monitor globals
     monitor_initialize();
+
     // create a monitor 
-    Monitor monitor = monitor_create(fm, bloom_size, buffer_size, SL_HEIGHT, SL_FACTOR);
+    Monitor monitor = monitor_create(fm, bloom_size, buffer_size, cyclic_buffer_size, SL_HEIGHT, SL_FACTOR);
+
 
     // create a listener socket and set it up
     listener_sock = create_socket();
@@ -89,6 +91,7 @@ int main(int argc, char * argv[]) {
     // BASIC LOGIC
 
     // main work-flow    
+    update_at_insert = true;
     while (!is_end) {
         // first create a socket to communicate with the client
         connection_sockfd = create_socket();
@@ -116,5 +119,7 @@ int main(int argc, char * argv[]) {
 
     // final cleaning function (adjust in the appropriate place of code)
     monitor_destroy(monitor);
+
+    
     exit(0);
 }

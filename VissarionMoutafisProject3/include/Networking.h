@@ -18,9 +18,9 @@
 
 // Some utility wrappers for networking routines 
 
-// Get the hostent pointer from a host that resolves it to an IPv4 address.
+// Get the hostent pointer from your host.
 // Return the staticaly allocated pointer in success, else NULL.
-struct hostent *get_ip(char *hostname);
+struct hostent *get_ip(void);
 
 // Create a TCP socket of AF_INET domain.
 // Returns the descriptor in success, else returns -1.
@@ -59,7 +59,7 @@ int get_unique_port(void);
 
 // these define the port range that the user chooses 
 // in this range the ports of the monitorServers will be chosen
-#define NET_LOWEST_PORT 50000
+#define NET_LOWEST_PORT 50500
 #define NET_HIGHEST_PORT 65535
 
 // max tries to connect to a device

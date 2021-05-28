@@ -99,11 +99,11 @@ void cb_destroy(CB cb) {
 }
 
 bool cb_is_full(CB cb) {
-    return cb->write_at == -1;
+    return cb->write_at == -1 || cb->buffer_slots[cb->write_at] != NULL;
 }
 
 bool cb_is_empty(CB cb) {
-    return cb->read_at == -1;
+    return cb->read_at == -1 || cb->buffer_slots[cb->read_at] == NULL; 
 }
 
 // test main

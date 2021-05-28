@@ -9,8 +9,8 @@ BUILD := $(MAKE-DIR)/build
 
 # basic enviroment variables
 CC := gcc
-CFLAGS := -Wall -I $(INCLUDE)
-LIBS := -lm
+CFLAGS := -Wall -I $(INCLUDE) -g3
+LIBS := -lm -pthread
 OBJS := 
 
 # debug switch message

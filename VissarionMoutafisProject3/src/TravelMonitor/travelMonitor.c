@@ -512,7 +512,7 @@ void travel_monitor_initialize(void) {
     memset(ans_buffer, 0, BUFSIZ);
     is_end = false;
     // find ip address of local host since the app is running in the same device
-    struct hostent *mypc = get_ip("localhost");
+    struct hostent *mypc = get_ip();
     struct in_addr **ips = (struct in_addr **)mypc->h_addr_list;
     _ip_addr_ = ntohl(ips[0]->s_addr);
     _port_ = CLIENT_PORT;

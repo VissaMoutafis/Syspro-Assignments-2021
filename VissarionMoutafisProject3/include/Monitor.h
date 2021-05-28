@@ -12,6 +12,7 @@
 #include "List.h"
 #include "Utilities.h"
 #include "FM.h"
+#include "CB.h"
 #include "IPC.h"
 #include "Config.h"
 
@@ -33,6 +34,8 @@ typedef struct monitor {
     int buffer_size;
     int sl_height;
     float sl_factor;
+    // extensions of 3rd assignment
+    CB cb;
 } * Monitor;
 
 //  entry for the hash tables that contain the bloom filters
@@ -62,7 +65,7 @@ void monitor_initialize();
 void monitor_finalize(Monitor monitor);
 
 // Function to create a vaccine monitor 
-Monitor monitor_create(FM fm, int bloom_size, int buffer_size, int sl_height, float sl_factor);
+Monitor monitor_create(FM fm, int bloom_size, int buffer_size, int circular_buffer_size, int sl_height, float sl_factor);
 
 // function to destroy and deallocate the memory of a vaccine monitor
 void monitor_destroy(Monitor m);
@@ -78,3 +81,16 @@ bool monitor_act(Monitor monitor, int expr_index, char *value);
 // all divided by a SEP character
 // header of the packet has INIT_PAR
 void monitor_send_blooms(Monitor monitor, int to_fd);
+
+// function to insert a record into the monitor 
+// if we want to update an already inserted records then set update==true
+void insert_record(Monitor monitor, char *record, bool update);
+
+// routine that every thread follows
+void *monitor_thread_routine(void *_args);
+
+// routine for the main thread (producer)
+void monitor_producer_routine(Monitor monitor, char **files, int flen);
+
+// clean up threads
+void clean_up_threads(Monitor monitor);

@@ -7,11 +7,14 @@
 
 static char error_str[200];
 
-struct hostent *get_ip(char *hostname) {
+struct hostent *get_ip(void) {
+    char hostname[BUFSIZ];
+    memset(hostname, 0, BUFSIZ);
+    gethostname(hostname, BUFSIZ);
     struct hostent *machine = NULL;
     if ((machine = gethostbyname(hostname)) == NULL)
         fprintf(stderr, "Could not resolve hostname '%s'\n", hostname);
-    
+
     return machine;
 }
 

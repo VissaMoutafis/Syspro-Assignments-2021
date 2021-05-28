@@ -6,7 +6,7 @@ OBJS += $(BUILD)/HT_Implementation.o
 OBJS += $(BUILD)/List_Implementation.o
 OBJS += $(BUILD)/FM_Implementation.o
 OBJS += $(BUILD)/MonitorManager.o
-
+OBJS +=  $(BUILD)/CB_Implementation.o
 
 
 # including utilities
@@ -17,3 +17,4 @@ OBJS += $(BUILD)/struct_manipulation.o
 OBJS += $(BUILD)/TTY_API.o
 OBJS += $(BUILD)/IPC.o
 OBJS += $(BUILD)/networking.o
+OBJS += $(BUILD)/threading.o

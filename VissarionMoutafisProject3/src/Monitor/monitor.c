@@ -5,6 +5,7 @@
  
 #include "Monitor.h"
 #include "StructManipulation.h"
+#include "Threading.h"
 
 void visit(Pointer _p) {
     Person p = (Person)_p;
@@ -197,7 +198,7 @@ static void country_index_insert(Monitor monitor, Person p) {
 // If the update flag is one then, if we find an instance of it, about a specific virus
 // either ommit the incosistent record, or 
 // actually update the proper virus info lists and bloom filter 
-static void insert_record(Monitor monitor, char *record, bool update) {
+void insert_record(Monitor monitor, char *record, bool update) {
     Person p = str_to_person(record);
 
     if (p) {
@@ -237,23 +238,18 @@ static void insert_record(Monitor monitor, char *record, bool update) {
 }
 
 static void insert_from_dir(Monitor monitor, FM fm, DirectoryEntry dentry) {
-    char **records=NULL;
-    int length=0;
-    
-    // get the record lines from all the files in the monitor
-    fm_read_from_dir_entry(fm, dentry, &records, &length);
-    
     char **files=NULL;
     int flen=0;
     fm_get_files_dir_entry(fm, dentry, &files, &flen);
-    for(int i = 0; i < flen; i++) puts(files[i]);
-
-    // add all the records in the monitor
-    for (int rec_id = 0; rec_id < length; rec_id++) {
-        insert_record(monitor, records[rec_id], false);
-        free(records[rec_id]);
-    }
-    free(records);
+    // for (int i = 0; i < flen; i++) puts(files[i]);
+    monitor_producer_routine(monitor, files, flen);
+    free(files);
+    // // add all the records in the monitor
+    // for (int rec_id = 0; rec_id < length; rec_id++) {
+    //     insert_record(monitor, records[rec_id], false);
+    //     free(records[rec_id]);
+    // }
+    // free(records);
 
 }
 
@@ -506,6 +502,10 @@ void monitor_initialize(int _out_fd) {
     // for basic workflow loop
     is_end = false;
 
+    // initialize variables for threading usage
+    update_at_insert = false;
+    thread_end = false;
+    
     // basic I/O globals
     error_flag = false;
     memset(ans_buffer, 0, BUFSIZ);
@@ -515,11 +515,15 @@ void monitor_initialize(int _out_fd) {
 void monitor_finalize(Monitor monitor) {
     // first we have to print logs
     monitor_print_logs(monitor, MONITOR_LOG_PATH);
+
+    // clean threads
+    clean_up_threads(monitor);
+
     // then we have to exit the main loop
     is_end = true;
 }
 
-Monitor monitor_create(FM fm, int bloom_size, int buffer_size, int sl_height, float sl_factor) {
+Monitor monitor_create(FM fm, int bloom_size, int buffer_size, int circular_buffer_size, int sl_height, float sl_factor) {
     Monitor m = calloc(1, sizeof(*m));
     m->buffer_size = buffer_size;
     m->accepted = 0;
@@ -527,13 +531,20 @@ Monitor monitor_create(FM fm, int bloom_size, int buffer_size, int sl_height, fl
     m->bloom_size = bloom_size;
     m->sl_height = sl_height;
     m->sl_factor = sl_factor;
+    m->cb = cb_create(circular_buffer_size, NULL);
     m->citizens = ht_create(person_cmp, person_hash, person_destroy);
     m->citizen_lists_per_country = list_create(country_index_cmp, country_index_destroy);
     m->virus_info = list_create(virus_info_cmp, virus_info_destroy);
     m->fm = fm;
+
+    // initialize threads
+    threads = calloc(num_threads, sizeof(pthread_t));
+    create_n_threads(num_threads, threads, monitor_thread_routine, (void *) m);
+
     if (fm) {
         // insert all the valid records of citizens from the directories in the fm
         insert_from_fm(m, fm);
+
         #ifdef DEBUG
         ht_print_keys(m->citizens, visit);
         #endif
@@ -547,6 +558,7 @@ void monitor_destroy(Monitor m) {
     ht_destroy(m->citizens);
     list_destroy(&(m->virus_info));
     fm_destroy(m->fm);
+    cb_destroy(m->cb);
     free(m);
 }
 

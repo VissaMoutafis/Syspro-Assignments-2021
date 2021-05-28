@@ -48,3 +48,25 @@ in_addr_t _ip_addr_; // ip address that we will send/receive messages
 int _port_;   // port that the app will be listening
 int listener_sockfd;    // socket that the servers will use in order to accept connections
 int connection_sockfd;  // general-use socket for client-server communication 
+
+
+// include only monitor code
+#include "Threading.h"
+ThreadArgs thread_args;
+bool update_at_insert;          // a global configuration that helps with monitor insertions
+bool thread_end;                // variable that signals the end of the thread execution
+int threads_done;
+int num_threads;
+pthread_t *threads;
+
+// mutexes for resources
+pthread_mutex_t mtx_cb;         // mutex that locks every time a thread get a file from cycle buffer
+pthread_mutex_t mtx_monitor;    // mutex that locks when we apply a change into the Monitor struct
+pthread_mutex_t mtx_check_end;  // mutex that locks everytime we check for end of execution
+pthread_mutex_t mtx_turn;       // mutex that determines the thread turn
+
+// conditionals and their mutexes
+pthread_cond_t cond_cb_full;
+pthread_mutex_t mtx_cb_full;
+pthread_cond_t cond_cb_empty;
+pthread_mutex_t mtx_cb_empty;
