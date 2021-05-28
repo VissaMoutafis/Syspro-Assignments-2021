@@ -63,4 +63,4 @@ int get_unique_port(void);
 #define NET_HIGHEST_PORT 65535
 
 // max tries to connect to a device
-#define MAX_CONNECT_TRIES 100
+#define MAX_CONNECT_TRIES 1000

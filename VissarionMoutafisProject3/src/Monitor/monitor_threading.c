@@ -99,7 +99,6 @@ void *monitor_thread_routine(void *_args) {
 
 void monitor_producer_routine(Monitor monitor, char **files, int flen) {
     for (int i = 0; i < flen; i++) {
-        // first wake up a thread
         pthread_mutex_lock(&mtx_cb_full);
         // try to insert something (check if cb full if not add it ATOMICALY)
         while (is_full(monitor->cb))
@@ -119,6 +118,7 @@ void monitor_producer_routine(Monitor monitor, char **files, int flen) {
 }
 
 static bool check_all_threads_done() {
+    // atomicaly check if all threads are dead
     pthread_mutex_lock(&mtx_check_end);
     bool ret = (threads_done == num_threads);
     pthread_mutex_unlock(&mtx_check_end);
@@ -127,15 +127,19 @@ static bool check_all_threads_done() {
 }
 
 void clean_up_threads(Monitor monitor) {
-    // join threads
+    // set the thread_end variable to true so that we signal signals to break from loop
     pthread_mutex_lock(&mtx_check_end);
     thread_end = true;
     pthread_mutex_unlock(&mtx_check_end);
+    // initialize thread_done counter
     threads_done = 0;
+    // while at least one thread is active broadcast the cb_empty CV
     while (!check_all_threads_done()) {
         // signal all the mutexes waiting on cb_empty 
         pthread_cond_broadcast(&cond_cb_empty);
     }
+
+    // join threads
     join_threads(num_threads, threads);
     free(threads);
     // free mutexes and conditions
@@ -145,6 +149,7 @@ void clean_up_threads(Monitor monitor) {
     pthread_mutex_destroy(&mtx_check_end);
     pthread_mutex_destroy(&mtx_monitor);
 
+    // free conditions
     pthread_cond_destroy(&cond_cb_full);
     pthread_cond_destroy(&cond_cb_empty);
 }
