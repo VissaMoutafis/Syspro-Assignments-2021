@@ -15,6 +15,10 @@ struct hostent *get_ip(void) {
     if ((machine = gethostbyname(hostname)) == NULL)
         fprintf(stderr, "Could not resolve hostname '%s'\n", hostname);
 
+    #ifdef DEBUG
+    struct in_addr **ips = (struct in_addr **)machine->h_addr_list;
+    printf("%s -> %s\n", hostname, inet_ntoa(*ips[0]));
+    #endif
     return machine;
 }
 

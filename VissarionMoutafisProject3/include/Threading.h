@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 3
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+
 #pragma once
 
 #include <pthread.h>

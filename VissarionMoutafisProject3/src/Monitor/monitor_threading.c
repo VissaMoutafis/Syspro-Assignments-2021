@@ -1,3 +1,8 @@
+/**
+*	Syspro Project 3
+*	 Written By Vissarion Moutafis sdi1800119
+**/
+
 #include "Monitor.h"
 #include "Threading.h"
 
@@ -68,7 +73,6 @@ void *monitor_thread_routine(void *_args) {
             char *file_path = NULL;
             char *_file_path = cb_get(monitor->cb);
             if (_file_path) {
-                puts(_file_path);
                 file_path = calloc(strlen(_file_path) + 1, sizeof(char));
                 strcpy(file_path, _file_path);
                 if (strcmp(_file_path, "END")) free(_file_path);
