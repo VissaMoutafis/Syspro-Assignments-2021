@@ -35,9 +35,9 @@ endif
 
 
 # program name
-PROGRAM := travelMonitor
+PROGRAM := travelMonitorClient
 # args for <run>
-ARGS := -m 3 -b 7 -s 100000 -i testcases/myinput_dir
+ARGS := -m 3 -b 7 -s 100000 -i testcases/testdir -t 5 -c 2
 
 .PHONY : all
 all : print-msg 

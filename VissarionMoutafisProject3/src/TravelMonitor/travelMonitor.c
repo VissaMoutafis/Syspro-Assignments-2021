@@ -53,10 +53,10 @@ static bool check_vacc_date(char *date, char *req_date) {
     int d1, d2, m1, m2, y1, y2;
     sscanf(date, "%d-%d-%d", &d1, &m1, &y1);
     sscanf(req_date, "%d-%d-%d", &d2, &m2, &y2);
-    int d = 10000*y1 + 100*m1 + d1;
-    int r = 10000*y2 + 100*m2 + d2;
+    int d = 12*30*y1 + 30*m1 + d1;
+    int r = 12*30*y2 + 30*m2 + d2;
     int diff = r - d;
-    return diff >= 0 && diff < 600;
+    return diff >= 0 && diff < 6*30;
 }
 
 static bool try_answer_travel_request(TravelMonitor monitor, void *args[], void *ret_args[]) {
