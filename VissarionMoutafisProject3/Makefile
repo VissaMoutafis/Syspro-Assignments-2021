@@ -9,7 +9,7 @@ BUILD := $(MAKE-DIR)/build
 
 # basic enviroment variables
 CC := gcc
-CFLAGS := -Wall -I $(INCLUDE) -g3
+CFLAGS := -Wall -I $(INCLUDE)
 LIBS := -lm -pthread
 OBJS := 
 
@@ -68,7 +68,7 @@ run : all
 re-run: clean run
 
 .PHONY : valgrind-run 
-valgrind-run : $(BIN)/$(PROGRAM)
+valgrind-run : all
 	valgrind \
 	--leak-check=full \
 	--show-leak-kinds=all \

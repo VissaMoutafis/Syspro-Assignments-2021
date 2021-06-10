@@ -6,16 +6,32 @@ Abstract
 
 The third project was essentially the same as the second one but with the following technical differences:
 - The IPC was over sockets, not named-pipes
-- There was no use signals
-- The queries that used signals, are implemented as the rest of them - send query to server over socket, wait response.
-- The init process changed a little
+- There was no use of signals
+- The queries that used signals, are implemented as the rest of them - send query to server over socket and wait for response.
+- The init process changed a little since the 2 programs arguments changed
+- Each monitor process had its own threads to parse and insert records from files in a distributed manner.
+- There was a need for mutexes and conditional variables, due to the previous modification.
 
 
 In the following paragraphs I will provide you with all necessary implementation details you need to know,
-nevertheless I will not get to informative since the functionalities code is basically the same. 
+nevertheless I will not get to informative since the functionalities' code is basically the same as in the previous assignment. 
 I will elaborate the network protocols, the changed-queries implementation and the init protocol,
 as well as the threading protocol, used for distributed directory management.  
 
+
+//////////////////////
+Compilation and Run 
+//////////////////////
+
+~$ make [all] [DEBUG=1]         # compile the program
+~$ make run [DEBUG=1]           # compile and run with standard arguments (check the Makefile if you wanna change the default arguments)
+~$ make rerun [DEBUG=1]         # re-compile and run with default arguments
+~$ make valgrind-run [DEBUG=1]  # compile and run with default argument using the valgrind utility *
+~$ make clean                   # clean all objective and executables
+~$ make clean-logs              # clean all log files 
+
+* If you wanna run this then make sure you installed valgrind: 
+    ~$ sudo apt install valgrind # install valgrind
 
 
 //////////////////////
@@ -35,12 +51,12 @@ We used the following CLIENT protocol:
 
 - Every time the client wants to communicate with a server he will estasblish a connection with him using a loop of type
     do {
-        wrtfd = connect(ip_addr, port)
-    } while(wrtfd is not set) 
+        wrtfd = connect(ip_addr, port) // try connect
+    } while(wrtfd is not set) // keep trying till we succeed
 
     and after that he will use this socket for bidirectional communication. The socket will be writeable AND readable,
     so it will resemble both in and out fifo of the 2nd assignment. There will also be the same fd-readability check
-    with the same poll utility I provided in the second assignment. 
+    with the same poll-based utility function I provided in the second assignment. 
 
 - At the init state we will first assign the dirs and fork the children/servers, after that we will estasblish a connection to all of them.
     Lastly, we will start polling and get all the blooms in packets. The packet handler for blooms is the same as in 2nd assignment.
@@ -102,7 +118,7 @@ Threading
 //////////////////////
 
 We used threads to distributed the workload of passing mutliple directories' record  into the monitor servers 
-database structs. To do something like that we established the following monitor side algorithm, that resembles the producer consumer algorithm for multiple consumers.
+database structs. To do something like that we established the following monitor side algorithm, that resembles the producer-consumer algorithm for multiple consumers.
 
 
 >>>>>>>>>>>>>>> GLOBALS
@@ -176,7 +192,8 @@ that the producer will not try to add stuf to a FULL CB since we always block on
 
     Consumer side, we make sure that only one consumer will actualy get into the processing per data produced, since all threads are waiting on the 
 cb_empty_c condition. After that we make some checks for exit case and proceed to remove 1 file path and add all of its records (each one atomically)
-into the monitor database. After that we signal the cb_full_c condition so that the master thread knows that at least one CB slot is free.
+into the monitor database. After that we signal the cb_full_c condition so that the master thread knows that at least one CB slot is free. 
+Note that the consumers "sleep" on the condition variable, while there are no new files added into the circular buffer. 
 
 AT THE END we will change the variable and broadcast the condition since this is the part that every thread will be waiting on.
 
