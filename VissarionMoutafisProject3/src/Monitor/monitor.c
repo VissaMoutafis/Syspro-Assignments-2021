@@ -481,7 +481,7 @@ static void set_bf_buf(char *header, int header_len, VirusInfo virus_info, char 
 
 // Basic Monitor Methods
 
-void monitor_initialize(int _out_fd) { 
+void monitor_initialize(void) { 
     // for basic workflow loop
     is_end = false;
 
